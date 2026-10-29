@@ -851,7 +851,7 @@ A.lrole=b=>{L.role=b.dataset.r;L.err='';showLogin()};
 document.addEventListener('submit',e=>{if(e.target.id!=='lf')return;e.preventDefault();
   const u=$('#lu').value.trim().toLowerCase(),p=$('#lp').value,ak=S.set.akun||{admin:'admin123',direktur:'direktur123',adminjual:'jual123',adminops:'ops123',sales:'sales123'};let ses=null;
   if(L.role==='teknisi'||L.role==='sales'){const sl=L.role==='sales',m=S.emps.find(x=>(sl?x.jabatan==='Sales':isTek(x))&&userOf(x)===u&&x.pw===p);if(m)ses={role:L.role,empId:m.id,nama:m.nama}}
-  else if(u===L.role&&ak[L.role]===p)ses={role:L.role,nama:({admin:'Admin Super',direktur:'Direktur',adminjual:'Admin Penjualan',adminops:'Admin Operasional',sales:'Sales'})[L.role]};
+  else if(u===L.role&&ak[L.role]===p&&!(L.role==='direktur'&&S.set.noGenDir))ses={role:L.role,nama:({admin:'Admin Super',direktur:'Direktur',adminjual:'Admin Penjualan',adminops:'Admin Operasional',sales:'Sales'})[L.role]};
   if(!ses){const rg=(S.users||[]).find(x=>x.role===L.role&&x.user===u&&x.pw===p);if(rg)ses={role:rg.role,empId:rg.empId,nama:rg.nama}}
   if(!ses){const pr=(S.reg||[]).find(x=>x.user===u&&x.pw===p&&x.st!=='Disetujui');if(pr){L.err=pr.st==='Menunggu'?'Pendaftaran Anda masih menunggu persetujuan Direktur.':'Pendaftaran ditolak. Alasan: '+(pr.alasanTolak||'-');showLogin();return}}
   if(!ses){L.err='Nama pengguna atau kata sandi salah untuk peran '+ROLE_L[L.role]+'.';showLogin();return}
@@ -2095,6 +2095,39 @@ A.kopLogoDel=()=>{S.set.kop={...(S.set.kop||{}),logo:''};save();render();toast('
 </script>
 <script>
 document.querySelectorAll('.logo.lg img:not([src])').forEach(i=>i.src=LOGO_URI);
+</script>
+<script>
+/* ---------- Akun Direktur: dibuat Admin Super, login memakai nama sendiri ---------- */
+const dirAk=()=>(S.users=S.users||[]).filter(u=>u.role==='direktur');
+const normU=s=>String(s||'').trim().toLowerCase().replace(/\s+/g,'');
+ICON.akun='<circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M17 11l2 2 3-3"/>';
+{const _at=allowedTabs;allowedTabs=function(){const t=_at();return SES&&SES.role==='admin'&&!t.some(x=>x[0]==='akun')?t.concat([['akun','Akun Direktur']]):t}}
+V.akun=()=>{
+ const D=dirAk();
+ return `<div class="head"><div><h1>Akun Direktur</h1><p>Buat akun agar setiap Direktur masuk dengan nama sendiri. Persetujuan dan tanda tangan digital jadi tercatat atas nama mereka.</p></div><button class="btn pri" data-act="akNew">+ Akun Direktur</button></div>
+ ${S.set.noGenDir?'<div class="info">Login umum <b>direktur</b> sedang nonaktif. Hanya akun di bawah yang bisa masuk sebagai Direktur.</div>':`<div class="note">Login umum <b>direktur</b> (kata sandi bawaan) masih aktif, jadi siapa pun yang tahu kata sandinya bisa masuk sebagai Direktur. ${D.length?'Setelah semua Direktur punya akun, nonaktifkan login umum dengan tombol di bawah.':'Buat akun Direktur dulu, setelah itu login umum bisa dinonaktifkan.'}</div>`}
+ <div class="card"><div class="row" style="justify-content:space-between"><h3>Daftar akun (${D.length})</h3>${D.length?`<button class="btn sm" data-act="akGen">${S.set.noGenDir?'Aktifkan lagi login umum':'Nonaktifkan login umum'}</button>`:''}</div>
+ <div class="tw"><table><thead><tr><th>Nama</th><th>Nama pengguna</th><th>Dibuat</th><th></th></tr></thead><tbody>${D.length?D.map(u=>`<tr><td><b>${esc(u.nama)}</b></td><td class="num">${esc(u.user)}</td><td>${u.dibuat?fd(u.dibuat):'-'}${u.oleh?'<br><small>oleh '+esc(u.oleh)+'</small>':''}</td><td class="r"><button class="btn sm" data-act="akEd" data-id="${u.id}">Ubah</button> <button class="btn sm del" data-act="akDel" data-id="${u.id}">Hapus</button></td></tr>`).join(''):'<tr><td colspan="4" class="empty">Belum ada akun Direktur. Tekan + Akun Direktur.</td></tr>'}</tbody></table></div></div>`};
+function akForm(u,pre){
+ const edit=!!u;
+ form(edit?'Ubah akun Direktur':'Akun Direktur baru',[
+  {k:'nama',l:'Nama lengkap Direktur',req:1,wide:1},
+  {k:'user',l:'Nama pengguna (huruf kecil, tanpa spasi)',req:1},
+  {k:'pw',l:edit?'Kata sandi baru (kosongkan jika tidak diubah)':'Kata sandi (minimal 6 karakter)',req:!edit}],
+  pre||(edit?{nama:u.nama,user:u.user,pw:''}:null),v=>{
+  const nama=String(v.nama).trim(),user=normU(v.user),pw=String(v.pw||'');
+  const err=!nama?'Nama wajib diisi':!user?'Nama pengguna wajib diisi':user==='direktur'?'Nama pengguna "direktur" dipakai login umum, pilih yang lain':dirAk().some(x=>x.user===user&&x!==u)?'Nama pengguna sudah dipakai':((!edit||pw)&&pw.length<6)?'Kata sandi minimal 6 karakter':'';
+  if(err){toast(err);setTimeout(()=>akForm(u,{nama:v.nama,user:v.user,pw:v.pw}),50);return}
+  if(edit){u.nama=nama;u.user=user;if(pw)u.pw=pw}
+  else S.users.push({id:uid('u'),role:'direktur',user,pw,nama,empId:'',dibuat:TODAY,oleh:SES.nama});
+  save();render();toast(edit?'Akun diperbarui':'Akun Direktur dibuat. Beri tahu nama pengguna dan kata sandinya.')})}
+A.akNew=()=>akForm(null);
+A.akEd=b=>{const u=dirAk().find(x=>x.id===b.dataset.id);if(u)akForm(u)};
+A.akDel=b=>{const u=dirAk().find(x=>x.id===b.dataset.id);if(!u)return;
+ askReason('Hapus akun Direktur: '+u.nama,'Akun ini tidak bisa masuk lagi setelah dihapus. Penghapusan harus disertai alasan.',al=>{
+  S.users=S.users.filter(x=>x!==u);if(!dirAk().length)S.set.noGenDir=false;
+  logAksi('Hapus akun Direktur',u.nama+' ('+u.user+')',al);save();render();toast('Akun dihapus')})};
+A.akGen=()=>{S.set.noGenDir=!S.set.noGenDir;save();render();toast(S.set.noGenDir?'Login umum direktur dinonaktifkan':'Login umum direktur diaktifkan lagi')};
 </script>
 <script src="daftar.js"></script>
 <script src="export-excel.js"></script>
