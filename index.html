@@ -342,6 +342,15 @@ body::after{content:"A SITECLUB PROJECT";position:fixed;left:50%;top:50%;transfo
 @media print{body::after{display:none}}
 </style>
 <script src="logo.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // === KONEKSI KE SUPABASE ===
+  const supabaseUrl = 'https://eooaxxzdcbtrreglcnqo.supabase.co';
+  const supabaseKey = 'sb_publishable_7ZXjsI4KMaf0XXokS5owFQ_yk71dwpi';
+  
+  // Membuat koneksi
+  const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+</script>
 <style>
 .logo.lg{background:#fff!important;padding:3px;overflow:hidden}.logo.lg img{width:100%;height:100%;object-fit:contain;display:block}
 .lg-art .logo.lg{width:60px;height:60px}
