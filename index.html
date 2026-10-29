@@ -571,51 +571,74 @@ const SERV={'Cuci AC':85000,'Tambah Freon':250000,'Perbaikan':350000,'Instalasi'
 const STAT=['Baru','Dijadwalkan','Dikerjakan','Selesai','Batal'];
 const KAT_IN=['Jasa servis','Penjualan sparepart','Kontrak perawatan','Lainnya'];
 const KAT_OUT=['Material & freon','Gaji karyawan','Bensin & transport','Sewa & listrik','Peralatan','Lainnya'];
-let S=null, memOnly=false;
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){memOnly=true}}
-async function load() {
-  try {
-    // Tanya dulu ke Supabase, apakah ada sesi login yang aktif?
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    
-    // Kalau belum login, jangan tarik data (biar gak error 401).
-    // Langsung kembalikan data kosong/awal.
-    if (!session) {
-      return seed(); 
+let S=null;
+/* ===== SINKRON KE SUPABASE (tabel app_state), tanpa localStorage ===== */
+const SYNC={ready:false,snap:{},timer:null,client:Math.random().toString(36).slice(2)+Date.now().toString(36),chan:null,busy:false,again:false};
+function stateKeys(){return Object.keys(S||{}).filter(k=>k!=='tab')}
+async function syncNow(){
+  if(!SYNC.ready||!S){return}
+  if(SYNC.busy){SYNC.again=true;return}
+  SYNC.busy=true;
+  try{
+    const rows=[];
+    stateKeys().forEach(k=>{const j=JSON.stringify(S[k]);if(SYNC.snap[k]!==j)rows.push({key:k,value:S[k],client:SYNC.client,_j:j})});
+    if(rows.length){
+      const {error}=await supabaseClient.from('app_state').upsert(rows.map(r=>({key:r.key,value:r.value,client:r.client})),{onConflict:'key'});
+      if(error){console.error('Gagal simpan ke Supabase:',error);toast('Gagal simpan ke database: '+error.message)}
+      else rows.forEach(r=>{SYNC.snap[r.key]=r._j});
     }
-
-    // Kalau sudah login, baru tarik data dari database
-    const [resOrders, resInvoices, resTx] = await Promise.all([
-      supabaseClient.from('orders').select('*'),
-      supabaseClient.from('invoices').select('*, invoice_items(*)'),
-      supabaseClient.from('transactions').select('*')
-    ]);
-
-    // Jika tabel orders masih kosong di database
-    if (!resOrders.data || resOrders.data.length === 0) {
-      console.log("Database kosong, memuat data awal.");
-      return seed(); 
-    }
-
-    // Susun ulang data agar cocok dengan aplikasi
-    const S_new = seed(); 
-    
-    S_new.orders = resOrders.data.map(o => ({ ...o, extra: undefined, ...o.extra }));
-    S_new.inv = resInvoices.data.map(i => ({ 
-      ...i, 
-      items: i.invoice_items || [], 
-      extra: undefined, 
-      ...i.extra 
-    }));
-    S_new.tx = resTx.data.map(t => ({ ...t, extra: undefined, ...t.extra }));
-
-    console.log("Berhasil memuat data dari Supabase!");
+  }catch(e){console.error(e);toast('Gagal simpan ke database (jaringan?)')}
+  SYNC.busy=false;
+  if(SYNC.again){SYNC.again=false;syncNow()}
+}
+function save(){clearTimeout(SYNC.timer);SYNC.timer=setTimeout(syncNow,300)}
+window.addEventListener('pagehide',()=>{try{syncNow()}catch(e){}});
+async function load(){
+  try{
+    const {data:{session}}=await supabaseClient.auth.getSession();
+    if(!session){SYNC.ready=false;return seed()}
+    const {data,error}=await supabaseClient.from('app_state').select('key,value');
+    if(error)throw error;
+    const S_new=seed();
+    SYNC.snap={};
+    (data||[]).forEach(r=>{S_new[r.key]=r.value;SYNC.snap[r.key]=JSON.stringify(r.value)});
+    S_new.tab='dash';
+    SYNC.ready=true;
+    S=S_new;
+    if(!data||!data.length){console.log('Database kosong, menyimpan data awal.');syncNow()}
+    startRealtime();
     return S_new;
-
-  } catch (e) {
-    console.error("Gagal memuat data dari Supabase:", e);
-    return seed(); 
+  }catch(e){
+    console.error('Gagal memuat data dari Supabase:',e);
+    SYNC.ready=false; /* jangan menimpa database dengan data kosong */
+    toast('Gagal memuat data dari database. Muat ulang halaman.');
+    return seed();
   }
+}
+function startRealtime(){
+  if(SYNC.chan)return;
+  SYNC.chan=supabaseClient.channel('app_state_sync')
+   .on('postgres_changes',{event:'*',schema:'public',table:'app_state'},pl=>{
+     const r=pl.new;if(!r||!r.key||r.client===SYNC.client||!SES)return;
+     if(JSON.stringify(S[r.key])===JSON.stringify(r.value))return;
+     const modalOpen=$('#modal')&&!$('#modal').hidden;
+     try{
+       const b=(typeof nUnread==='function')?nUnread().length:0;
+       S[r.key]=r.value;SYNC.snap[r.key]=JSON.stringify(r.value);
+       if(typeof mig==='function')mig();
+       if(modalOpen)return; /* jangan ganggu form yang sedang dibuka */
+       const a=(typeof nUnread==='function')?nUnread().length:0;
+       render();if(a>b)toast('Ada '+(a-b)+' pemberitahuan baru');
+     }catch(e){console.error(e)}
+   }).subscribe();
+}
+async function bootData(){
+  S=await load();
+  if(!S||!S.set)S=seed();
+  mig();
+  S.tab='dash';
+  S.rem=S.rem||{};
+  S.emps.forEach(e=>{if(!e.pw)e.pw='teknisi123'});
 }
 function toast(t){const el=$('#toast');el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,2400)}
 function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
@@ -697,7 +720,7 @@ function render(){
   $('#view').innerHTML=((SES.role==='teknisi'||(SES.role==='sales'&&S.tab==='abs'))?V[S.tab+'T']:V[S.tab])();
   $('#nav').innerHTML=allowedTabs().map(t=>`<button data-act="tab" data-t="${t[0]}"${S.tab===t[0]?' aria-current="page"':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON[t[0]]}</svg>${t[1]}</button>`).join('');
   $('#coName').textContent=S.set.nama;
-  $('#sidefoot').innerHTML=`${S.demo?'<div class="note">Data contoh. Hapus sebelum dipakai sungguhan.</div><button class="btn sm" data-act="clearDemo">Hapus data contoh</button>':''}<div class="row"><button class="btn sm" data-act="backup">Simpan cadangan</button><button class="btn sm" data-act="restore">Pulihkan</button></div>${memOnly?'<div class="note">Penyimpanan browser diblokir, data hilang saat ditutup.</div>':'<span>Data tersimpan di browser ini.</span>'}`;
+  $('#sidefoot').innerHTML=`${S.demo?'<div class="note">Data contoh. Hapus sebelum dipakai sungguhan.</div><button class="btn sm" data-act="clearDemo">Hapus data contoh</button>':''}<div class="row"><button class="btn sm" data-act="backup">Simpan cadangan</button><button class="btn sm" data-act="restore">Pulihkan</button></div>${false?'':'<span>Data tersimpan di database (Supabase).</span>'}`;
   $('#who').innerHTML=`<div><b>${esc(SES.nama)}</b><small>${ROLE_L[SES.role]}</small></div><button class="btn sm" data-act="logout">${DEMO_OPEN?'Ganti peran':'Keluar'}</button>`;
   if(SES.role!=='admin')$('#sidefoot').innerHTML='';
   labelTables();
@@ -758,25 +781,11 @@ function orderForm(o){
   form(o?'Ubah order '+o.id:'Order baru',F,o, async v=>{
     if(!v.nilai)v.nilai=(SERV[v.layanan]||0)*(v.unit||1);
     
-    // --- SIMPAN KE SUPABASE ---
-    let orderData = { ...v };
-    
     if(o) {
-      // Jika Edit Order
-      Object.assign(o, orderData);
-      await supabaseClient.from('orders').update(orderData).eq('id', o.id);
+      Object.assign(o, {...v});
     } else {
-      // Jika Order Baru
-      const newOrder = { id: nextId, status: 'Baru', ...orderData };
-      S.orders.push(newOrder);
-      const { error } = await supabaseClient.from('orders').insert([newOrder]);
-
-      if (error) {
-        console.error("GAGAL SIMPAN KE SUPABASE:", error);
-        toast('Gagal simpan ke database: ' + error.message);
-        return; // Hentikan proses jika gagal
-      }
-    } // <--- KURUNG PENUTUP ELSE YANG TADI HILANG SUDAH DITAMBAHKAN DI SINI
+      S.orders.push({ id: nextId, status: 'Baru', ...v });
+    }
 
     // Simpan pelanggan baru (jika belum ada)
     if(!S.cust.find(c=>c.nama===v.nama)) {
@@ -785,7 +794,7 @@ function orderForm(o){
     
     save(); 
     render(); 
-    toast('Order berhasil disimpan ke Database!');
+    toast('Order berhasil disimpan ke database');
   }); // <--- PENUTUP FUNGSI FORM
 } // <--- PENUTUP FUNGSI orderForm
 A.editOrder=b=>orderForm(S.orders.find(x=>x.id===b.dataset.id));
@@ -951,10 +960,10 @@ const ROLE_L={admin:'Admin Super',direktur:'Direktur',adminjual:'Admin Penjualan
 const LOGO='<div class="logo lg"><img src="'+LOGO_URI+'" alt="Logo"></div>';
 const SKEY='awaljaya.ses',PAGE=15;
 const DEMO_OPEN=false; /* true = tombol masuk 1 klik tanpa kata sandi. Ubah ke false untuk pemakaian sungguhan. */
-let SES=null;const L={role:(()=>{try{const r=localStorage.getItem('pg.role');return r&&ROLE_L[r]?r:'admin'}catch(e){return 'admin'}})(),err:''};U.pg={};U.pgs={};
+let SES=null;const L={role:'admin',err:''};U.pg={};U.pgs={};
 const userOf=e=>e.nama.split(' ')[0].toLowerCase();
-function loadSes(){try{const x=JSON.parse(localStorage.getItem(SKEY)||'null');if(x&&((x.role!=='teknisi'&&x.role!=='sales')||S.emps.some(e=>e.id===x.empId)))return x}catch(e){}return null}
-function saveSes(){try{SES?localStorage.setItem(SKEY,JSON.stringify(SES)):localStorage.removeItem(SKEY)}catch(e){}}
+function loadSes(){return null}
+function saveSes(){}
 function allowedTabs(){return SES.role==='admin'?TABS:SES.role==='internal'?TABS.filter(t=>['dash','wa','inv','abs','kin'].includes(t[0])):[['dash','Order Saya'],['abs','Absensi']]}
 function ensureTab(){if(!allowedTabs().some(t=>t[0]===S.tab))S.tab='dash'}
 function hideLogin(){$('#login').hidden=true;$('.app').hidden=false;L.shown=false;L.u=''}
@@ -1045,8 +1054,7 @@ document.addEventListener('submit', async e => {
     };
     
     L.err = '';
-    saveSes();
-    S.tab = 'dash';
+    await bootData();
     render();
     window.scrollTo(0, 0);
 
@@ -1060,7 +1068,12 @@ document.addEventListener('submit', async e => {
 });
 
 // Tombol Logout tetap sama
-A.logout=()=>{SES=null;saveSes();render()};
+A.logout=async()=>{
+  try{await syncNow()}catch(e){}
+  SES=null;SYNC.ready=false;SYNC.snap={};
+  try{if(SYNC.chan){await supabaseClient.removeChannel(SYNC.chan);SYNC.chan=null}}catch(e){}
+  try{await supabaseClient.auth.signOut()}catch(e){}
+  S=seed();render()};
 function paginate(k,rows,sig){
   if(U.pgs[k]!==sig){U.pgs[k]=sig;U.pg[k]=1}
   const n=rows.length,pages=Math.max(1,Math.ceil(n/PAGE)),p=Math.min(U.pg[k]||1,pages);U.pg[k]=p;const a=(p-1)*PAGE;
@@ -1231,8 +1244,7 @@ A.navToggle=()=>{const o=document.body.classList.toggle('navopen');const h=$('.h
 A.navClose=()=>{document.body.classList.remove('navopen');const h=$('.hb');if(h)h.setAttribute('aria-expanded','false')};
 document.addEventListener('keydown',e=>{if(e.key==='Escape')A.navClose()});
 const _r0=render;render=function(){_r0();A.navClose();if(SES){const tb=$('#tbTitle'),cur=allowedTabs().find(x=>x[0]===S.tab);if(tb)tb.textContent=cur?String(cur[1]).replace(/ \(\d+\)$/,''):S.set.nama}const bb=$('#bellbox');if(bb)bb.innerHTML=SES?bellHTML():'';if(!SES)npClose();else npRender()};
-window.addEventListener('storage',e=>{if(e.key!==KEY||!e.newValue||!SES||!$('#modal').hidden)return;
- try{const b=nUnread().length;S=JSON.parse(e.newValue);mig();const a=nUnread().length;render();if(a>b)toast('Ada '+(a-b)+' pemberitahuan baru')}catch(_){}});
+
 
 /* ---------- Pemicu pemberitahuan ---------- */
 function reqNotif(jenis,ket,jml,alasan){const j=RJ[jenis]||jenis;
@@ -1948,14 +1960,9 @@ A.invEdit=b=>{const i=S.inv.find(x=>x.id===b.dataset.id);if(!i||i.appr!=='Ditola
     }
   }
 
-  // 2. Baru ambil data dari database
-  S = await load(); 
-  
-  if(!S || !S.set){ S = seed(); save(); }
-  mig();
+  // 2. Ambil semua data dari database
+  await bootData();
   if(!V[S.tab]) S.tab = 'dash';
-  S.rem = S.rem || {};
-  S.emps.forEach(e => { if(!e.pw) e.pw = 'teknisi123'; });
   
   render();
 })();
