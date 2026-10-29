@@ -933,14 +933,64 @@ function demoBox(){const R=[['admin','Admin','Semua menu: order, keuangan, invoi
 A.demoIn=b=>{const r=b.dataset.r,e=S.emps.find(x=>isTek(x));SES=r==='teknisi'?{role:r,empId:e.id,nama:e.nama}:{role:r,nama:({admin:'Admin Super',direktur:'Direktur',adminjual:'Admin Penjualan',adminops:'Admin Operasional',sales:'Sales'})[r]};saveSes();S.tab='dash';render();window.scrollTo(0,0)};
 A.demoReset=()=>{S=seed();S.emps.forEach(e=>e.pw='teknisi123');S.rem={};mig();save();SES=null;saveSes();render();toast('Data contoh dikembalikan')};
 A.lrole=b=>{L.role=b.dataset.r;L.err='';showLogin()};
-document.addEventListener('submit',e=>{if(e.target.id!=='lf')return;e.preventDefault();
-  const u=$('#lu').value.trim().toLowerCase(),p=$('#lp').value,ak=S.set.akun||{admin:'admin123',direktur:'direktur123',adminjual:'jual123',adminops:'ops123',sales:'sales123'};let ses=null;
-  if(L.role==='teknisi'||L.role==='sales'){const sl=L.role==='sales',m=S.emps.find(x=>(sl?x.jabatan==='Sales':isTek(x))&&userOf(x)===u&&x.pw===p);if(m)ses={role:L.role,empId:m.id,nama:m.nama}}
-  else if(u===L.role&&ak[L.role]===p&&!(L.role==='direktur'&&S.set.noGenDir))ses={role:L.role,nama:({admin:'Admin Super',direktur:'Direktur',adminjual:'Admin Penjualan',adminops:'Admin Operasional',sales:'Sales'})[L.role]};
-  if(!ses){const nu=normU(u),us=S.users||[],rg=us.find(x=>x.role===L.role&&normU(x.user)===nu&&x.pw===p)||us.find(x=>normU(x.user)===nu&&x.pw===p);if(rg){ses={role:rg.role,empId:rg.empId,nama:rg.nama};L.role=rg.role}}
-  if(!ses){const pr=(S.reg||[]).find(x=>x.user===u&&x.pw===p&&x.st!=='Disetujui');if(pr){L.err=pr.st==='Menunggu'?'Pendaftaran Anda masih menunggu persetujuan Direktur.':'Pendaftaran ditolak. Alasan: '+(pr.alasanTolak||'-');showLogin();return}}
-  if(!ses){L.err='Nama pengguna atau kata sandi salah untuk peran '+ROLE_L[L.role]+'.';showLogin();return}
-  SES=ses;L.err='';try{localStorage.setItem('pg.role',ses.role)}catch(e){}saveSes();S.tab='dash';render();window.scrollTo(0,0)});
+document.addEventListener('submit', async e => {
+  if (e.target.id !== 'lf') return;
+  e.preventDefault();
+
+  const u = $('#lu').value.trim().toLowerCase();
+  const p = $('#lp').value;
+  const email = u + '@punggawa47.app'; 
+
+  const btn = $('#lf button[type="submit"]');
+  if(btn) { btn.disabled = true; btn.innerHTML = 'Memproses...'; }
+
+  try {
+    const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
+      email: email,
+      password: p
+    });
+
+    if (authError) {
+      L.err = 'Nama pengguna atau kata sandi salah.';
+      showLogin();
+      return;
+    }
+
+    const { data: profile, error: profError } = await supabaseClient
+      .from('profiles')
+      .select('*')
+      .eq('id', authData.user.id)
+      .single();
+
+    if (profError || !profile || profile.status !== 'active') {
+      L.err = 'Akun Anda belum aktif atau belum disetujui Admin.';
+      await supabaseClient.auth.signOut();
+      showLogin();
+      return;
+    }
+
+    SES = {
+      role: profile.role,
+      empId: profile.emp_id,
+      nama: profile.nama
+    };
+    
+    L.err = '';
+    saveSes();
+    S.tab = 'dash';
+    render();
+    window.scrollTo(0, 0);
+
+  } catch (err) {
+    console.error(err);
+    L.err = 'Terjadi kesalahan jaringan.';
+    showLogin();
+  } finally {
+    if(btn) { btn.disabled = false; btn.innerHTML = 'Masuk'; }
+  }
+});
+
+// Tombol Logout tetap sama
 A.logout=()=>{SES=null;saveSes();render()};
 function paginate(k,rows,sig){
   if(U.pgs[k]!==sig){U.pgs[k]=sig;U.pg[k]=1}
