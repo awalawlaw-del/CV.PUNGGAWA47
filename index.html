@@ -573,7 +573,48 @@ const KAT_IN=['Jasa servis','Penjualan sparepart','Kontrak perawatan','Lainnya']
 const KAT_OUT=['Material & freon','Gaji karyawan','Bensin & transport','Sewa & listrik','Peralatan','Lainnya'];
 let S=null, memOnly=false;
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){memOnly=true}}
-function load(){try{const r=localStorage.getItem(KEY);if(r)return JSON.parse(r)}catch(e){memOnly=true}return null}
+async function load() {
+  try {
+    // 1. Tarik data dari 3 tabel utama Supabase secara bersamaan
+    const [resOrders, resInvoices, resTx] = await Promise.all([
+      supabaseClient.from('orders').select('*'),
+      supabaseClient.from('invoices').select('*, invoice_items(*)'),
+      supabaseClient.from('transactions').select('*')
+    ]);
+
+    // Jika tabel orders masih kosong (belum ada data sama sekali di database)
+    // Maka pakai data awal (seed)
+    if (!resOrders.data || resOrders.data.length === 0) {
+      console.log("Database kosong, memuat data awal.");
+      return seed(); 
+    }
+
+    // 2. Jika ada data, susun ulang agar formatnya cocok dengan aplikasi
+    const S_new = seed(); // Ambil kerangka default (setting, dll)
+    
+    // Masukkan data orders dari Supabase
+    S_new.orders = resOrders.data.map(o => ({ ...o, extra: undefined, ...o.extra }));
+    
+    // Masukkan data invoice beserta item-itemnya
+    S_new.inv = resInvoices.data.map(i => ({ 
+      ...i, 
+      items: i.invoice_items || [], 
+      extra: undefined, 
+      ...i.extra 
+    }));
+    
+    // Masukkan data transaksi keuangan
+    S_new.tx = resTx.data.map(t => ({ ...t, extra: undefined, ...t.extra }));
+
+    console.log("Berhasil memuat data dari Supabase!");
+    return S_new;
+
+  } catch (e) {
+    console.error("Gagal memuat data dari Supabase:", e);
+    // Jika gagal (misal internet mati), pakai data lokal/seed
+    return seed(); 
+  }
+}
 function toast(t){const el=$('#toast');el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,2400)}
 function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 function seedDemo(){
@@ -1860,7 +1901,24 @@ A.invEdit=b=>{const i=S.inv.find(x=>x.id===b.dataset.id);if(!i||i.appr!=='Ditola
  K=newK();save();S.tab='inv';render();toast(isAp()?'Invoice '+i0.no+' terbit':'Invoice '+i0.no+' diajukan ulang, menunggu persetujuan')}}
 {const _vk=V.kas;V.kas=()=>{let h=_vk();if(K&&K.editId){const i=S.inv.find(x=>x.id===K.editId);if(i&&!isAp())h=h.replace('<div class="card"><h3>Dari job teknisi</h3>',`<div class="note">Mengedit <b>${i.no}</b> yang ditolak Direktur. Alasan: ${esc(i.alasanTolak||'-')}. Setelah diperbaiki, tekan Ajukan ulang agar Direktur menyetujui lagi.</div><div class="card"><h3>Dari job teknisi</h3>`).replace('>Terbitkan invoice<','>Ajukan ulang ke Direktur<')}return h}}
 
-(function init(){if(/^#investor=/.test(location.hash))return;S=load();if(!S||!S.set){S=seed();save()}mig();if(!V[S.tab])S.tab='dash';S.rem=S.rem||{};S.emps.forEach(e=>{if(!e.pw)e.pw='teknisi123'});SES=loadSes();if(SES&&SES.role==='internal'){SES.role='adminops';saveSes()}render()})();
+(async function init(){
+  if(/^#investor=/.test(location.hash)) return;
+  
+  // Tunggu data dari Supabase selesai dimuat
+  S = await load(); 
+  
+  if(!S || !S.set){ S = seed(); save(); }
+  mig();
+  if(!V[S.tab]) S.tab = 'dash';
+  S.rem = S.rem || {};
+  S.emps.forEach(e => { if(!e.pw) e.pw = 'teknisi123'; });
+  
+  // Cek sesi login sebelumnya
+  SES = loadSes(); 
+  if(SES && SES.role === 'internal'){ SES.role = 'adminops'; saveSes(); }
+  
+  render();
+})();
 </script>
 <script>
 /* =====================================================================
