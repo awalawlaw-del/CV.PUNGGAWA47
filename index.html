@@ -575,23 +575,41 @@ let S=null;
 /* ===== SINKRON KE SUPABASE (tabel app_state), tanpa localStorage ===== */
 const SYNC={ready:false,snap:{},timer:null,client:Math.random().toString(36).slice(2)+Date.now().toString(36),chan:null,busy:false,again:false};
 function stateKeys(){return Object.keys(S||{}).filter(k=>k!=='tab')}
+function setBadge(kind,msg){
+  try{
+    let el=document.getElementById('syncbadge');
+    if(!SES){if(el)el.remove();return}
+    if(!el){el=document.createElement('div');el.id='syncbadge';el.setAttribute('role','status');
+      el.style.cssText='position:fixed;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);z-index:99999;padding:8px 12px;border-radius:999px;font:600 12px/1.2 system-ui,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.25);cursor:pointer;max-width:80vw;color:#fff';
+      el.onclick=()=>{retrySync()};}
+    if(!document.body.contains(el))document.body.appendChild(el);
+    el.style.background=kind==='ok'?'#15803d':kind==='busy'?'#475569':kind==='warn'?'#b45309':'#b91c1c';
+    el.textContent=msg;el.title='Klik untuk simpan ulang / sambungkan ulang';
+  }catch(e){}
+}
+async function retrySync(){
+  if(!SYNC.ready){setBadge('busy','Menyambungkan ulang...');await bootData();render();setBadge(SYNC.ready?'ok':'warn',SYNC.ready?'✓ Tersambung ke database':'⚠ Masih belum tersambung, cek internet / login ulang');return}
+  SYNC.snap={};await syncNow();
+}
 async function syncNow(){
-  if(!SYNC.ready||!S){return}
+  if(!S)return;
+  if(!SYNC.ready){setBadge('warn','⚠ Belum tersambung ke database (data BELUM tersimpan). Klik untuk coba lagi');return}
   if(SYNC.busy){SYNC.again=true;return}
   SYNC.busy=true;
+  setBadge('busy','Menyimpan ke database...');
   try{
     const rows=[];
     stateKeys().forEach(k=>{const j=JSON.stringify(S[k]);if(SYNC.snap[k]!==j)rows.push({key:k,value:S[k],client:SYNC.client,_j:j})});
     if(rows.length){
       const {error}=await supabaseClient.from('app_state').upsert(rows.map(r=>({key:r.key,value:r.value,client:r.client})),{onConflict:'key'});
-      if(error){console.error('Gagal simpan ke Supabase:',error);toast('Gagal simpan ke database: '+error.message)}
-      else rows.forEach(r=>{SYNC.snap[r.key]=r._j});
-    }
-  }catch(e){console.error(e);toast('Gagal simpan ke database (jaringan?)')}
+      if(error){console.error('Gagal simpan ke Supabase:',error);setBadge('err','✕ Gagal simpan: '+error.message+' (klik untuk coba lagi)');toast('Gagal simpan ke database: '+error.message)}
+      else{rows.forEach(r=>{SYNC.snap[r.key]=r._j});const t=new Date();setBadge('ok','✓ Tersimpan di database '+String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0')+':'+String(t.getSeconds()).padStart(2,'0'))}
+    }else setBadge('ok','✓ Semua data sudah tersinkron');
+  }catch(e){console.error(e);setBadge('err','✕ Gagal simpan (jaringan?) — klik untuk coba lagi')}
   SYNC.busy=false;
   if(SYNC.again){SYNC.again=false;syncNow()}
 }
-function save(){clearTimeout(SYNC.timer);SYNC.timer=setTimeout(syncNow,300)}
+function save(){setBadge(SYNC.ready?'busy':'warn',SYNC.ready?'Menyimpan ke database...':'⚠ Belum tersambung ke database (data BELUM tersimpan)');clearTimeout(SYNC.timer);SYNC.timer=setTimeout(syncNow,300)}
 window.addEventListener('pagehide',()=>{try{syncNow()}catch(e){}});
 async function load(){
   try{
@@ -607,11 +625,13 @@ async function load(){
     S=S_new;
     if(!data||!data.length){console.log('Database kosong, menyimpan data awal.');syncNow()}
     startRealtime();
+    setBadge('ok','✓ Tersambung ke database');
     return S_new;
   }catch(e){
     console.error('Gagal memuat data dari Supabase:',e);
     SYNC.ready=false; /* jangan menimpa database dengan data kosong */
     toast('Gagal memuat data dari database. Muat ulang halaman.');
+    setBadge('err','✕ Gagal memuat data: '+(e&&e.message?e.message:'cek tabel app_state / login')+' (klik untuk coba lagi)');
     return seed();
   }
 }
@@ -1075,7 +1095,7 @@ A.logout=async()=>{
   SES=null;SYNC.ready=false;SYNC.snap={};
   try{if(SYNC.chan){await supabaseClient.removeChannel(SYNC.chan);SYNC.chan=null}}catch(e){}
   try{await supabaseClient.auth.signOut()}catch(e){}
-  S=seed();render()};
+  S=seed();setBadge();render()};
 function paginate(k,rows,sig){
   if(U.pgs[k]!==sig){U.pgs[k]=sig;U.pg[k]=1}
   const n=rows.length,pages=Math.max(1,Math.ceil(n/PAGE)),p=Math.min(U.pg[k]||1,pages);U.pg[k]=p;const a=(p-1)*PAGE;
