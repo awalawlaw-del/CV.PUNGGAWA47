@@ -18,6 +18,7 @@ function regTaken(u,exceptId){return REG_RESV.includes(u)||userList().some(x=>x.
 {const _sl=showLogin;showLogin=function(){
  if(L.mode==='daftar'){_sl();regForm();return}
  _sl();const f=$('#lf');if(!f)return;
+ const sg=f.querySelector('.seg');if(sg)sg.remove();
  if(L.info){f.querySelector('.lerr').insertAdjacentHTML('beforebegin','<div class="info" role="status">'+esc(L.info)+'</div>');L.info=''}
  f.insertAdjacentHTML('beforeend','<button type="button" class="btn sm" data-act="regOpen" style="align-self:center">Belum punya akun? Daftar di sini</button>')}}
 function regForm(){const box=$('#login .lg-form');if(!box)return;const v=L.reg||{};
@@ -65,5 +66,20 @@ A.regOk=b=>{if(!isAp()){toast('Hanya Direktur yang dapat menyetujui');return}
  toast('Akun '+r.user+' disetujui'+(r.role==='teknisi'?'. Tingkat teknisi diset T3, ubah di menu Absensi bila perlu.':''))};
 A.regNo=b=>{if(!isAp())return;const r=regList().find(x=>x.id===b.dataset.id);if(!r||r.st!=='Menunggu')return;
  askReason('Tolak pendaftaran: '+r.nama,'Alasan penolakan wajib diisi dan tercatat di log.',al=>{r.st='Ditolak';r.alasanTolak=al;r.oleh2=SES.nama;r.tglPutus=TODAY;logAksi('Tolak pendaftaran akun',r.nama+' ('+r.user+')',al);save();render();toast('Pendaftaran ditolak')})};
+
+/* ---------- Login tanpa pilih peran: peran otomatis dari akun ---------- */
+function resolveLogin(u,p){
+ const ak=Object.assign({admin:'admin123',direktur:'direktur123',adminjual:'jual123',adminops:'ops123'},S.set.akun||{}),
+  N={admin:'Admin Super',direktur:'Direktur',adminjual:'Admin Penjualan',adminops:'Admin Operasional'};
+ if(N[u]&&ak[u]===p)return{role:u,nama:N[u]};
+ const rg=userList().find(x=>x.user===u&&x.pw===p);if(rg)return{role:rg.role,empId:rg.empId,nama:rg.nama};
+ const m=S.emps.find(x=>x.jabatan!=='Admin'&&userOf(x)===u&&x.pw===p);
+ return m?{role:m.jabatan==='Sales'?'sales':'teknisi',empId:m.id,nama:m.nama}:null}
+document.addEventListener('submit',e=>{if(e.target.id!=='lf')return;e.preventDefault();e.stopImmediatePropagation();
+ const u=$('#lu').value.trim().toLowerCase(),p=$('#lp').value,ses=resolveLogin(u,p);
+ if(!ses){const pr=regList().find(x=>x.user===u&&x.pw===p&&x.st!=='Disetujui');
+  L.err=pr?(pr.st==='Menunggu'?'Pendaftaran Anda masih menunggu persetujuan Direktur.':'Pendaftaran ditolak. Alasan: '+(pr.alasanTolak||'-')):'Nama pengguna atau kata sandi salah.';
+  showLogin();return}
+ SES=ses;L.err='';saveSes();S.tab='dash';render();window.scrollTo(0,0)},true);
 
 if(S&&!SES)render();
