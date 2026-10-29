@@ -1029,7 +1029,8 @@ document.addEventListener('submit', async e => {
     });
 
     if (authError) {
-      L.err = 'Nama pengguna atau kata sandi salah.';
+      console.error('LOGIN GAGAL:', authError, '| email dipakai:', email);
+      L.err = 'Login gagal: ' + authError.message + ' (status ' + (authError.status||'?') + ') | email: ' + email;
       showLogin();
       return;
     }
@@ -1041,7 +1042,8 @@ document.addEventListener('submit', async e => {
       .single();
 
     if (profError || !profile || profile.status !== 'active') {
-      L.err = 'Akun Anda belum aktif atau belum disetujui Admin.';
+      console.error('PROFIL BERMASALAH:', profError, profile);
+      L.err = 'Akun belum aktif / profil tidak ditemukan. ' + (profError ? profError.message : (profile ? 'status: '+profile.status : 'baris profiles kosong untuk user ini'));
       await supabaseClient.auth.signOut();
       showLogin();
       return;
