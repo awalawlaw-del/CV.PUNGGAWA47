@@ -1903,12 +1903,24 @@ A.invEdit=b=>{const i=S.inv.find(x=>x.id===b.dataset.id);if(!i||i.appr!=='Ditola
 
 (async function init(){
   if(/^#investor=/.test(location.hash)) return;
-  
-  // 1. Cek dulu siapa yang login dari sesi browser
-  SES = loadSes(); 
-  if(SES && SES.role === 'internal'){ SES.role = 'adminops'; saveSes(); }
 
-  // 2. Baru ambil data dari Supabase
+  // 1. Tanya ke Supabase: Apakah ada sesi login yang aktif?
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  
+  if (session) {
+    // Jika ada sesi, ambil profil user yang login
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('*')
+      .eq('id', session.user.id)
+      .single();
+      
+    if (profile && profile.status === 'active') {
+      SES = { role: profile.role, empId: profile.emp_id, nama: profile.nama };
+    }
+  }
+
+  // 2. Baru ambil data dari database
   S = await load(); 
   
   if(!S || !S.set){ S = seed(); save(); }
