@@ -340,6 +340,109 @@ body::after{content:"A SITECLUB PROJECT";position:fixed;left:50%;top:50%;transfo
 .logo.lg{background:#fff!important;padding:3px;overflow:hidden}.logo.lg img{width:100%;height:100%;object-fit:contain;display:block}
 .lg-art .logo.lg{width:60px;height:60px}
 </style>
+<style>
+/* ================= HALAMAN LOGIN (tampilan baru) ================= */
+#login{--lg:#4228ea;--lgsoft:color-mix(in srgb,var(--lg) 11%,var(--surface));--lgring:color-mix(in srgb,var(--lg) 18%,transparent);
+ grid-template-columns:minmax(0,1.08fr) minmax(0,1fr);align-content:stretch;background:var(--bg);font-family:var(--f-body)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #login{--lg:#8678ff}}
+:root[data-theme="dark"] #login{--lg:#8678ff}
+
+/* ---- panel kiri (brand) ---- */
+#login .lgx-art{position:relative;overflow:hidden;isolation:isolate;color:#fff;display:flex;flex-direction:column;justify-content:space-between;align-items:stretch;gap:36px;text-align:left;
+ padding:calc(env(safe-area-inset-top,0px) + 44px) 56px 44px;
+ background:radial-gradient(900px 520px at 88% -8%,rgba(122,108,255,.55),transparent 60%),radial-gradient(700px 480px at -8% 110%,rgba(34,211,238,.26),transparent 60%),linear-gradient(155deg,#0c0838 0%,#1d1182 48%,#3a22d8 100%)}
+#login .lgx-art::before{content:"";position:absolute;inset:0;z-index:-1;background-image:radial-gradient(rgba(255,255,255,.15) 1px,transparent 1.2px);background-size:26px 26px;-webkit-mask-image:linear-gradient(180deg,rgba(0,0,0,.9),transparent 78%);mask-image:linear-gradient(180deg,rgba(0,0,0,.9),transparent 78%)}
+#login .lgx-deco{position:absolute;inset:0;z-index:-1;pointer-events:none}
+#login .lgx-deco i{position:absolute;display:block;border-radius:36px;transform:skewX(-16deg)}
+#login .lgx-deco .a{width:240px;height:520px;right:-70px;top:90px;background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.14)}
+#login .lgx-deco .b{width:150px;height:340px;right:150px;bottom:-130px;background:linear-gradient(180deg,rgba(103,232,249,.24),rgba(103,232,249,0));border:1px solid rgba(255,255,255,.1)}
+#login .lgx-top{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;padding:8px 15px;border-radius:99px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+#login .lgx-top svg{width:15px;height:15px;color:#a5f3fc}
+#login .lgx-hero{display:block}
+#login .lgx-logo-card{width:max-content;max-width:100%;background:#fff;border-radius:28px;padding:20px 26px;box-shadow:0 28px 64px rgba(5,2,40,.5),0 0 0 7px rgba(255,255,255,.12)}
+#login .lgx-logo-card img{display:block;width:clamp(150px,15vw,204px);height:auto}
+#login .lgx-art h1{font-family:var(--f-display);font-size:clamp(30px,3.2vw,46px);line-height:1.08;font-weight:800;letter-spacing:-.025em;margin:32px 0 0;max-width:15ch;text-wrap:balance}
+#login .lgx-art h1 em{font-style:normal;background:linear-gradient(90deg,#a5f3fc,#c4b5fd);-webkit-background-clip:text;background-clip:text;color:transparent}
+#login .lgx-art p{color:rgba(255,255,255,.78);font-size:16px;line-height:1.6;max-width:42ch;margin:14px 0 0}
+#login .lgx-feat{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+#login .lgx-feat>div{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:16px;padding:14px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+#login .lgx-feat svg{display:block;width:20px;height:20px;color:#a5f3fc;margin-bottom:9px}
+#login .lgx-feat b{display:block;font-size:13px;font-weight:700}
+#login .lgx-feat span{display:block;font-size:12px;color:rgba(255,255,255,.68);margin-top:2px;line-height:1.4}
+
+/* ---- panel kanan (form) ---- */
+#login .lgx-side{position:relative;display:grid;place-items:center;
+ padding:calc(env(safe-area-inset-top,0px) + 32px) 28px calc(env(safe-area-inset-bottom,0px) + 32px);
+ background:radial-gradient(620px 420px at 100% 0,color-mix(in srgb,var(--lg) 10%,transparent),transparent 70%),var(--bg)}
+#login .lgx-card{width:min(440px,100%);display:flex;flex-direction:column;gap:18px;background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:34px 32px 24px;
+ box-shadow:0 1px 2px rgba(15,23,60,.05),0 28px 64px -16px rgba(40,25,150,.22)}
+#login .lgx-card h2{font-size:27px;font-weight:800;letter-spacing:-.02em;margin:0;line-height:1.15}
+#login .lgx-sub{margin:6px 0 0;color:var(--muted);font-size:14px}
+#login .lgx-lab{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px}
+#login .lgx-lab b{color:var(--ink);font-weight:700}
+#login .lgx-roles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:0;border:0;background:none;border-radius:0}
+#login .lgx-roles button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:64px;padding:9px 4px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface);color:var(--muted);font-size:12px;font-weight:600;line-height:1.2;text-align:center;cursor:pointer;box-shadow:none;transition:border-color .15s,background .15s,color .15s,box-shadow .15s}
+#login .lgx-roles svg{width:20px;height:20px;flex:none}
+#login .lgx-roles button:hover{border-color:var(--lg);color:var(--ink)}
+#login .lgx-roles button[aria-pressed="true"]{border-color:var(--lg);background:var(--lgsoft);color:var(--lg);box-shadow:0 0 0 3px var(--lgring)}
+#login .lgx-f{display:block;min-width:0}
+#login .lgx-fld{position:relative;display:block}
+#login .lgx-fld>svg{position:absolute;left:14px;top:50%;width:18px;height:18px;transform:translateY(-50%);color:var(--muted);pointer-events:none;transition:color .15s}
+#login .lgx-fld:focus-within>svg{color:var(--lg)}
+#login .lgx-fld input{width:100%;height:48px;padding:0 46px 0 42px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface2);color:var(--ink);font-size:16px;transition:border-color .15s,background .15s,box-shadow .15s}
+#login .lgx-fld input:focus{outline:0;border-color:var(--lg);background:var(--surface);box-shadow:0 0 0 4px var(--lgring)}
+#login .lgx-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:36px;height:36px;min-height:0;padding:0;border:0;border-radius:10px;background:none;color:var(--muted);display:grid;place-items:center;cursor:pointer}
+#login .lgx-eye:hover{background:var(--surface2);color:var(--ink)}
+#login .lgx-eye svg{width:18px;height:18px}
+#login .lgx-eye .off{display:none}
+#login .lgx-eye[aria-pressed="true"] .on{display:none}
+#login .lgx-eye[aria-pressed="true"] .off{display:block}
+#login .lgx-err{display:block;min-height:0;padding:10px 14px;border-radius:12px;background:var(--bad-soft);color:var(--bad);font-size:13px;font-weight:500;line-height:1.45}
+#login .lgx-err:empty{display:none}
+#login .lgx-go{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:52px;min-height:0;border:0;border-radius:14px;background:linear-gradient(135deg,#5a3fff,#3a1fd6);color:#fff;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 12px 26px -8px rgba(66,40,234,.6);transition:transform .15s,box-shadow .15s,filter .15s}
+#login .lgx-go:hover{transform:translateY(-1px);filter:brightness(1.08);box-shadow:0 16px 30px -8px rgba(66,40,234,.65)}
+#login .lgx-go:active{transform:none}
+#login .lgx-go svg{width:18px;height:18px;transition:transform .15s}
+#login .lgx-go:hover svg{transform:translateX(3px)}
+#login .lgx-hint{font-size:12px;line-height:1.55;color:var(--muted);background:var(--surface2);border:1px dashed var(--line);border-radius:12px;padding:10px 12px}
+#login .lgx-foot{text-align:center;color:var(--muted);font-size:12px;padding-top:4px}
+
+/* ---- animasi masuk (hanya saat pertama tampil) ---- */
+@media (prefers-reduced-motion:no-preference){
+ #login.lgx-in .lgx-top{animation:lgxUp .6s cubic-bezier(.2,.8,.2,1) both}
+ #login.lgx-in .lgx-hero{animation:lgxUp .7s .08s cubic-bezier(.2,.8,.2,1) both}
+ #login.lgx-in .lgx-feat{animation:lgxUp .7s .18s cubic-bezier(.2,.8,.2,1) both}
+ #login.lgx-in .lgx-card{animation:lgxUp .65s .1s cubic-bezier(.2,.8,.2,1) both}
+ #login .lgx-logo-card{animation:lgxFloat 6s ease-in-out infinite}
+}
+@keyframes lgxUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes lgxFloat{50%{transform:translateY(-6px)}}
+
+/* ---- layar pendek (laptop kecil) ---- */
+@media (min-width:901px) and (max-height:720px){
+ #login .lgx-feat{display:none}
+ #login .lgx-art{padding-top:calc(env(safe-area-inset-top,0px) + 28px);gap:20px}
+ #login .lgx-art h1{margin-top:22px}
+}
+
+/* ---- HP & tablet: satu kolom, logo di pita atas, kartu menumpuk ---- */
+@media (max-width:900px){
+ #login{grid-template-columns:minmax(0,1fr);grid-auto-rows:max-content;align-content:start}
+ #login .lgx-art{display:flex;align-items:center;text-align:center;gap:0;padding:calc(env(safe-area-inset-top,0px) + 26px) 20px 88px}
+ #login .lgx-art h1,#login .lgx-art p,#login .lgx-feat,#login .lgx-deco .b{display:none}
+ #login .lgx-hero{order:1;display:flex;flex-direction:column;align-items:center}
+ #login .lgx-top{order:2;align-self:center;margin-top:20px;font-size:11px;padding:7px 13px}
+ #login .lgx-logo-card{border-radius:24px;padding:16px 20px}
+ #login .lgx-logo-card img{width:150px}
+ #login .lgx-deco .a{right:-110px;top:20px;height:300px}
+ #login .lgx-side{display:block;padding:0 16px calc(env(safe-area-inset-bottom,0px) + 28px);background:var(--bg)}
+ #login .lgx-card{width:min(480px,100%);margin:-60px auto 0;padding:26px 20px 20px;border-radius:22px;position:relative}
+ #login .lgx-card h2{font-size:24px}
+}
+@media (max-width:360px){
+ #login .lgx-roles{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+</style>
 <link rel="stylesheet" href="splash.css">
 </head>
 <body>
@@ -700,19 +803,46 @@ function loadSes(){try{const x=JSON.parse(localStorage.getItem(SKEY)||'null');if
 function saveSes(){try{SES?localStorage.setItem(SKEY,JSON.stringify(SES)):localStorage.removeItem(SKEY)}catch(e){}}
 function allowedTabs(){return SES.role==='admin'?TABS:SES.role==='internal'?TABS.filter(t=>['dash','wa','inv','abs','kin'].includes(t[0])):[['dash','Order Saya'],['abs','Absensi']]}
 function ensureTab(){if(!allowedTabs().some(t=>t[0]===S.tab))S.tab='dash'}
-function hideLogin(){$('#login').hidden=true;$('.app').hidden=false}
+function hideLogin(){$('#login').hidden=true;$('.app').hidden=false;L.shown=false;L.u=''}
+const LGX_ICO={
+ snow:'<path d="M12 2v20M4.9 6.5l14.2 11M19.1 6.5L4.9 17.5M9 3.5l3 2.5 3-2.5M9 20.5l3-2.5 3 2.5"/>',
+ user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/>',
+ lock:'<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+ eye:'<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+ eyeoff:'<path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.6 6.6A16.6 16.6 0 0 0 2 12s3.6 7 10 7a9.7 9.7 0 0 0 4.4-1.1M9.9 9.9a3 3 0 0 0 4.2 4.2"/>',
+ go:'<path d="M5 12h14M13 6l6 6-6 6"/>',
+ job:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9zM9 12h6M9 16h4"/>',
+ keu:'<path d="M3 17l6-6 4 4 8-8M15 7h6v6"/>',
+ pin:'<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+ admin:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
+ direktur:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 13h18"/>',
+ adminjual:'<circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.7 11.5a2 2 0 0 0 2 1.5h7.6a2 2 0 0 0 2-1.5L21 7H6"/>',
+ adminops:'<path d="M9 4h6v3H9z"/><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 12h6M9 16h4"/>',
+ sales:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+ teknisi:'<path d="M14.7 6.3a4 4 0 0 0-5.4 5.2L3 17.8 6.2 21l6.3-6.3a4 4 0 0 0 5.2-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/>'};
+const lgxSvg=(k,c)=>`<svg${c?` class="${c}"`:''} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${LGX_ICO[k]}</svg>`;
 function showLogin(){
-  $('.app').hidden=true;$('#login').hidden=false;
+  const lg=$('#login'),pu=$('#lu');if(pu&&!lg.hidden)L.u=pu.value;
+  $('.app').hidden=true;lg.hidden=false;
   const ak=S.set.akun||{admin:'admin123',direktur:'direktur123',adminjual:'jual123',adminops:'ops123',sales:'sales123'};
-  const hint=S.demo?`<div class="info">Akun contoh. Admin: admin / ${ak.admin}. Admin Penjualan: adminjual / ${ak.adminjual}. Admin Operasional: adminops / ${ak.adminops}. Sales: ${salesL().map(userOf).join(', ')} / sales123. Teknisi: ${S.emps.filter(e=>isTek(e)).map(userOf).join(', ')} / teknisi123.</div>`:'';
-  $('#login').innerHTML=`<div class="lg-art"><div class="brand">${LOGO}<div><b>${esc(S.set.nama)}</b><span>Ahli Sejuk, Andalan Anda</span></div></div><div><h1>Pekerjaan tertata, hari lebih tenang.</h1><p>Order, absensi, invoice, dan keuangan tercatat rapi di satu tempat.</p></div><small style="color:#7f98a8">${esc(S.set.nama)}</small></div>
-  <div class="lg-form"><form class="lg-box" id="lf"><h2 style="font-size:22px">${DEMO_OPEN?'Coba demo':'Masuk ke '+esc(S.set.nama)}</h2>${DEMO_OPEN?demoBox():''}
-  <div class="seg" role="group" aria-label="Masuk sebagai">${['admin','direktur','adminjual','adminops','sales','teknisi'].map(r=>`<button type="button" data-act="lrole" data-r="${r}" aria-pressed="${L.role===r}">${ROLE_L[r]}</button>`).join('')}</div>
-  <label class="f">Nama pengguna<input id="lu" autocomplete="username" required></label>
-  <label class="f">Kata sandi<input id="lp" type="password" autocomplete="current-password" required></label>
-  <div class="lerr" role="alert">${esc(L.err)}</div><button class="btn pri" type="submit" style="justify-content:center">Masuk</button>${DEMO_OPEN?'':hint}</form></div>`;
-  $('#lu').focus();
+  const hint=S.demo?`<div class="info lgx-hint">Akun contoh. Admin: admin / ${ak.admin}. Admin Penjualan: adminjual / ${ak.adminjual}. Admin Operasional: adminops / ${ak.adminops}. Sales: ${salesL().map(userOf).join(', ')} / sales123. Teknisi: ${S.emps.filter(e=>isTek(e)).map(userOf).join(', ')} / teknisi123.</div>`:'';
+  const first=!L.shown;L.shown=true;lg.className='login'+(first?' lgx-in':'');
+  lg.innerHTML=`<div class="lg-art lgx-art">
+  <div class="lgx-deco" aria-hidden="true"><i class="a"></i><i class="b"></i></div>
+  <div class="lgx-top">${lgxSvg('snow')}Ahli Sejuk, Andalan Anda</div>
+  <div class="lgx-hero"><div class="lgx-logo-card"><img src="${LOGO_URI}" alt="Logo ${esc(S.set.nama)}"></div>
+   <h1>Pekerjaan tertata, <em>hari lebih tenang.</em></h1><p>Order, absensi, invoice, dan keuangan tercatat rapi di satu tempat.</p></div>
+  <div class="lgx-feat"><div>${lgxSvg('job')}<b>Order &amp; job</b><span>Pembagian teknisi yang jelas</span></div><div>${lgxSvg('keu')}<b>Invoice &amp; keuangan</b><span>Tagihan dan jurnal rapi</span></div><div>${lgxSvg('pin')}<b>Absensi &amp; kinerja</b><span>Absen berbasis lokasi</span></div></div></div>
+  <div class="lg-form lgx-side"><form class="lg-box lgx-card" id="lf"><div><h2>${DEMO_OPEN?'Coba demo':'Selamat datang'}</h2><p class="lgx-sub">${DEMO_OPEN?'Pilih peran untuk langsung mencoba.':'Masuk ke '+esc(S.set.nama)+' untuk melanjutkan.'}</p></div>${DEMO_OPEN?demoBox():''}
+  <div><span class="lgx-lab">Masuk sebagai <b>${ROLE_L[L.role]}</b></span><div class="seg lgx-roles" role="group" aria-label="Masuk sebagai">${['admin','direktur','adminjual','adminops','sales','teknisi'].map(r=>`<button type="button" data-act="lrole" data-r="${r}" aria-pressed="${L.role===r}">${lgxSvg(r)}<span>${ROLE_L[r]}</span></button>`).join('')}</div></div>
+  <label class="f lgx-f"><span class="lgx-lab" style="margin-bottom:6px">Nama pengguna</span><span class="lgx-fld">${lgxSvg('user')}<input id="lu" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Masukkan nama pengguna" value="${esc(L.u||'')}" required></span></label>
+  <label class="f lgx-f"><span class="lgx-lab" style="margin-bottom:6px">Kata sandi</span><span class="lgx-fld">${lgxSvg('lock')}<input id="lp" type="password" autocomplete="current-password" placeholder="Masukkan kata sandi" required><button type="button" class="lgx-eye" data-act="lpw" aria-pressed="false" aria-label="Tampilkan kata sandi">${lgxSvg('eye','on')}${lgxSvg('eyeoff','off')}</button></span></label>
+  <div class="lerr lgx-err" role="alert">${esc(L.err)}</div>
+  <button class="btn pri lgx-go" type="submit">Masuk${lgxSvg('go')}</button>${DEMO_OPEN?'':hint}
+  <div class="lgx-foot">© ${new Date().getFullYear()} ${esc(S.set.nama)} · Ahli Sejuk, Andalan Anda</div></form></div>`;
+  if(matchMedia('(min-width:901px)').matches||L.err){const u=$('#lu');u&&u.focus({preventScroll:true})}
 }
+A.lpw=b=>{const i=$('#lp');if(!i)return;const s=i.type==='password';i.type=s?'text':'password';b.setAttribute('aria-pressed',String(s));b.setAttribute('aria-label',s?'Sembunyikan kata sandi':'Tampilkan kata sandi')};
 function demoBox(){const R=[['admin','Admin','Semua menu: order, keuangan, invoice, kinerja'],['internal','Internal','Order, invoice, reminder WA, absensi, kinerja'],['teknisi','Teknisi','Order Saya dan absensi, sebagai Budi']];
   return `<div class="info">Klik satu peran untuk langsung mencoba, tanpa kata sandi. Data contoh hanya tersimpan di browser Anda.</div><div class="list">${R.map(r=>`<button type="button" class="btn demo-r" data-act="demoIn" data-r="${r[0]}"><b>${r[1]}</b><small>${r[2]}</small></button>`).join('')}</div><button type="button" class="btn sm" data-act="demoReset" style="align-self:flex-start">Kembalikan data contoh</button><small style="color:var(--muted)">Atau masuk dengan akun sendiri:</small>`}
 A.demoIn=b=>{const r=b.dataset.r,e=S.emps.find(x=>isTek(x));SES=r==='teknisi'?{role:r,empId:e.id,nama:e.nama}:{role:r,nama:({admin:'Admin Super',direktur:'Direktur',adminjual:'Admin Penjualan',adminops:'Admin Operasional',sales:'Sales'})[r]};saveSes();S.tab='dash';render();window.scrollTo(0,0)};
