@@ -1,4 +1,4 @@
-# Awal Jaya Jaya
+# CV.PUNGGAWA 47
 
 Aplikasi manajemen servis AC: order, absensi, invoice, reminder WhatsApp, keuangan, dan kinerja.
 Satu file (`index.html`), tanpa server dan tanpa instalasi.
