@@ -513,6 +513,12 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
 .sheet{border-radius:18px}
 .toast{background:#141a4d;color:#fff;font-weight:600;box-shadow:0 10px 30px rgba(9,13,34,.35)}
 .chart .grid{stroke:var(--line)}
+/* Dokumen (invoice, nota, penawaran): border dan tabel lebih rapi */
+.inv table{border-collapse:separate;border-spacing:0;width:100%;border:1px solid #0d1237;border-radius:8px;overflow:hidden}
+.inv table thead th{background:#0d1237;color:#fff;font-size:11px;letter-spacing:.08em;text-transform:uppercase;border:0;padding:9px 10px}
+.inv table td{padding:9px 10px;border-bottom:1px solid #e3e7f5;border-right:1px solid #e3e7f5}
+.inv table td:last-child{border-right:0}.inv table tbody tr:last-child td{border-bottom:0}
+.inv table tbody tr:nth-child(even) td{background:#f8f9ff}
 </style>
 </head>
 <body>
@@ -851,10 +857,10 @@ function invHTML(i){const t=invTot(i);
   <hr style="border:0;border-top:1px solid #d7e1e4;margin:16px 0"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><small style="color:#4b6068">Ditagihkan kepada</small><br><b>${esc(i.nama)}</b><br>${esc(i.alamat)}<br>${esc(i.hp)}</div><div style="text-align:right"><small style="color:#4b6068">Tanggal</small> ${fd(i.tgl)}<br><small style="color:#4b6068">Jatuh tempo</small> ${fd(i.tempo)}<br><b>${invStat(i)==='Lunas'?'LUNAS':'BELUM LUNAS'}</b></div></div>
   <table style="margin:16px 0"><thead><tr><th>Deskripsi</th><th class="r">Qty</th><th class="r">Harga</th><th class="r">Jumlah</th></tr></thead><tbody>${i.items.map(x=>`<tr><td>${esc(x.desc)}</td><td class="r num">${x.qty}</td><td class="r num">${rp(x.harga)}</td><td class="r num">${rp(x.qty*x.harga)}</td></tr>`).join('')}</tbody></table>
   <div style="text-align:right">${(i.diskon||(i.ppn&&i.ppn.mode==='excl'))?`<div>Subtotal <span class="num">${rp(t.sub)}</span></div>`:''}${i.diskon?`<div>Diskon <span class="num">-${rp(i.diskon)}</span></div>`:''}${i.ppn&&i.ppn.mode==='excl'?`<div>PPN ${i.ppn.rate}% (material) <span class="num">${rp(t.ppn)}</span></div>`:''}<div style="font-size:20px"><b>Total <span class="num">${rp(t.tot)}</span></b></div></div>
-  ${i.ppn&&i.ppn.mode==='incl'?`<div style="text-align:right;font-size:12px;color:#4b6068">Harga material sudah termasuk PPN ${i.ppn.rate}%: <span class="num">${rp(t.ppn)}</span></div>`:''}<p style="margin:16px 0 0;color:#4b6068">Pembayaran ke: ${esc(S.set.bank)}</p>${sigHTML(i)}</div>`}
+  ${i.ppn&&i.ppn.mode==='incl'?`<div style="text-align:right;font-size:12px;color:#4b6068">Harga material sudah termasuk PPN ${i.ppn.rate}%: <span class="num">${rp(t.ppn)}</span></div>`:''}${typeof bankHTML==='function'?bankHTML():'<p style="margin:16px 0 0;color:#4b6068">Pembayaran ke: '+esc(S.set.bank)+'</p>'}${sigHTML(i)}</div>`}
 function invText(i){const t=invTot(i);return `INVOICE ${i.no}\n${i.ref&&S.orders.some(q=>q.id===i.ref)?'Ref. Order: '+i.ref+'\n':''}${(i.pnwNo||(S.pnw.find(q=>q.id===i.pnwId)||{}).no)?'Ref. Penawaran: '+(i.pnwNo||S.pnw.find(q=>q.id===i.pnwId).no)+'\n':''}${S.set.nama}\n\nKepada: ${i.nama}\nTanggal: ${fd(i.tgl)}  Jatuh tempo: ${fd(i.tempo)}\n\n${i.items.map(x=>`- ${x.desc} ${x.qty} x ${rp(x.harga)} = ${rp(x.qty*x.harga)}`).join('\n')}\n${i.diskon?'Diskon: -'+rp(i.diskon)+'\n':''}${i.ppn?(i.ppn.mode==='excl'?'PPN '+i.ppn.rate+'% (material): '+rp(t.ppn)+'\n':'(Sudah termasuk PPN '+i.ppn.rate+'% material: '+rp(t.ppn)+')\n'):''}\nTOTAL: ${rp(t.tot)}\nBayar ke: ${S.set.bank}`}
 A.viewInv=b=>{const i=S.inv.find(x=>x.id===b.dataset.id);
-  modal(`${invHTML(i)}<div class="row" style="justify-content:flex-end">${i.status!=='Lunas'?`<button class="btn pri" data-act="payInv" data-id="${i.id}">Tandai lunas</button>`:''}<a class="btn" href="${waLink(i.hp,invText(i))}" target="_blank" rel="noopener">Buka WhatsApp</a><button class="btn" data-act="cpInv" data-id="${i.id}">Salin teks</button><button class="btn" data-act="prtInv" data-id="${i.id}">Cetak</button><button class="btn" data-act="dlInv" data-id="${i.id}">Unduh HTML</button><button class="btn" data-act="close">Tutup</button></div>`)};
+  modal(`${invHTML(i)}<div class="row" style="justify-content:flex-end">${i.status!=='Lunas'?`<button class="btn pri" data-act="payInv" data-id="${i.id}">Tandai lunas</button>`:''}<a class="btn" href="${waLink(i.hp,invText(i))}" target="_blank" rel="noopener">Buka WhatsApp</a><button class="btn" data-act="cpInv" data-id="${i.id}">Salin teks</button><button class="btn" data-act="prtInv" data-id="${i.id}">Cetak</button><button class="btn" data-act="dlInv" data-id="${i.id}">Unduh PDF</button><button class="btn" data-act="close">Tutup</button></div>`)};
 A.cpInv=b=>copyText(invText(S.inv.find(x=>x.id===b.dataset.id)));
 A.payInv=b=>{const i=S.inv.find(x=>x.id===b.dataset.id);i.status='Lunas';notify(['direktur','adminjual','adminops'],'Invoice lunas',i.no+' · '+i.nama+' · '+rp(invTot(i).tot),{tipe:'ok',tab:'inv'});
   if(!S.tx.some(t=>t.ref===i.no))S.tx.push({id:uid('t'),tgl:TODAY,jenis:'Pemasukan',kat:'Jasa servis',ket:'Pembayaran '+i.no+' - '+i.nama,akun:'Bank',jml:invTot(i).tot,ref:i.no});
@@ -1201,7 +1207,7 @@ A.kSave=()=>{const items=K.lines.filter(x=>x.desc&&x.qty>0).map(x=>{const b=x.k[
  if(K.job){const o=S.orders.find(x=>x.id===K.job);if(o)o.inv=no}S.inv.push(i);K=newK();save();S.tab='inv';render();toast(isAp()?'Invoice '+no+' terbit':'Invoice '+no+' diajukan, menunggu persetujuan')};
 A.newInv=()=>{S.tab='kas';render()};
 A.viewInv=b=>{const i=S.inv.find(x=>x.id===b.dataset.id),ok=okInv(i);
- modal(`${ok?'':`<div class="note">${i.appr==='Ditolak'?'Invoice ini ditolak. Alasan: '+esc(i.alasanTolak||'-')+'.':'Menunggu persetujuan Direktur. Belum bisa dikirim atau ditandai lunas.'}</div>`}${invHTML(i)}<div class="row" style="justify-content:flex-end">${ok&&i.status!=='Lunas'?`<button class="btn pri" data-act="payInv" data-id="${i.id}">Tandai lunas</button>`:''}${ok?`<a class="btn" href="${waLink(i.hp,invText(i))}" target="_blank" rel="noopener">Buka WhatsApp</a><button class="btn" data-act="cpInv" data-id="${i.id}">Salin teks</button><button class="btn" data-act="prtInv" data-id="${i.id}">Cetak</button><button class="btn" data-act="dlInv" data-id="${i.id}">Unduh HTML</button>`:''}${i.appr==='Ditolak'&&canKas()?`<button class="btn pri" data-act="invEdit" data-id="${i.id}">Edit &amp; ajukan ulang</button>`:''}<button class="btn" data-act="close">Tutup</button></div>`)};
+ modal(`${ok?'':`<div class="note">${i.appr==='Ditolak'?'Invoice ini ditolak. Alasan: '+esc(i.alasanTolak||'-')+'.':'Menunggu persetujuan Direktur. Belum bisa dikirim atau ditandai lunas.'}</div>`}${invHTML(i)}<div class="row" style="justify-content:flex-end">${ok&&i.status!=='Lunas'?`<button class="btn pri" data-act="payInv" data-id="${i.id}">Tandai lunas</button>`:''}${ok?`<a class="btn" href="${waLink(i.hp,invText(i))}" target="_blank" rel="noopener">Buka WhatsApp</a><button class="btn" data-act="cpInv" data-id="${i.id}">Salin teks</button><button class="btn" data-act="prtInv" data-id="${i.id}">Cetak</button><button class="btn" data-act="dlInv" data-id="${i.id}">Unduh PDF</button>`:''}${i.appr==='Ditolak'&&canKas()?`<button class="btn pri" data-act="invEdit" data-id="${i.id}">Edit &amp; ajukan ulang</button>`:''}<button class="btn" data-act="close">Tutup</button></div>`)};
 /* ---------- Persetujuan ---------- */
 const pend=(ref)=>S.req.some(r=>r.ref===ref&&r.st==='Menunggu'&&/^del/.test(r.jenis));
 A.delInv=b=>{const i=S.inv.find(x=>x.id===b.dataset.id);if(!i)return;if(!isAp()&&pend(i.id)){toast('Pembatalan sudah diajukan');return}
@@ -2199,6 +2205,7 @@ A.akDel=b=>{const u=dirAk().find(x=>x.id===b.dataset.id);if(!u)return;
   logAksi('Hapus akun Direktur',u.nama+' ('+u.user+')',al);save();render();toast('Akun dihapus')})};
 A.akGen=()=>{S.set.noGenDir=!S.set.noGenDir;save();render();toast(S.set.noGenDir?'Login umum direktur dinonaktifkan':'Login umum direktur diaktifkan lagi')};
 </script>
+<script src="pdf-doc.js"></script>
 <script src="daftar.js"></script>
 <script src="export-excel.js"></script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}</script>

@@ -1,6 +1,6 @@
 /* Service worker sederhana: jaringan dulu, cadangan dari cache bila offline. */
-const CACHE='punggawa-v1';
-const FILES=['./','index.html','logo.js','splash.js','splash.css','manifest.json','icons/icon-192.png','icons/icon-512.png','icons/icon-180.png'];
+const CACHE='punggawa-v2';
+const FILES=['./','index.html','logo.js','pdf-doc.js','splash.js','splash.css','manifest.json','icons/icon-192.png','icons/icon-512.png','icons/icon-180.png'];
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(CACHE).then(c=>Promise.all(FILES.map(f=>c.add(f).catch(()=>{})))).then(()=>self.skipWaiting()));
 });
