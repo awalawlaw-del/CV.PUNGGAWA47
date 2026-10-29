@@ -757,7 +757,8 @@ function orderForm(o){
    {k:'teknisi',l:'Teknisi',t:'select',o:S.emps.filter(e=>isTek(e)).map(e=>[e.id,e.nama])},{k:'status',l:'Status',t:'select',o:STAT.filter(s=>s!=='Batal'||(o&&o.status==='Batal')),def:'Baru'}];
   form(o?'Ubah order '+o.id:'Order baru',F,o, async v=>{
     if(!v.nilai)v.nilai=(SERV[v.layanan]||0)*(v.unit||1);
-       // --- SIMPAN KE SUPABASE ---
+    
+    // --- SIMPAN KE SUPABASE ---
     let orderData = { ...v };
     
     if(o) {
@@ -766,28 +767,27 @@ function orderForm(o){
       await supabaseClient.from('orders').update(orderData).eq('id', o.id);
     } else {
       // Jika Order Baru
-     const newOrder = { id: nextId, status: 'Baru', ...orderData };
-S.orders.push(newOrder);
-const { error } = await supabaseClient.from('orders').insert([newOrder]);
+      const newOrder = { id: nextId, status: 'Baru', ...orderData };
+      S.orders.push(newOrder);
+      const { error } = await supabaseClient.from('orders').insert([newOrder]);
 
-if (error) {
-  console.error("GAGAL SIMPAN KE SUPABASE:", error);
-  toast('Gagal simpan ke database: ' + error.message);
-  return; // Hentikan proses jika gagal
-}
+      if (error) {
+        console.error("GAGAL SIMPAN KE SUPABASE:", error);
+        toast('Gagal simpan ke database: ' + error.message);
+        return; // Hentikan proses jika gagal
+      }
+    } // <--- KURUNG PENUTUP ELSE YANG TADI HILANG SUDAH DITAMBAHKAN DI SINI
 
     // Simpan pelanggan baru (jika belum ada)
     if(!S.cust.find(c=>c.nama===v.nama)) {
       S.cust.push({nama:v.nama, hp:v.hp, alamat:v.alamat});
-      // Opsional: Kirim juga data pelanggan ke Supabase (jika tabelnya siap)
-      // await supabaseClient.from('customers').insert([{ nama: v.nama, hp: v.hp, alamat: v.alamat }]);
     }
     
     save(); 
     render(); 
     toast('Order berhasil disimpan ke Database!');
-  });
-}
+  }); // <--- PENUTUP FUNGSI FORM
+} // <--- PENUTUP FUNGSI orderForm
 A.editOrder=b=>orderForm(S.orders.find(x=>x.id===b.dataset.id));
 A.delOrder=b=>{S.orders=S.orders.filter(x=>x.id!==b.dataset.id);save();render();toast('Order dihapus')};
 function txIn(a,b){return S.tx.filter(t=>t.tgl>=a&&t.tgl<=b)}
