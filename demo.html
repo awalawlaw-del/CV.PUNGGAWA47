@@ -3,6 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="theme-color" content="#0b2030">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Punggawa">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>CV PUNGGAWA 47 · Admin</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -336,11 +342,193 @@ body::after{content:"A SITECLUB PROJECT";position:fixed;left:50%;top:50%;transfo
 @media print{body::after{display:none}}
 </style>
 <script src="logo.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // === KONEKSI KE SUPABASE ===
+  const supabaseUrl = 'https://zyqzfyflbijwnleeunsw.supabase.co';
+  const supabaseKey = 'sb_publishable_IZWRVgcmjypCfi0BUWd1dg_Zin11VmK';
+  
+  // Membuat koneksi
+  const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+</script>
 <style>
 .logo.lg{background:#fff!important;padding:3px;overflow:hidden}.logo.lg img{width:100%;height:100%;object-fit:contain;display:block}
 .lg-art .logo.lg{width:60px;height:60px}
 </style>
+<style>
+/* ================= HALAMAN LOGIN (tampilan baru) ================= */
+#login{--lg:#4228ea;--lgsoft:color-mix(in srgb,var(--lg) 11%,var(--surface));--lgring:color-mix(in srgb,var(--lg) 18%,transparent);
+ grid-template-columns:minmax(0,1.08fr) minmax(0,1fr);align-content:stretch;background:var(--bg);font-family:var(--f-body)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #login{--lg:#8678ff}}
+:root[data-theme="dark"] #login{--lg:#8678ff}
+
+/* ---- panel kiri (brand) ---- */
+#login .lgx-art{position:relative;overflow:hidden;isolation:isolate;color:#fff;display:flex;flex-direction:column;justify-content:space-between;align-items:stretch;gap:36px;text-align:left;
+ padding:calc(env(safe-area-inset-top,0px) + 44px) 56px 44px;
+ background:radial-gradient(900px 520px at 88% -8%,rgba(122,108,255,.55),transparent 60%),radial-gradient(700px 480px at -8% 110%,rgba(34,211,238,.26),transparent 60%),linear-gradient(155deg,#0c0838 0%,#1d1182 48%,#3a22d8 100%)}
+#login .lgx-art::before{content:"";position:absolute;inset:0;z-index:-1;background-image:radial-gradient(rgba(255,255,255,.15) 1px,transparent 1.2px);background-size:26px 26px;-webkit-mask-image:linear-gradient(180deg,rgba(0,0,0,.9),transparent 78%);mask-image:linear-gradient(180deg,rgba(0,0,0,.9),transparent 78%)}
+#login .lgx-deco{position:absolute;inset:0;z-index:-1;pointer-events:none}
+#login .lgx-deco i{position:absolute;display:block;border-radius:36px;transform:skewX(-16deg)}
+#login .lgx-deco .a{width:240px;height:520px;right:-70px;top:90px;background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.14)}
+#login .lgx-deco .b{width:150px;height:340px;right:150px;bottom:-130px;background:linear-gradient(180deg,rgba(103,232,249,.24),rgba(103,232,249,0));border:1px solid rgba(255,255,255,.1)}
+#login .lgx-top{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;padding:8px 15px;border-radius:99px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+#login .lgx-top svg{width:15px;height:15px;color:#a5f3fc}
+#login .lgx-hero{display:block}
+#login .lgx-logo-card{width:max-content;max-width:100%;background:#fff;border-radius:28px;padding:20px 26px;box-shadow:0 28px 64px rgba(5,2,40,.5),0 0 0 7px rgba(255,255,255,.12)}
+#login .lgx-logo-card img{display:block;width:clamp(150px,15vw,204px);height:auto}
+#login .lgx-art h1{font-family:var(--f-display);font-size:clamp(30px,3.2vw,46px);line-height:1.08;font-weight:800;letter-spacing:-.025em;margin:32px 0 0;max-width:15ch;text-wrap:balance}
+#login .lgx-art h1 em{font-style:normal;background:linear-gradient(90deg,#a5f3fc,#c4b5fd);-webkit-background-clip:text;background-clip:text;color:transparent}
+#login .lgx-art p{color:rgba(255,255,255,.78);font-size:16px;line-height:1.6;max-width:42ch;margin:14px 0 0}
+#login .lgx-feat{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+#login .lgx-feat>div{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:16px;padding:14px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+#login .lgx-feat svg{display:block;width:20px;height:20px;color:#a5f3fc;margin-bottom:9px}
+#login .lgx-feat b{display:block;font-size:13px;font-weight:700}
+#login .lgx-feat span{display:block;font-size:12px;color:rgba(255,255,255,.68);margin-top:2px;line-height:1.4}
+
+/* ---- panel kanan (form) ---- */
+#login .lgx-side{position:relative;display:grid;place-items:center;
+ padding:calc(env(safe-area-inset-top,0px) + 32px) 28px calc(env(safe-area-inset-bottom,0px) + 32px);
+ background:radial-gradient(620px 420px at 100% 0,color-mix(in srgb,var(--lg) 10%,transparent),transparent 70%),var(--bg)}
+#login .lgx-card{width:min(440px,100%);display:flex;flex-direction:column;gap:18px;background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:34px 32px 24px;
+ box-shadow:0 1px 2px rgba(15,23,60,.05),0 28px 64px -16px rgba(40,25,150,.22)}
+#login .lgx-card h2{font-size:27px;font-weight:800;letter-spacing:-.02em;margin:0;line-height:1.15}
+#login .lgx-sub{margin:6px 0 0;color:var(--muted);font-size:14px}
+#login .lgx-lab{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px}
+#login .lgx-lab b{color:var(--ink);font-weight:700}
+#login .lgx-roles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:0;border:0;background:none;border-radius:0}
+#login .lgx-roles button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:64px;padding:9px 4px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface);color:var(--muted);font-size:12px;font-weight:600;line-height:1.2;text-align:center;cursor:pointer;box-shadow:none;transition:border-color .15s,background .15s,color .15s,box-shadow .15s}
+#login .lgx-roles svg{width:20px;height:20px;flex:none}
+#login .lgx-roles button:hover{border-color:var(--lg);color:var(--ink)}
+#login .lgx-roles button[aria-pressed="true"]{border-color:var(--lg);background:var(--lgsoft);color:var(--lg);box-shadow:0 0 0 3px var(--lgring)}
+#login .lgx-f{display:block;min-width:0}
+#login .lgx-fld{position:relative;display:block}
+#login .lgx-fld>svg{position:absolute;left:14px;top:50%;width:18px;height:18px;transform:translateY(-50%);color:var(--muted);pointer-events:none;transition:color .15s}
+#login .lgx-fld:focus-within>svg{color:var(--lg)}
+#login .lgx-fld input{width:100%;height:48px;padding:0 46px 0 42px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface2);color:var(--ink);font-size:16px;transition:border-color .15s,background .15s,box-shadow .15s}
+#login .lgx-fld input:focus{outline:0;border-color:var(--lg);background:var(--surface);box-shadow:0 0 0 4px var(--lgring)}
+#login .lgx-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:36px;height:36px;min-height:0;padding:0;border:0;border-radius:10px;background:none;color:var(--muted);display:grid;place-items:center;cursor:pointer}
+#login .lgx-eye:hover{background:var(--surface2);color:var(--ink)}
+#login .lgx-eye svg{width:18px;height:18px}
+#login .lgx-eye .off{display:none}
+#login .lgx-eye[aria-pressed="true"] .on{display:none}
+#login .lgx-eye[aria-pressed="true"] .off{display:block}
+#login .lgx-err{display:block;min-height:0;padding:10px 14px;border-radius:12px;background:var(--bad-soft);color:var(--bad);font-size:13px;font-weight:500;line-height:1.45}
+#login .lgx-err:empty{display:none}
+#login .lgx-go{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:52px;min-height:0;border:0;border-radius:14px;background:linear-gradient(135deg,#5a3fff,#3a1fd6);color:#fff;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 12px 26px -8px rgba(66,40,234,.6);transition:transform .15s,box-shadow .15s,filter .15s}
+#login .lgx-go:hover{transform:translateY(-1px);filter:brightness(1.08);box-shadow:0 16px 30px -8px rgba(66,40,234,.65)}
+#login .lgx-go:active{transform:none}
+#login .lgx-go svg{width:18px;height:18px;transition:transform .15s}
+#login .lgx-go:hover svg{transform:translateX(3px)}
+#login .lgx-hint{font-size:12px;line-height:1.55;color:var(--muted);background:var(--surface2);border:1px dashed var(--line);border-radius:12px;padding:10px 12px}
+#login .lgx-foot{text-align:center;color:var(--muted);font-size:12px;padding-top:4px}
+
+/* ---- animasi masuk (hanya saat pertama tampil) ---- */
+@media (prefers-reduced-motion:no-preference){
+ #login.lgx-in .lgx-top{animation:lgxUp .6s cubic-bezier(.2,.8,.2,1) both}
+ #login.lgx-in .lgx-hero{animation:lgxUp .7s .08s cubic-bezier(.2,.8,.2,1) both}
+ #login.lgx-in .lgx-feat{animation:lgxUp .7s .18s cubic-bezier(.2,.8,.2,1) both}
+ #login.lgx-in .lgx-card{animation:lgxUp .65s .1s cubic-bezier(.2,.8,.2,1) both}
+ #login .lgx-logo-card{animation:lgxFloat 6s ease-in-out infinite}
+}
+@keyframes lgxUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes lgxFloat{50%{transform:translateY(-6px)}}
+
+/* ---- layar pendek (laptop kecil) ---- */
+@media (min-width:901px) and (max-height:720px){
+ #login .lgx-feat{display:none}
+ #login .lgx-art{padding-top:calc(env(safe-area-inset-top,0px) + 28px);gap:20px}
+ #login .lgx-art h1{margin-top:22px}
+}
+
+/* ---- HP & tablet: satu kolom, logo di pita atas, kartu menumpuk ---- */
+@media (max-width:900px){
+ #login{grid-template-columns:minmax(0,1fr);grid-auto-rows:max-content;align-content:start}
+ #login .lgx-art{display:flex;align-items:center;text-align:center;gap:0;padding:calc(env(safe-area-inset-top,0px) + 26px) 20px 88px}
+ #login .lgx-art h1,#login .lgx-art p,#login .lgx-feat,#login .lgx-deco .b{display:none}
+ #login .lgx-hero{order:1;display:flex;flex-direction:column;align-items:center}
+ #login .lgx-top{order:2;align-self:center;margin-top:20px;font-size:11px;padding:7px 13px}
+ #login .lgx-logo-card{border-radius:24px;padding:16px 20px}
+ #login .lgx-logo-card img{width:150px}
+ #login .lgx-deco .a{right:-110px;top:20px;height:300px}
+ #login .lgx-side{display:block;padding:0 16px calc(env(safe-area-inset-bottom,0px) + 28px);background:var(--bg)}
+ #login .lgx-card{width:min(480px,100%);margin:-60px auto 0;padding:26px 20px 20px;border-radius:22px;position:relative}
+ #login .lgx-card h2{font-size:24px}
+}
+@media (max-width:360px){
+ #login .lgx-roles{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+</style>
 <link rel="stylesheet" href="splash.css">
+<style id="tema-punggawa">
+/* ================= TEMA DALAM APLIKASI (selaras logo biru-indigo) ================= */
+:root{--bg:#f4f6fd;--surface:#fff;--surface2:#f7f8fe;--ink:#10163a;--muted:#5d6585;--line:#e1e5f3;
+ --brand:#3a4df0;--brand-soft:#e8ebff;--brand-ink:#fff;--side:#0d1237;
+ --heat:#ef7a2e;--heat-soft:#fdeee2;--good:#12936a;--good-soft:#dcf5ec;--warn:#b07a0a;--warn-soft:#fcf1d6;--bad:#d8404a;--bad-soft:#fce6e8;
+ --shadow:0 1px 2px rgba(16,22,58,.05),0 8px 24px rgba(58,77,240,.07)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#090d22;--surface:#121838;--surface2:#171e46;--ink:#e8ebff;--muted:#98a1c8;--line:#252e5e;
+ --brand:#7d8cff;--brand-soft:#1d2563;--brand-ink:#090d22;--side:#070a1c;--shadow:none}}
+:root[data-theme="dark"]{--bg:#090d22;--surface:#121838;--surface2:#171e46;--ink:#e8ebff;--muted:#98a1c8;--line:#252e5e;
+ --brand:#7d8cff;--brand-soft:#1d2563;--brand-ink:#090d22;--side:#070a1c;--shadow:none}
+
+/* Halaman login dikunci: tidak ikut berubah */
+#login{--bg:#f3f6fa;--surface:#fff;--surface2:#f7f9fc;--ink:#0f2133;--muted:#5b6b7d;--line:#dde5ee}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #login{--bg:#0b1622;--surface:#12233a;--surface2:#172b45;--ink:#e6eef8;--muted:#94a8bf;--line:#223a57}}
+:root[data-theme="dark"] #login{--bg:#0b1622;--surface:#12233a;--surface2:#172b45;--ink:#e6eef8;--muted:#94a8bf;--line:#223a57}
+
+body{background:var(--bg);background-image:radial-gradient(900px 380px at 100% -80px,rgba(58,77,240,.07),transparent 70%)}
+
+/* Sidebar */
+.side{background:linear-gradient(185deg,#0d1237 0%,#131a55 62%,#1b1f7a 100%)}
+.brand b{color:#fff}.brand span{color:#9aa6e6}
+.nav button{border-radius:10px;color:#b4bcea;font-weight:500;transition:background .15s,color .15s}
+.nav button:hover{background:rgba(255,255,255,.08);color:#fff}
+.nav button[aria-current="page"]{background:linear-gradient(90deg,rgba(124,140,255,.28),rgba(124,140,255,.1));color:#fff;box-shadow:inset 3px 0 0 #8e9cff;font-weight:600}
+@media (max-width:820px){.nav{background:#0d1237}.nav button[aria-current="page"]{background:rgba(124,140,255,.25);box-shadow:none}}
+
+/* Judul halaman */
+.head h1{font-weight:800;letter-spacing:-.025em;color:var(--ink)}
+
+/* Kartu, tabel, kolom isian */
+.card,.ind{border-radius:16px;border:1px solid var(--line);box-shadow:var(--shadow)}
+.card h3{letter-spacing:-.01em}
+.tw{border-radius:14px;border-color:var(--line)}
+th{background:var(--surface2);color:var(--muted)}
+tbody tr:hover td{background:color-mix(in srgb,var(--brand) 4%,var(--surface))}
+.tile{border-radius:12px;background:linear-gradient(180deg,var(--surface),var(--surface2))}
+.tile b,.kpi .v{color:var(--ink)}
+input,select,textarea{border-radius:10px}
+input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(--brand) 22%,transparent);border-color:var(--brand)}
+
+/* Tombol */
+.btn{border-radius:10px;font-weight:600;transition:transform .12s,box-shadow .15s,filter .15s}
+.btn:active{transform:translateY(1px)}
+.btn.pri,.btn.pri:hover{background:linear-gradient(135deg,#4a5dff 0%,#3a35e3 100%);border-color:transparent;color:#fff;box-shadow:0 6px 16px rgba(58,77,240,.3)}
+.btn.pri:hover{filter:brightness(1.07)}
+:root[data-theme="dark"] .btn.pri{color:#fff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn.pri{color:#fff}}
+
+/* Chip, segmen, label status, bar */
+.chip{border-radius:99px;font-weight:600}
+.chip[aria-pressed="true"]{background:var(--brand);border-color:var(--brand);color:var(--brand-ink);box-shadow:0 4px 12px rgba(58,77,240,.25)}
+.seg{border-radius:12px;background:var(--surface2)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--brand);box-shadow:var(--shadow)}
+.pill{font-weight:700}
+.bar{height:9px;border-radius:99px;background:var(--brand-soft)}
+.bar i{background:linear-gradient(90deg,#5568ff,#3a35e3);border-radius:99px}
+.bar i.ok{background:var(--good)}.bar i.mid{background:#eba22b}.bar i.low{background:var(--bad)}
+
+/* Jendela dialog dan notifikasi */
+.modal{background:rgba(9,13,34,.6);backdrop-filter:blur(3px)}
+.sheet{border-radius:18px}
+.toast{background:#141a4d;color:#fff;font-weight:600;box-shadow:0 10px 30px rgba(9,13,34,.35)}
+.chart .grid{stroke:var(--line)}
+/* Dokumen (invoice, nota, penawaran): border dan tabel lebih rapi */
+.inv table{border-collapse:separate;border-spacing:0;width:100%;border:1px solid #0d1237;border-radius:8px;overflow:hidden}
+.inv table thead th{background:#0d1237;color:#fff;font-size:11px;letter-spacing:.08em;text-transform:uppercase;border:0;padding:9px 10px}
+.inv table td{padding:9px 10px;border-bottom:1px solid #e3e7f5;border-right:1px solid #e3e7f5}
+.inv table td:last-child{border-right:0}.inv table tbody tr:last-child td{border-bottom:0}
+.inv table tbody tr:nth-child(even) td{background:#f8f9ff}
+</style>
 </head>
 <body>
 <script src="splash.js"></script>
@@ -383,12 +571,78 @@ const SERV={'Cuci AC':85000,'Tambah Freon':250000,'Perbaikan':350000,'Instalasi'
 const STAT=['Baru','Dijadwalkan','Dikerjakan','Selesai','Batal'];
 const KAT_IN=['Jasa servis','Penjualan sparepart','Kontrak perawatan','Lainnya'];
 const KAT_OUT=['Material & freon','Gaji karyawan','Bensin & transport','Sewa & listrik','Peralatan','Lainnya'];
-let S=null, memOnly=false;
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){memOnly=true}}
-function load(){try{const r=localStorage.getItem(KEY);if(r)return JSON.parse(r)}catch(e){memOnly=true}return null}
+let S=null;
+/* ===== SINKRON KE SUPABASE (tabel app_state), tanpa localStorage ===== */
+const SYNC={ready:false,snap:{},timer:null,client:Math.random().toString(36).slice(2)+Date.now().toString(36),chan:null,busy:false,again:false};
+function stateKeys(){return Object.keys(S||{}).filter(k=>k!=='tab')}
+async function syncNow(){
+  if(!SYNC.ready||!S){return}
+  if(SYNC.busy){SYNC.again=true;return}
+  SYNC.busy=true;
+  try{
+    const rows=[];
+    stateKeys().forEach(k=>{const j=JSON.stringify(S[k]);if(SYNC.snap[k]!==j)rows.push({key:k,value:S[k],client:SYNC.client,_j:j})});
+    if(rows.length){
+      const {error}=await supabaseClient.from('app_state').upsert(rows.map(r=>({key:r.key,value:r.value,client:r.client})),{onConflict:'key'});
+      if(error){console.error('Gagal simpan ke Supabase:',error);toast('Gagal simpan ke database: '+error.message)}
+      else rows.forEach(r=>{SYNC.snap[r.key]=r._j});
+    }
+  }catch(e){console.error(e);toast('Gagal simpan ke database (jaringan?)')}
+  SYNC.busy=false;
+  if(SYNC.again){SYNC.again=false;syncNow()}
+}
+function save(){clearTimeout(SYNC.timer);SYNC.timer=setTimeout(syncNow,300)}
+window.addEventListener('pagehide',()=>{try{syncNow()}catch(e){}});
+async function load(){
+  try{
+    const {data:{session}}=await supabaseClient.auth.getSession();
+    if(!session){SYNC.ready=false;return seed()}
+    const {data,error}=await supabaseClient.from('app_state').select('key,value');
+    if(error)throw error;
+    const S_new=seed();
+    SYNC.snap={};
+    (data||[]).forEach(r=>{S_new[r.key]=r.value;SYNC.snap[r.key]=JSON.stringify(r.value)});
+    S_new.tab='dash';
+    SYNC.ready=true;
+    S=S_new;
+    if(!data||!data.length){console.log('Database kosong, menyimpan data awal.');syncNow()}
+    startRealtime();
+    return S_new;
+  }catch(e){
+    console.error('Gagal memuat data dari Supabase:',e);
+    SYNC.ready=false; /* jangan menimpa database dengan data kosong */
+    toast('Gagal memuat data dari database. Muat ulang halaman.');
+    return seed();
+  }
+}
+function startRealtime(){
+  if(SYNC.chan)return;
+  SYNC.chan=supabaseClient.channel('app_state_sync')
+   .on('postgres_changes',{event:'*',schema:'public',table:'app_state'},pl=>{
+     const r=pl.new;if(!r||!r.key||r.client===SYNC.client||!SES)return;
+     if(JSON.stringify(S[r.key])===JSON.stringify(r.value))return;
+     const modalOpen=$('#modal')&&!$('#modal').hidden;
+     try{
+       const b=(typeof nUnread==='function')?nUnread().length:0;
+       S[r.key]=r.value;SYNC.snap[r.key]=JSON.stringify(r.value);
+       if(typeof mig==='function')mig();
+       if(modalOpen)return; /* jangan ganggu form yang sedang dibuka */
+       const a=(typeof nUnread==='function')?nUnread().length:0;
+       render();if(a>b)toast('Ada '+(a-b)+' pemberitahuan baru');
+     }catch(e){console.error(e)}
+   }).subscribe();
+}
+async function bootData(){
+  S=await load();
+  if(!S||!S.set)S=seed();
+  mig();
+  S.tab='dash';
+  S.rem=S.rem||{};
+  S.emps.forEach(e=>{if(!e.pw)e.pw='teknisi123'});
+}
 function toast(t){const el=$('#toast');el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,2400)}
 function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
-function seed(){
+function seedDemo(){
   const r=rng(20261019), pick=a=>a[Math.floor(r()*a.length)];
   const emps=[{id:'e1',nama:'Budi Santoso',jabatan:'Teknisi',target:26},{id:'e2',nama:'Agus Prasetyo',jabatan:'Teknisi',target:26},{id:'e3',nama:'Dedi Kurniawan',jabatan:'Helper',target:18},{id:'e4',nama:'Rina Wulandari',jabatan:'Admin',target:0}];
   const cust=[['Ibu Sari','Perum Griya Asri B12'],['Pak Hendra','Jl. Melati No. 8'],['Toko Maju Jaya','Ruko Pasar Baru 3'],['Klinik Sehat','Jl. Veteran 45'],['Ibu Wati','Cluster Bukit Indah 7'],['Pak Rudi','Jl. Mawar 21'],['Kantor CV Abadi','Gedung Graha Lt.2'],['Bu Dewi','Perum Taman Sari C5'],['Pak Joko','Jl. Kenanga 14'],['Cafe Senja','Jl. Sudirman 102'],['Ibu Lina','Apartemen Skyline 12A'],['Pak Anton','Jl. Anggrek 9'],['Salon Cantika','Ruko Plaza 5'],['Bu Maya','Perum Citra Land D3'],['Pak Fajar','Jl. Pahlawan 30']].map((c,i)=>({nama:c[0],alamat:c[1],hp:'62812'+String(3400100+i*7311).slice(0,7)}));
@@ -422,6 +676,9 @@ function seed(){
     bank:'BCA 000-000-0000 a.n. CV PUNGGAWA 47',wa:'628100000000',targetOmzet:28000000,targetJob:60},
     orders,cust,emps,att,tx,inv,rem:{}};
 }
+function seed(){return {demo:false,tab:'dash',set:{nama:'CV PUNGGAWA 47',jamMasuk:'08:00',interval:3,lead:7,
+ tpl:'Halo {nama}, ini {usaha}. AC di {alamat} terakhir dicuci {terakhir}. Sudah waktunya cuci rutin agar dingin & hemat listrik. Mau kami jadwalkan? Balas pesan ini ya.',
+ bank:'',wa:'',targetOmzet:28000000,targetJob:60},orders:[],cust:[],emps:[],att:{},tx:[],inv:[],rem:{}}}
 function modal(html,onReady){const m=$('#modal');$('#sheet').style.width='';$('#sheet').innerHTML=html;m.hidden=false;onReady&&onReady($('#sheet'));const f=$('#sheet input,#sheet select,#sheet textarea');f&&f.focus()}
 function closeModal(){$('#modal').hidden=true;$('#sheet').innerHTML=''}
 function fieldHTML(f,v){
@@ -463,7 +720,7 @@ function render(){
   $('#view').innerHTML=((SES.role==='teknisi'||(SES.role==='sales'&&S.tab==='abs'))?V[S.tab+'T']:V[S.tab])();
   $('#nav').innerHTML=allowedTabs().map(t=>`<button data-act="tab" data-t="${t[0]}"${S.tab===t[0]?' aria-current="page"':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON[t[0]]}</svg>${t[1]}</button>`).join('');
   $('#coName').textContent=S.set.nama;
-  $('#sidefoot').innerHTML=`${S.demo?'<div class="note">Data contoh. Hapus sebelum dipakai sungguhan.</div><button class="btn sm" data-act="clearDemo">Hapus data contoh</button>':''}<div class="row"><button class="btn sm" data-act="backup">Simpan cadangan</button><button class="btn sm" data-act="restore">Pulihkan</button></div>${memOnly?'<div class="note">Penyimpanan browser diblokir, data hilang saat ditutup.</div>':'<span>Data tersimpan di browser ini.</span>'}`;
+  $('#sidefoot').innerHTML=`${S.demo?'<div class="note">Data contoh. Hapus sebelum dipakai sungguhan.</div><button class="btn sm" data-act="clearDemo">Hapus data contoh</button>':''}<div class="row"><button class="btn sm" data-act="backup">Simpan cadangan</button><button class="btn sm" data-act="restore">Pulihkan</button></div>${false?'':'<span>Data tersimpan di database (Supabase).</span>'}`;
   $('#who').innerHTML=`<div><b>${esc(SES.nama)}</b><small>${ROLE_L[SES.role]}</small></div><button class="btn sm" data-act="logout">${DEMO_OPEN?'Ganti peran':'Keluar'}</button>`;
   if(SES.role!=='admin')$('#sidefoot').innerHTML='';
   labelTables();
@@ -521,13 +778,25 @@ function orderForm(o){
   const F=[{k:'tgl',l:'Tanggal',t:'date',req:1,def:TODAY},{k:'nama',l:'Nama pelanggan',req:1},{k:'hp',l:'No. WA (format 62812...)',def:''},{k:'alamat',l:'Alamat',wide:1},
    {k:'layanan',l:'Layanan',t:'select',o:Object.keys(SERV)},{k:'unit',l:'Jumlah unit AC',t:'number',min:1,def:1},{k:'nilai',l:'Nilai order (Rp)',t:'number',min:0,def:0},
    {k:'teknisi',l:'Teknisi',t:'select',o:S.emps.filter(e=>isTek(e)).map(e=>[e.id,e.nama])},{k:'status',l:'Status',t:'select',o:STAT.filter(s=>s!=='Batal'||(o&&o.status==='Batal')),def:'Baru'}];
-  form(o?'Ubah order '+o.id:'Order baru',F,o,v=>{
+  form(o?'Ubah order '+o.id:'Order baru',F,o, async v=>{
     if(!v.nilai)v.nilai=(SERV[v.layanan]||0)*(v.unit||1);
-    if(o)Object.assign(o,v);else S.orders.push({id:nextId,...v});
-    if(!S.cust.find(c=>c.nama===v.nama))S.cust.push({nama:v.nama,hp:v.hp,alamat:v.alamat});
-    save();render();toast('Order disimpan');
-  });
-}
+    
+    if(o) {
+      Object.assign(o, {...v});
+    } else {
+      S.orders.push({ id: nextId, status: 'Baru', ...v });
+    }
+
+    // Simpan pelanggan baru (jika belum ada)
+    if(!S.cust.find(c=>c.nama===v.nama)) {
+      S.cust.push({nama:v.nama, hp:v.hp, alamat:v.alamat});
+    }
+    
+    save(); 
+    render(); 
+    toast('Order berhasil disimpan ke database');
+  }); // <--- PENUTUP FUNGSI FORM
+} // <--- PENUTUP FUNGSI orderForm
 A.editOrder=b=>orderForm(S.orders.find(x=>x.id===b.dataset.id));
 A.delOrder=b=>{S.orders=S.orders.filter(x=>x.id!==b.dataset.id);save();render();toast('Order dihapus')};
 function txIn(a,b){return S.tx.filter(t=>t.tgl>=a&&t.tgl<=b)}
@@ -675,10 +944,10 @@ function invHTML(i){const t=invTot(i);
   <hr style="border:0;border-top:1px solid #d7e1e4;margin:16px 0"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><small style="color:#4b6068">Ditagihkan kepada</small><br><b>${esc(i.nama)}</b><br>${esc(i.alamat)}<br>${esc(i.hp)}</div><div style="text-align:right"><small style="color:#4b6068">Tanggal</small> ${fd(i.tgl)}<br><small style="color:#4b6068">Jatuh tempo</small> ${fd(i.tempo)}<br><b>${invStat(i)==='Lunas'?'LUNAS':'BELUM LUNAS'}</b></div></div>
   <table style="margin:16px 0"><thead><tr><th>Deskripsi</th><th class="r">Qty</th><th class="r">Harga</th><th class="r">Jumlah</th></tr></thead><tbody>${i.items.map(x=>`<tr><td>${esc(x.desc)}</td><td class="r num">${x.qty}</td><td class="r num">${rp(x.harga)}</td><td class="r num">${rp(x.qty*x.harga)}</td></tr>`).join('')}</tbody></table>
   <div style="text-align:right">${(i.diskon||(i.ppn&&i.ppn.mode==='excl'))?`<div>Subtotal <span class="num">${rp(t.sub)}</span></div>`:''}${i.diskon?`<div>Diskon <span class="num">-${rp(i.diskon)}</span></div>`:''}${i.ppn&&i.ppn.mode==='excl'?`<div>PPN ${i.ppn.rate}% (material) <span class="num">${rp(t.ppn)}</span></div>`:''}<div style="font-size:20px"><b>Total <span class="num">${rp(t.tot)}</span></b></div></div>
-  ${i.ppn&&i.ppn.mode==='incl'?`<div style="text-align:right;font-size:12px;color:#4b6068">Harga material sudah termasuk PPN ${i.ppn.rate}%: <span class="num">${rp(t.ppn)}</span></div>`:''}<p style="margin:16px 0 0;color:#4b6068">Pembayaran ke: ${esc(S.set.bank)}</p>${sigHTML(i)}</div>`}
+  ${i.ppn&&i.ppn.mode==='incl'?`<div style="text-align:right;font-size:12px;color:#4b6068">Harga material sudah termasuk PPN ${i.ppn.rate}%: <span class="num">${rp(t.ppn)}</span></div>`:''}${typeof bankHTML==='function'?bankHTML():'<p style="margin:16px 0 0;color:#4b6068">Pembayaran ke: '+esc(S.set.bank)+'</p>'}${sigHTML(i)}</div>`}
 function invText(i){const t=invTot(i);return `INVOICE ${i.no}\n${i.ref&&S.orders.some(q=>q.id===i.ref)?'Ref. Order: '+i.ref+'\n':''}${(i.pnwNo||(S.pnw.find(q=>q.id===i.pnwId)||{}).no)?'Ref. Penawaran: '+(i.pnwNo||S.pnw.find(q=>q.id===i.pnwId).no)+'\n':''}${S.set.nama}\n\nKepada: ${i.nama}\nTanggal: ${fd(i.tgl)}  Jatuh tempo: ${fd(i.tempo)}\n\n${i.items.map(x=>`- ${x.desc} ${x.qty} x ${rp(x.harga)} = ${rp(x.qty*x.harga)}`).join('\n')}\n${i.diskon?'Diskon: -'+rp(i.diskon)+'\n':''}${i.ppn?(i.ppn.mode==='excl'?'PPN '+i.ppn.rate+'% (material): '+rp(t.ppn)+'\n':'(Sudah termasuk PPN '+i.ppn.rate+'% material: '+rp(t.ppn)+')\n'):''}\nTOTAL: ${rp(t.tot)}\nBayar ke: ${S.set.bank}`}
 A.viewInv=b=>{const i=S.inv.find(x=>x.id===b.dataset.id);
-  modal(`${invHTML(i)}<div class="row" style="justify-content:flex-end">${i.status!=='Lunas'?`<button class="btn pri" data-act="payInv" data-id="${i.id}">Tandai lunas</button>`:''}<a class="btn" href="${waLink(i.hp,invText(i))}" target="_blank" rel="noopener">Buka WhatsApp</a><button class="btn" data-act="cpInv" data-id="${i.id}">Salin teks</button><button class="btn" data-act="prtInv" data-id="${i.id}">Cetak</button><button class="btn" data-act="dlInv" data-id="${i.id}">Unduh HTML</button><button class="btn" data-act="close">Tutup</button></div>`)};
+  modal(`${invHTML(i)}<div class="row" style="justify-content:flex-end">${i.status!=='Lunas'?`<button class="btn pri" data-act="payInv" data-id="${i.id}">Tandai lunas</button>`:''}<a class="btn" href="${waLink(i.hp,invText(i))}" target="_blank" rel="noopener">Buka WhatsApp</a><button class="btn" data-act="cpInv" data-id="${i.id}">Salin teks</button><button class="btn" data-act="prtInv" data-id="${i.id}">Cetak</button><button class="btn" data-act="dlInv" data-id="${i.id}">Unduh PDF</button><button class="btn" data-act="close">Tutup</button></div>`)};
 A.cpInv=b=>copyText(invText(S.inv.find(x=>x.id===b.dataset.id)));
 A.payInv=b=>{const i=S.inv.find(x=>x.id===b.dataset.id);i.status='Lunas';notify(['direktur','adminjual','adminops'],'Invoice lunas',i.no+' · '+i.nama+' · '+rp(invTot(i).tot),{tipe:'ok',tab:'inv'});
   if(!S.tx.some(t=>t.ref===i.no))S.tx.push({id:uid('t'),tgl:TODAY,jenis:'Pemasukan',kat:'Jasa servis',ket:'Pembayaran '+i.no+' - '+i.nama,akun:'Bank',jml:invTot(i).tot,ref:i.no});
@@ -690,40 +959,123 @@ A.dlInv=b=>{const i=S.inv.find(x=>x.id===b.dataset.id);saveFile(i.no+'.html','<!
 const ROLE_L={admin:'Admin Super',direktur:'Direktur',adminjual:'Admin Penjualan',adminops:'Admin Operasional',sales:'Sales',teknisi:'Teknisi'};
 const LOGO='<div class="logo lg"><img src="'+LOGO_URI+'" alt="Logo"></div>';
 const SKEY='awaljaya.ses',PAGE=15;
-const DEMO_OPEN=true; /* true = tombol masuk 1 klik tanpa kata sandi. Ubah ke false untuk pemakaian sungguhan. */
+const DEMO_OPEN=false; /* true = tombol masuk 1 klik tanpa kata sandi. Ubah ke false untuk pemakaian sungguhan. */
 let SES=null;const L={role:'admin',err:''};U.pg={};U.pgs={};
 const userOf=e=>e.nama.split(' ')[0].toLowerCase();
-function loadSes(){try{const x=JSON.parse(localStorage.getItem(SKEY)||'null');if(x&&((x.role!=='teknisi'&&x.role!=='sales')||S.emps.some(e=>e.id===x.empId)))return x}catch(e){}return null}
-function saveSes(){try{SES?localStorage.setItem(SKEY,JSON.stringify(SES)):localStorage.removeItem(SKEY)}catch(e){}}
+function loadSes(){return null}
+function saveSes(){}
 function allowedTabs(){return SES.role==='admin'?TABS:SES.role==='internal'?TABS.filter(t=>['dash','wa','inv','abs','kin'].includes(t[0])):[['dash','Order Saya'],['abs','Absensi']]}
 function ensureTab(){if(!allowedTabs().some(t=>t[0]===S.tab))S.tab='dash'}
-function hideLogin(){$('#login').hidden=true;$('.app').hidden=false}
+function hideLogin(){$('#login').hidden=true;$('.app').hidden=false;L.shown=false;L.u=''}
+const LGX_ICO={
+ snow:'<path d="M12 2v20M4.9 6.5l14.2 11M19.1 6.5L4.9 17.5M9 3.5l3 2.5 3-2.5M9 20.5l3-2.5 3 2.5"/>',
+ user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/>',
+ lock:'<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+ eye:'<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+ eyeoff:'<path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.6 6.6A16.6 16.6 0 0 0 2 12s3.6 7 10 7a9.7 9.7 0 0 0 4.4-1.1M9.9 9.9a3 3 0 0 0 4.2 4.2"/>',
+ go:'<path d="M5 12h14M13 6l6 6-6 6"/>',
+ job:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9zM9 12h6M9 16h4"/>',
+ keu:'<path d="M3 17l6-6 4 4 8-8M15 7h6v6"/>',
+ pin:'<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+ admin:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
+ direktur:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 13h18"/>',
+ adminjual:'<circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.7 11.5a2 2 0 0 0 2 1.5h7.6a2 2 0 0 0 2-1.5L21 7H6"/>',
+ adminops:'<path d="M9 4h6v3H9z"/><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 12h6M9 16h4"/>',
+ sales:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+ teknisi:'<path d="M14.7 6.3a4 4 0 0 0-5.4 5.2L3 17.8 6.2 21l6.3-6.3a4 4 0 0 0 5.2-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/>'};
+const lgxSvg=(k,c)=>`<svg${c?` class="${c}"`:''} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${LGX_ICO[k]}</svg>`;
 function showLogin(){
-  $('.app').hidden=true;$('#login').hidden=false;
+  const lg=$('#login'),pu=$('#lu');if(pu&&!lg.hidden)L.u=pu.value;
+  $('.app').hidden=true;lg.hidden=false;
   const ak=S.set.akun||{admin:'admin123',direktur:'direktur123',adminjual:'jual123',adminops:'ops123',sales:'sales123'};
-  const hint=S.demo?`<div class="info">Akun contoh. Admin: admin / ${ak.admin}. Admin Penjualan: adminjual / ${ak.adminjual}. Admin Operasional: adminops / ${ak.adminops}. Sales: ${salesL().map(userOf).join(', ')} / sales123. Teknisi: ${S.emps.filter(e=>isTek(e)).map(userOf).join(', ')} / teknisi123.</div>`:'';
-  $('#login').innerHTML=`<div class="lg-art"><div class="brand">${LOGO}<div><b>${esc(S.set.nama)}</b><span>Ahli Sejuk, Andalan Anda</span></div></div><div><h1>Pekerjaan tertata, hari lebih tenang.</h1><p>Order, absensi, invoice, dan keuangan tercatat rapi di satu tempat.</p></div><small style="color:#7f98a8">${esc(S.set.nama)}</small></div>
-  <div class="lg-form"><form class="lg-box" id="lf"><h2 style="font-size:22px">${DEMO_OPEN?'Coba demo':'Masuk ke '+esc(S.set.nama)}</h2>${DEMO_OPEN?demoBox():''}
-  <div class="seg" role="group" aria-label="Masuk sebagai">${['admin','direktur','adminjual','adminops','sales','teknisi'].map(r=>`<button type="button" data-act="lrole" data-r="${r}" aria-pressed="${L.role===r}">${ROLE_L[r]}</button>`).join('')}</div>
-  <label class="f">Nama pengguna<input id="lu" autocomplete="username" required></label>
-  <label class="f">Kata sandi<input id="lp" type="password" autocomplete="current-password" required></label>
-  <div class="lerr" role="alert">${esc(L.err)}</div><button class="btn pri" type="submit" style="justify-content:center">Masuk</button>${DEMO_OPEN?'':hint}</form></div>`;
-  $('#lu').focus();
+  const hint=S.demo?`<div class="info lgx-hint">Akun contoh. Admin: admin / ${ak.admin}. Admin Penjualan: adminjual / ${ak.adminjual}. Admin Operasional: adminops / ${ak.adminops}. Sales: ${salesL().map(userOf).join(', ')} / sales123. Teknisi: ${S.emps.filter(e=>isTek(e)).map(userOf).join(', ')} / teknisi123.</div>`:'';
+  const first=!L.shown;L.shown=true;lg.className='login'+(first?' lgx-in':'');
+  lg.innerHTML=`<div class="lg-art lgx-art">
+  <div class="lgx-deco" aria-hidden="true"><i class="a"></i><i class="b"></i></div>
+  <div class="lgx-top">${lgxSvg('snow')}Ahli Sejuk, Andalan Anda</div>
+  <div class="lgx-hero"><div class="lgx-logo-card"><img src="${LOGO_URI}" alt="Logo ${esc(S.set.nama)}"></div>
+   <h1>Pekerjaan tertata, <em>hari lebih tenang.</em></h1><p>Order, absensi, invoice, dan keuangan tercatat rapi di satu tempat.</p></div>
+  <div class="lgx-feat"><div>${lgxSvg('job')}<b>Order &amp; job</b><span>Pembagian teknisi yang jelas</span></div><div>${lgxSvg('keu')}<b>Invoice &amp; keuangan</b><span>Tagihan dan jurnal rapi</span></div><div>${lgxSvg('pin')}<b>Absensi &amp; kinerja</b><span>Absen berbasis lokasi</span></div></div></div>
+  <div class="lg-form lgx-side"><form class="lg-box lgx-card" id="lf"><div><h2>${DEMO_OPEN?'Coba demo':'Selamat datang'}</h2><p class="lgx-sub">${DEMO_OPEN?'Pilih peran untuk langsung mencoba.':'Masuk ke '+esc(S.set.nama)+' untuk melanjutkan.'}</p></div>${DEMO_OPEN?demoBox():''}
+  <div><span class="lgx-lab">Masuk sebagai <b>${ROLE_L[L.role]}</b></span><div class="seg lgx-roles" role="group" aria-label="Masuk sebagai">${['admin','direktur','adminjual','adminops','sales','teknisi'].map(r=>`<button type="button" data-act="lrole" data-r="${r}" aria-pressed="${L.role===r}">${lgxSvg(r)}<span>${ROLE_L[r]}</span></button>`).join('')}</div></div>
+  <label class="f lgx-f"><span class="lgx-lab" style="margin-bottom:6px">Nama pengguna</span><span class="lgx-fld">${lgxSvg('user')}<input id="lu" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Masukkan nama pengguna" value="${esc(L.u||'')}" required></span></label>
+  <label class="f lgx-f"><span class="lgx-lab" style="margin-bottom:6px">Kata sandi</span><span class="lgx-fld">${lgxSvg('lock')}<input id="lp" type="password" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="current-password" placeholder="Masukkan kata sandi" required><button type="button" class="lgx-eye" data-act="lpw" aria-pressed="false" aria-label="Tampilkan kata sandi">${lgxSvg('eye','on')}${lgxSvg('eyeoff','off')}</button></span></label>
+  <div class="lerr lgx-err" role="alert">${esc(L.err)}</div>
+  <button class="btn pri lgx-go" type="submit">Masuk${lgxSvg('go')}</button>${DEMO_OPEN?'':hint}
+  <div class="lgx-foot">© ${new Date().getFullYear()} ${esc(S.set.nama)} · Ahli Sejuk, Andalan Anda</div></form></div>`;
+  if(matchMedia('(min-width:901px)').matches||L.err){const u=$('#lu');u&&u.focus({preventScroll:true})}
 }
+A.lpw=b=>{const i=$('#lp');if(!i)return;const s=i.type==='password';i.type=s?'text':'password';b.setAttribute('aria-pressed',String(s));b.setAttribute('aria-label',s?'Sembunyikan kata sandi':'Tampilkan kata sandi')};
 function demoBox(){const R=[['admin','Admin','Semua menu: order, keuangan, invoice, kinerja'],['internal','Internal','Order, invoice, reminder WA, absensi, kinerja'],['teknisi','Teknisi','Order Saya dan absensi, sebagai Budi']];
   return `<div class="info">Klik satu peran untuk langsung mencoba, tanpa kata sandi. Data contoh hanya tersimpan di browser Anda.</div><div class="list">${R.map(r=>`<button type="button" class="btn demo-r" data-act="demoIn" data-r="${r[0]}"><b>${r[1]}</b><small>${r[2]}</small></button>`).join('')}</div><button type="button" class="btn sm" data-act="demoReset" style="align-self:flex-start">Kembalikan data contoh</button><small style="color:var(--muted)">Atau masuk dengan akun sendiri:</small>`}
 A.demoIn=b=>{const r=b.dataset.r,e=S.emps.find(x=>isTek(x));SES=r==='teknisi'?{role:r,empId:e.id,nama:e.nama}:{role:r,nama:({admin:'Admin Super',direktur:'Direktur',adminjual:'Admin Penjualan',adminops:'Admin Operasional',sales:'Sales'})[r]};saveSes();S.tab='dash';render();window.scrollTo(0,0)};
 A.demoReset=()=>{S=seed();S.emps.forEach(e=>e.pw='teknisi123');S.rem={};mig();save();SES=null;saveSes();render();toast('Data contoh dikembalikan')};
 A.lrole=b=>{L.role=b.dataset.r;L.err='';showLogin()};
-document.addEventListener('submit',e=>{if(e.target.id!=='lf')return;e.preventDefault();
-  const u=$('#lu').value.trim().toLowerCase(),p=$('#lp').value,ak=S.set.akun||{admin:'admin123',direktur:'direktur123',adminjual:'jual123',adminops:'ops123',sales:'sales123'};let ses=null;
-  if(L.role==='teknisi'||L.role==='sales'){const sl=L.role==='sales',m=S.emps.find(x=>(sl?x.jabatan==='Sales':isTek(x))&&userOf(x)===u&&x.pw===p);if(m)ses={role:L.role,empId:m.id,nama:m.nama}}
-  else if(u===L.role&&ak[L.role]===p)ses={role:L.role,nama:({admin:'Admin Super',direktur:'Direktur',adminjual:'Admin Penjualan',adminops:'Admin Operasional',sales:'Sales'})[L.role]};
-  if(!ses){const rg=(S.users||[]).find(x=>x.role===L.role&&x.user===u&&x.pw===p);if(rg)ses={role:rg.role,empId:rg.empId,nama:rg.nama}}
-  if(!ses){const pr=(S.reg||[]).find(x=>x.user===u&&x.pw===p&&x.st!=='Disetujui');if(pr){L.err=pr.st==='Menunggu'?'Pendaftaran Anda masih menunggu persetujuan Direktur.':'Pendaftaran ditolak. Alasan: '+(pr.alasanTolak||'-');showLogin();return}}
-  if(!ses){L.err='Nama pengguna atau kata sandi salah untuk peran '+ROLE_L[L.role]+'.';showLogin();return}
-  SES=ses;L.err='';saveSes();S.tab='dash';render();window.scrollTo(0,0)});
-A.logout=()=>{SES=null;saveSes();render()};
+document.addEventListener('submit', async e => {
+  if (e.target.id !== 'lf') return;
+  e.preventDefault();
+
+  const u = $('#lu').value.trim().toLowerCase();
+  const p = $('#lp').value;
+  const email = u + '@punggawa47.app'; 
+
+  const btn = $('#lf button[type="submit"]');
+  if(btn) { btn.disabled = true; btn.innerHTML = 'Memproses...'; }
+
+  try {
+    const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
+      email: email,
+      password: p
+    });
+
+    if (authError) {
+      console.error('LOGIN GAGAL:', authError, '| email dipakai:', email);
+      L.err = 'Login gagal: ' + authError.message + ' (status ' + (authError.status||'?') + ') | email: ' + email;
+      showLogin();
+      return;
+    }
+
+    const { data: profile, error: profError } = await supabaseClient
+      .from('profiles')
+      .select('*')
+      .eq('id', authData.user.id)
+      .single();
+
+    if (profError || !profile || profile.status !== 'active') {
+      console.error('PROFIL BERMASALAH:', profError, profile);
+      L.err = 'Akun belum aktif / profil tidak ditemukan. ' + (profError ? profError.message : (profile ? 'status: '+profile.status : 'baris profiles kosong untuk user ini'));
+      await supabaseClient.auth.signOut();
+      showLogin();
+      return;
+    }
+
+    SES = {
+      role: profile.role,
+      empId: profile.emp_id,
+      nama: profile.nama
+    };
+    
+    L.err = '';
+    await bootData();
+    render();
+    window.scrollTo(0, 0);
+
+  } catch (err) {
+    console.error(err);
+    L.err = 'Terjadi kesalahan jaringan.';
+    showLogin();
+  } finally {
+    if(btn) { btn.disabled = false; btn.innerHTML = 'Masuk'; }
+  }
+});
+
+// Tombol Logout tetap sama
+A.logout=async()=>{
+  try{await syncNow()}catch(e){}
+  SES=null;SYNC.ready=false;SYNC.snap={};
+  try{if(SYNC.chan){await supabaseClient.removeChannel(SYNC.chan);SYNC.chan=null}}catch(e){}
+  try{await supabaseClient.auth.signOut()}catch(e){}
+  S=seed();render()};
 function paginate(k,rows,sig){
   if(U.pgs[k]!==sig){U.pgs[k]=sig;U.pg[k]=1}
   const n=rows.length,pages=Math.max(1,Math.ceil(n/PAGE)),p=Math.min(U.pg[k]||1,pages);U.pg[k]=p;const a=(p-1)*PAGE;
@@ -894,8 +1246,7 @@ A.navToggle=()=>{const o=document.body.classList.toggle('navopen');const h=$('.h
 A.navClose=()=>{document.body.classList.remove('navopen');const h=$('.hb');if(h)h.setAttribute('aria-expanded','false')};
 document.addEventListener('keydown',e=>{if(e.key==='Escape')A.navClose()});
 const _r0=render;render=function(){_r0();A.navClose();if(SES){const tb=$('#tbTitle'),cur=allowedTabs().find(x=>x[0]===S.tab);if(tb)tb.textContent=cur?String(cur[1]).replace(/ \(\d+\)$/,''):S.set.nama}const bb=$('#bellbox');if(bb)bb.innerHTML=SES?bellHTML():'';if(!SES)npClose();else npRender()};
-window.addEventListener('storage',e=>{if(e.key!==KEY||!e.newValue||!SES||!$('#modal').hidden)return;
- try{const b=nUnread().length;S=JSON.parse(e.newValue);mig();const a=nUnread().length;render();if(a>b)toast('Ada '+(a-b)+' pemberitahuan baru')}catch(_){}});
+
 
 /* ---------- Pemicu pemberitahuan ---------- */
 function reqNotif(jenis,ket,jml,alasan){const j=RJ[jenis]||jenis;
@@ -936,14 +1287,14 @@ function allowedTabs(){const r=SES.role;if(r==='teknisi')return[['dash','Order S
 function ensureTab(){const t=allowedTabs();if(!t.some(x=>x[0]===S.tab))S.tab=SES.role==='direktur'?'apr':t[0][0]}
 function fixCust(){let n=Math.max(0,...S.cust.map(c=>parseInt(String(c.no||'').slice(4))||0));S.cust.forEach(c=>{if(!c.no)c.no='CUS-'+String(++n).padStart(3,'0')})}
 function mig(){fixCust();if(S.set.nama==='Awal Jaya Jaya'||S.set.nama==='Awal Jaya Jaya Admin'||/^cv punggawa 47$/i.test(S.set.nama))S.set.nama='CV PUNGGAWA 47';if(S.set.bank)S.set.bank=S.set.bank.replace(/cv punggawa 47/gi,'CV PUNGGAWA 47');if(/Awal Jaya Jaya/.test(S.set.bank||''))S.set.bank=S.set.bank.replace(/Awal Jaya Jaya/g,'CV PUNGGAWA 47');
-  S.stok=S.stok||[['AC Split 1/2 PK Type 1','AC','unit',6,2,3600000],['AC Split 1 PK Type 2','AC','unit',4,2,4900000],['Kabel NYM 3x2,5 mm','Kabel','meter',120,30,18000],['Kabel kontrol 4 core','Kabel','meter',80,20,9000],['Pipa AC 1/4" + 3/8"','Pipa','meter',60,20,70000],['Pipa drain','Pipa','meter',50,15,12000],['Freon R32','Freon','kg',12,3,150000],['Braket outdoor','Sparepart','pcs',15,5,75000]].map((x,i)=>({id:'s'+(i+1),nama:x[0],kat:x[1],sat:x[2],qty:x[3],min:x[4],harga:x[5],sup:''}));
-  S.sup=S.sup||[{id:'p1',nama:'CV Dingin Makmur',pic:'Pak Anto',hp:'6281200000001',produk:'AC split, freon',alamat:'Jl. Industri 5'},{id:'p2',nama:'UD Kabel Jaya',pic:'Bu Rini',hp:'6281200000002',produk:'Kabel, pipa tembaga',alamat:'Pasar Material Blok C'}];
-  S.surat=S.surat||[{id:'m1',jenis:'Surat masuk',tgl:TODAY,no:'012/PO/X/2026',pihak:'Klinik Sehat',perihal:'Permintaan penawaran servis berkala',barang:'',status:'Diterima'},{id:'m2',jenis:'Surat keluar',tgl:TODAY,no:'005/SP/X/2026',pihak:'CV Dingin Makmur',perihal:'Pesanan AC dan freon',barang:'AC 1 PK x2',status:'Diproses'}];
+  S.stok=S.stok||(!S.demo?[]:[['AC Split 1/2 PK Type 1','AC','unit',6,2,3600000],['AC Split 1 PK Type 2','AC','unit',4,2,4900000],['Kabel NYM 3x2,5 mm','Kabel','meter',120,30,18000],['Kabel kontrol 4 core','Kabel','meter',80,20,9000],['Pipa AC 1/4" + 3/8"','Pipa','meter',60,20,70000],['Pipa drain','Pipa','meter',50,15,12000],['Freon R32','Freon','kg',12,3,150000],['Braket outdoor','Sparepart','pcs',15,5,75000]].map((x,i)=>({id:'s'+(i+1),nama:x[0],kat:x[1],sat:x[2],qty:x[3],min:x[4],harga:x[5],sup:''})));
+  S.sup=S.sup||(!S.demo?[]:[{id:'p1',nama:'CV Dingin Makmur',pic:'Pak Anto',hp:'6281200000001',produk:'AC split, freon',alamat:'Jl. Industri 5'},{id:'p2',nama:'UD Kabel Jaya',pic:'Bu Rini',hp:'6281200000002',produk:'Kabel, pipa tembaga',alamat:'Pasar Material Blok C'}]);
+  S.surat=S.surat||(!S.demo?[]:[{id:'m1',jenis:'Surat masuk',tgl:TODAY,no:'012/PO/X/2026',pihak:'Klinik Sehat',perihal:'Permintaan penawaran servis berkala',barang:'',status:'Diterima'},{id:'m2',jenis:'Surat keluar',tgl:TODAY,no:'005/SP/X/2026',pihak:'CV Dingin Makmur',perihal:'Pesanan AC dan freon',barang:'AC 1 PK x2',status:'Diproses'}]);
   S.req=S.req||[];S.mut=S.mut||[];S.log=S.log||[];S.notif=S.notif||[];S.set.rw=S.set.rw||{min:30000000,pct:3};S.set.lok=S.set.lok||{lat:null,lng:null,rad:150};if(S.set.lok.lat==null){S.set.lok.lat=-5.164865;S.set.lok.lng=119.420929}
   if(S.set.akun){const k=S.set.akun;k.direktur=k.direktur||'direktur123';k.adminjual=k.adminjual||'jual123';k.adminops=k.adminops||'ops123';k.sales=k.sales||'sales123'}
   if(!S.emps.some(e=>e.role==='adminops')){const e=S.emps.find(x=>x.jabatan==='Admin'&&!x.role);if(e)e.role='adminops';else S.emps.push({id:uid('e'),nama:'Admin Operasional',jabatan:'Admin',target:0,role:'adminops',pw:'teknisi123'})}
-  if(!S.emps.some(e=>e.role==='adminjual'))S.emps.push({id:uid('e'),nama:'Dewi Anggraini',jabatan:'Admin',target:0,role:'adminjual',pw:'teknisi123'});
-  S.sewa=S.sewa||[{id:'w1',nama:'Kafe Senja',hp:'6281200000011',alamat:'Jl. Melati 7',unit:'AC Standing 2 PK',qty:2,mulai:addD(TODAY,-20),selesai:addD(TODAY,10),tarif:900000,deposit:1000000,status:'Terpasang'},{id:'w2',nama:'Event Organizer Prima',hp:'6281200000012',alamat:'Gedung Serbaguna Blok B',unit:'AC Portable 1 PK',qty:4,mulai:addD(TODAY,3),selesai:addD(TODAY,6),tarif:250000,deposit:500000,status:'Booking'},{id:'w3',nama:'Klinik Sehat',hp:'6281200000013',alamat:'Jl. Kenanga 12',unit:'AC Split 1 PK',qty:1,mulai:addD(TODAY,-62),selesai:addD(TODAY,-2),tarif:600000,deposit:600000,status:'Terpasang'}]}
+  if(!S.emps.some(e=>e.role==='adminjual'))S.emps.push({id:uid('e'),nama:'Admin Penjualan',jabatan:'Admin',target:0,role:'adminjual',pw:'teknisi123'});
+  S.sewa=S.sewa||(!S.demo?[]:[{id:'w1',nama:'Kafe Senja',hp:'6281200000011',alamat:'Jl. Melati 7',unit:'AC Standing 2 PK',qty:2,mulai:addD(TODAY,-20),selesai:addD(TODAY,10),tarif:900000,deposit:1000000,status:'Terpasang'},{id:'w2',nama:'Event Organizer Prima',hp:'6281200000012',alamat:'Gedung Serbaguna Blok B',unit:'AC Portable 1 PK',qty:4,mulai:addD(TODAY,3),selesai:addD(TODAY,6),tarif:250000,deposit:500000,status:'Booking'},{id:'w3',nama:'Klinik Sehat',hp:'6281200000013',alamat:'Jl. Kenanga 12',unit:'AC Split 1 PK',qty:1,mulai:addD(TODAY,-62),selesai:addD(TODAY,-2),tarif:600000,deposit:600000,status:'Terpasang'}])}
 function addReq(jenis,ref,ket,jml,alasan){S.req.unshift({id:uid('r'),jenis,ref,ket,jml,alasan:alasan||'',oleh:SES.nama,role:SES.role,empId:SES.empId,tgl:TODAY,st:'Menunggu'});reqNotif(jenis,ket,jml,alasan)}
 const RJ={pnw:'Penawaran',inv:'Invoice baru',tx:'Transaksi baru',txb:'Jurnal beberapa baris',delTx:'Pembatalan transaksi',delInv:'Pembatalan invoice'};
 function mut(s,jenis,qty,ket){S.mut.unshift({tgl:TODAY,sid:s.id,jenis,qty,ket,oleh:SES.nama});S.mut.length=Math.min(S.mut.length,200)}
@@ -998,7 +1349,7 @@ A.kSave=()=>{const items=K.lines.filter(x=>x.desc&&x.qty>0).map(x=>{const b=x.k[
  if(K.job){const o=S.orders.find(x=>x.id===K.job);if(o)o.inv=no}S.inv.push(i);K=newK();save();S.tab='inv';render();toast(isAp()?'Invoice '+no+' terbit':'Invoice '+no+' diajukan, menunggu persetujuan')};
 A.newInv=()=>{S.tab='kas';render()};
 A.viewInv=b=>{const i=S.inv.find(x=>x.id===b.dataset.id),ok=okInv(i);
- modal(`${ok?'':`<div class="note">${i.appr==='Ditolak'?'Invoice ini ditolak. Alasan: '+esc(i.alasanTolak||'-')+'.':'Menunggu persetujuan Direktur. Belum bisa dikirim atau ditandai lunas.'}</div>`}${invHTML(i)}<div class="row" style="justify-content:flex-end">${ok&&i.status!=='Lunas'?`<button class="btn pri" data-act="payInv" data-id="${i.id}">Tandai lunas</button>`:''}${ok?`<a class="btn" href="${waLink(i.hp,invText(i))}" target="_blank" rel="noopener">Buka WhatsApp</a><button class="btn" data-act="cpInv" data-id="${i.id}">Salin teks</button><button class="btn" data-act="prtInv" data-id="${i.id}">Cetak</button><button class="btn" data-act="dlInv" data-id="${i.id}">Unduh HTML</button>`:''}${i.appr==='Ditolak'&&canKas()?`<button class="btn pri" data-act="invEdit" data-id="${i.id}">Edit &amp; ajukan ulang</button>`:''}<button class="btn" data-act="close">Tutup</button></div>`)};
+ modal(`${ok?'':`<div class="note">${i.appr==='Ditolak'?'Invoice ini ditolak. Alasan: '+esc(i.alasanTolak||'-')+'.':'Menunggu persetujuan Direktur. Belum bisa dikirim atau ditandai lunas.'}</div>`}${invHTML(i)}<div class="row" style="justify-content:flex-end">${ok&&i.status!=='Lunas'?`<button class="btn pri" data-act="payInv" data-id="${i.id}">Tandai lunas</button>`:''}${ok?`<a class="btn" href="${waLink(i.hp,invText(i))}" target="_blank" rel="noopener">Buka WhatsApp</a><button class="btn" data-act="cpInv" data-id="${i.id}">Salin teks</button><button class="btn" data-act="prtInv" data-id="${i.id}">Cetak</button><button class="btn" data-act="dlInv" data-id="${i.id}">Unduh PDF</button>`:''}${i.appr==='Ditolak'&&canKas()?`<button class="btn pri" data-act="invEdit" data-id="${i.id}">Edit &amp; ajukan ulang</button>`:''}<button class="btn" data-act="close">Tutup</button></div>`)};
 /* ---------- Persetujuan ---------- */
 const pend=(ref)=>S.req.some(r=>r.ref===ref&&r.st==='Menunggu'&&/^del/.test(r.jenis));
 A.delInv=b=>{const i=S.inv.find(x=>x.id===b.dataset.id);if(!i)return;if(!isAp()&&pend(i.id)){toast('Pembatalan sudah diajukan');return}
@@ -1450,7 +1801,7 @@ A.demoIn=b=>{const r=b.dataset.r,N={admin:'Admin Super',direktur:'Direktur',admi
  SES=ses;saveSes();S.tab='dash';render();window.scrollTo(0,0)};
 function migSales2(){
  S.prospek=S.prospek||[];S.set.salesT=S.set.salesT||{prospek:10,kunj:4,pnw:4,fu:5,jual:300000000};
- if(!S.emps.some(e=>e.jabatan==='Sales'))S.emps.push({id:uid('e'),nama:'Rizky Pratama',jabatan:'Sales',target:0,pw:'sales123'},{id:uid('e'),nama:'Annisa Putri',jabatan:'Sales',target:0,pw:'sales123'});
+ if(S.demo&&!S.emps.some(e=>e.jabatan==='Sales'))S.emps.push({id:uid('e'),nama:'Rizky Pratama',jabatan:'Sales',target:0,pw:'sales123'},{id:uid('e'),nama:'Annisa Putri',jabatan:'Sales',target:0,pw:'sales123'});
  const SL=salesL();if(!SL.length)return;
  (S.kjg||[]).forEach((k,i)=>{if(!k.sid){const m=SL.find(e=>e.nama===k.sales);k.sid=(m||SL[i%SL.length]).id}if(k.status==='Closing / selesai'&&!k.closeTgl)k.closeTgl=k.tgl});
  const seen={};[...(S.kjg||[])].sort((a,b)=>a.tgl<b.tgl?-1:1).forEach(k=>{const n=(k.kantor||'').trim().toLowerCase();if(k.baru===undefined)k.baru=!seen[n];seen[n]=1});
@@ -1592,7 +1943,31 @@ A.invEdit=b=>{const i=S.inv.find(x=>x.id===b.dataset.id);if(!i||i.appr!=='Ditola
  K=newK();save();S.tab='inv';render();toast(isAp()?'Invoice '+i0.no+' terbit':'Invoice '+i0.no+' diajukan ulang, menunggu persetujuan')}}
 {const _vk=V.kas;V.kas=()=>{let h=_vk();if(K&&K.editId){const i=S.inv.find(x=>x.id===K.editId);if(i&&!isAp())h=h.replace('<div class="card"><h3>Dari job teknisi</h3>',`<div class="note">Mengedit <b>${i.no}</b> yang ditolak Direktur. Alasan: ${esc(i.alasanTolak||'-')}. Setelah diperbaiki, tekan Ajukan ulang agar Direktur menyetujui lagi.</div><div class="card"><h3>Dari job teknisi</h3>`).replace('>Terbitkan invoice<','>Ajukan ulang ke Direktur<')}return h}}
 
-(function init(){if(/^#investor=/.test(location.hash))return;S=load();if(!S||!S.set){S=seed();save()}mig();if(!V[S.tab])S.tab='dash';S.rem=S.rem||{};S.emps.forEach(e=>{if(!e.pw)e.pw='teknisi123'});SES=loadSes();if(SES&&SES.role==='internal'){SES.role='adminops';saveSes()}render()})();
+(async function init(){
+  if(/^#investor=/.test(location.hash)) return;
+
+  // 1. Tanya ke Supabase: Apakah ada sesi login yang aktif?
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  
+  if (session) {
+    // Jika ada sesi, ambil profil user yang login
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('*')
+      .eq('id', session.user.id)
+      .single();
+      
+    if (profile && profile.status === 'active') {
+      SES = { role: profile.role, empId: profile.emp_id, nama: profile.nama };
+    }
+  }
+
+  // 2. Ambil semua data dari database
+  await bootData();
+  if(!V[S.tab]) S.tab = 'dash';
+  
+  render();
+})();
 </script>
 <script>
 /* =====================================================================
@@ -1963,7 +2338,42 @@ A.kopLogoDel=()=>{S.set.kop={...(S.set.kop||{}),logo:''};save();render();toast('
 <script>
 document.querySelectorAll('.logo.lg img:not([src])').forEach(i=>i.src=LOGO_URI);
 </script>
+<script>
+/* ---------- Akun Direktur: dibuat Admin Super, login memakai nama sendiri ---------- */
+const dirAk=()=>(S.users=S.users||[]).filter(u=>u.role==='direktur');
+const normU=s=>String(s||'').trim().toLowerCase().replace(/\s+/g,'');
+ICON.akun='<circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M17 11l2 2 3-3"/>';
+{const _at=allowedTabs;allowedTabs=function(){const t=_at();return SES&&SES.role==='admin'&&!t.some(x=>x[0]==='akun')?t.concat([['akun','Akun Direktur']]):t}}
+V.akun=()=>{
+ const D=dirAk();
+ return `<div class="head"><div><h1>Akun Direktur</h1><p>Buat akun agar setiap Direktur masuk dengan nama sendiri. Persetujuan dan tanda tangan digital jadi tercatat atas nama mereka.</p></div><button class="btn pri" data-act="akNew">+ Akun Direktur</button></div>
+ ${S.set.noGenDir?'<div class="info">Login umum <b>direktur</b> sedang nonaktif. Hanya akun di bawah yang bisa masuk sebagai Direktur.</div>':`<div class="note">Login umum <b>direktur</b> (kata sandi bawaan) masih aktif, jadi siapa pun yang tahu kata sandinya bisa masuk sebagai Direktur. ${D.length?'Setelah semua Direktur punya akun, nonaktifkan login umum dengan tombol di bawah.':'Buat akun Direktur dulu, setelah itu login umum bisa dinonaktifkan.'}</div>`}
+ <div class="card"><div class="row" style="justify-content:space-between"><h3>Daftar akun (${D.length})</h3>${D.length?`<button class="btn sm" data-act="akGen">${S.set.noGenDir?'Aktifkan lagi login umum':'Nonaktifkan login umum'}</button>`:''}</div>
+ <div class="tw"><table><thead><tr><th>Nama</th><th>Nama pengguna</th><th>Dibuat</th><th></th></tr></thead><tbody>${D.length?D.map(u=>`<tr><td><b>${esc(u.nama)}</b></td><td class="num">${esc(u.user)}</td><td>${u.dibuat?fd(u.dibuat):'-'}${u.oleh?'<br><small>oleh '+esc(u.oleh)+'</small>':''}</td><td class="r"><button class="btn sm" data-act="akEd" data-id="${u.id}">Ubah</button> <button class="btn sm del" data-act="akDel" data-id="${u.id}">Hapus</button></td></tr>`).join(''):'<tr><td colspan="4" class="empty">Belum ada akun Direktur. Tekan + Akun Direktur.</td></tr>'}</tbody></table></div></div>`};
+function akForm(u,pre){
+ const edit=!!u;
+ form(edit?'Ubah akun Direktur':'Akun Direktur baru',[
+  {k:'nama',l:'Nama lengkap Direktur',req:1,wide:1},
+  {k:'user',l:'Nama pengguna (huruf kecil, tanpa spasi)',req:1},
+  {k:'pw',l:edit?'Kata sandi baru (kosongkan jika tidak diubah)':'Kata sandi (minimal 6 karakter)',req:!edit}],
+  pre||(edit?{nama:u.nama,user:u.user,pw:''}:null),v=>{
+  const nama=String(v.nama).trim(),user=normU(v.user),pw=String(v.pw||'');
+  const err=!nama?'Nama wajib diisi':!user?'Nama pengguna wajib diisi':user==='direktur'?'Nama pengguna "direktur" dipakai login umum, pilih yang lain':dirAk().some(x=>x.user===user&&x!==u)?'Nama pengguna sudah dipakai':((!edit||pw)&&pw.length<6)?'Kata sandi minimal 6 karakter':'';
+  if(err){toast(err);setTimeout(()=>akForm(u,{nama:v.nama,user:v.user,pw:v.pw}),50);return}
+  if(edit){u.nama=nama;u.user=user;if(pw)u.pw=pw}
+  else S.users.push({id:uid('u'),role:'direktur',user,pw,nama,empId:'',dibuat:TODAY,oleh:SES.nama});
+  save();render();toast(edit?'Akun diperbarui':'Akun Direktur dibuat. Beri tahu nama pengguna dan kata sandinya.')})}
+A.akNew=()=>akForm(null);
+A.akEd=b=>{const u=dirAk().find(x=>x.id===b.dataset.id);if(u)akForm(u)};
+A.akDel=b=>{const u=dirAk().find(x=>x.id===b.dataset.id);if(!u)return;
+ askReason('Hapus akun Direktur: '+u.nama,'Akun ini tidak bisa masuk lagi setelah dihapus. Penghapusan harus disertai alasan.',al=>{
+  S.users=S.users.filter(x=>x!==u);if(!dirAk().length)S.set.noGenDir=false;
+  logAksi('Hapus akun Direktur',u.nama+' ('+u.user+')',al);save();render();toast('Akun dihapus')})};
+A.akGen=()=>{S.set.noGenDir=!S.set.noGenDir;save();render();toast(S.set.noGenDir?'Login umum direktur dinonaktifkan':'Login umum direktur diaktifkan lagi')};
+</script>
+<script src="pdf-doc.js"></script>
 <script src="daftar.js"></script>
 <script src="export-excel.js"></script>
+<script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}</script>
 </body>
 </html>
