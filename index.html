@@ -755,7 +755,7 @@ function orderForm(o){
   const F=[{k:'tgl',l:'Tanggal',t:'date',req:1,def:TODAY},{k:'nama',l:'Nama pelanggan',req:1},{k:'hp',l:'No. WA (format 62812...)',def:''},{k:'alamat',l:'Alamat',wide:1},
    {k:'layanan',l:'Layanan',t:'select',o:Object.keys(SERV)},{k:'unit',l:'Jumlah unit AC',t:'number',min:1,def:1},{k:'nilai',l:'Nilai order (Rp)',t:'number',min:0,def:0},
    {k:'teknisi',l:'Teknisi',t:'select',o:S.emps.filter(e=>isTek(e)).map(e=>[e.id,e.nama])},{k:'status',l:'Status',t:'select',o:STAT.filter(s=>s!=='Batal'||(o&&o.status==='Batal')),def:'Baru'}];
-  form(o?'Ubah order '+o.id:'Order baru',F,o,v=>{
+  form(o?'Ubah order '+o.id:'Order baru',F,o, async v=>{
     if(!v.nilai)v.nilai=(SERV[v.layanan]||0)*(v.unit||1);
        // --- SIMPAN KE SUPABASE ---
     let orderData = { ...v };
