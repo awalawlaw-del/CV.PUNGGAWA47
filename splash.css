@@ -1,0 +1,11 @@
+/* Layar pemuatan (loading) */
+#splash{position:fixed;inset:0;z-index:9999;background:#fff;color:#14232a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity .45s ease,visibility .45s}
+#splash.out{opacity:0;visibility:hidden}
+#splash img{width:150px;max-width:44vw;height:auto;animation:splPulse 1.8s ease-in-out infinite}
+#splash .splbar{width:150px;height:4px;border-radius:99px;background:#e4e6f7;overflow:hidden}
+#splash .splbar i{display:block;width:40%;height:100%;border-radius:99px;background:#4228ea;animation:splRun 1.1s ease-in-out infinite}
+#splash small{color:#5b6a73;letter-spacing:.14em;font-size:12px;font-family:Inter,system-ui,sans-serif}
+@keyframes splRun{0%{transform:translateX(-110%)}100%{transform:translateX(260%)}}
+@keyframes splPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+@media (prefers-reduced-motion:reduce){#splash img,#splash .splbar i{animation:none}#splash .splbar i{width:100%}}
+body:has(#splash)::after{display:none!important}
