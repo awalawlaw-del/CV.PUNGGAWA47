@@ -450,6 +450,70 @@ body::after{content:"A SITECLUB PROJECT";position:fixed;left:50%;top:50%;transfo
 }
 </style>
 <link rel="stylesheet" href="splash.css">
+<style id="tema-punggawa">
+/* ================= TEMA DALAM APLIKASI (selaras logo biru-indigo) ================= */
+:root{--bg:#f4f6fd;--surface:#fff;--surface2:#f7f8fe;--ink:#10163a;--muted:#5d6585;--line:#e1e5f3;
+ --brand:#3a4df0;--brand-soft:#e8ebff;--brand-ink:#fff;--side:#0d1237;
+ --heat:#ef7a2e;--heat-soft:#fdeee2;--good:#12936a;--good-soft:#dcf5ec;--warn:#b07a0a;--warn-soft:#fcf1d6;--bad:#d8404a;--bad-soft:#fce6e8;
+ --shadow:0 1px 2px rgba(16,22,58,.05),0 8px 24px rgba(58,77,240,.07)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#090d22;--surface:#121838;--surface2:#171e46;--ink:#e8ebff;--muted:#98a1c8;--line:#252e5e;
+ --brand:#7d8cff;--brand-soft:#1d2563;--brand-ink:#090d22;--side:#070a1c;--shadow:none}}
+:root[data-theme="dark"]{--bg:#090d22;--surface:#121838;--surface2:#171e46;--ink:#e8ebff;--muted:#98a1c8;--line:#252e5e;
+ --brand:#7d8cff;--brand-soft:#1d2563;--brand-ink:#090d22;--side:#070a1c;--shadow:none}
+
+/* Halaman login dikunci: tidak ikut berubah */
+#login{--bg:#f3f6fa;--surface:#fff;--surface2:#f7f9fc;--ink:#0f2133;--muted:#5b6b7d;--line:#dde5ee}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #login{--bg:#0b1622;--surface:#12233a;--surface2:#172b45;--ink:#e6eef8;--muted:#94a8bf;--line:#223a57}}
+:root[data-theme="dark"] #login{--bg:#0b1622;--surface:#12233a;--surface2:#172b45;--ink:#e6eef8;--muted:#94a8bf;--line:#223a57}
+
+body{background:var(--bg);background-image:radial-gradient(900px 380px at 100% -80px,rgba(58,77,240,.07),transparent 70%)}
+
+/* Sidebar */
+.side{background:linear-gradient(185deg,#0d1237 0%,#131a55 62%,#1b1f7a 100%)}
+.brand b{color:#fff}.brand span{color:#9aa6e6}
+.nav button{border-radius:10px;color:#b4bcea;font-weight:500;transition:background .15s,color .15s}
+.nav button:hover{background:rgba(255,255,255,.08);color:#fff}
+.nav button[aria-current="page"]{background:linear-gradient(90deg,rgba(124,140,255,.28),rgba(124,140,255,.1));color:#fff;box-shadow:inset 3px 0 0 #8e9cff;font-weight:600}
+@media (max-width:820px){.nav{background:#0d1237}.nav button[aria-current="page"]{background:rgba(124,140,255,.25);box-shadow:none}}
+
+/* Judul halaman */
+.head h1{font-weight:800;letter-spacing:-.025em;color:var(--ink)}
+
+/* Kartu, tabel, kolom isian */
+.card,.ind{border-radius:16px;border:1px solid var(--line);box-shadow:var(--shadow)}
+.card h3{letter-spacing:-.01em}
+.tw{border-radius:14px;border-color:var(--line)}
+th{background:var(--surface2);color:var(--muted)}
+tbody tr:hover td{background:color-mix(in srgb,var(--brand) 4%,var(--surface))}
+.tile{border-radius:12px;background:linear-gradient(180deg,var(--surface),var(--surface2))}
+.tile b,.kpi .v{color:var(--ink)}
+input,select,textarea{border-radius:10px}
+input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(--brand) 22%,transparent);border-color:var(--brand)}
+
+/* Tombol */
+.btn{border-radius:10px;font-weight:600;transition:transform .12s,box-shadow .15s,filter .15s}
+.btn:active{transform:translateY(1px)}
+.btn.pri,.btn.pri:hover{background:linear-gradient(135deg,#4a5dff 0%,#3a35e3 100%);border-color:transparent;color:#fff;box-shadow:0 6px 16px rgba(58,77,240,.3)}
+.btn.pri:hover{filter:brightness(1.07)}
+:root[data-theme="dark"] .btn.pri{color:#fff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn.pri{color:#fff}}
+
+/* Chip, segmen, label status, bar */
+.chip{border-radius:99px;font-weight:600}
+.chip[aria-pressed="true"]{background:var(--brand);border-color:var(--brand);color:var(--brand-ink);box-shadow:0 4px 12px rgba(58,77,240,.25)}
+.seg{border-radius:12px;background:var(--surface2)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--brand);box-shadow:var(--shadow)}
+.pill{font-weight:700}
+.bar{height:9px;border-radius:99px;background:var(--brand-soft)}
+.bar i{background:linear-gradient(90deg,#5568ff,#3a35e3);border-radius:99px}
+.bar i.ok{background:var(--good)}.bar i.mid{background:#eba22b}.bar i.low{background:var(--bad)}
+
+/* Jendela dialog dan notifikasi */
+.modal{background:rgba(9,13,34,.6);backdrop-filter:blur(3px)}
+.sheet{border-radius:18px}
+.toast{background:#141a4d;color:#fff;font-weight:600;box-shadow:0 10px 30px rgba(9,13,34,.35)}
+.chart .grid{stroke:var(--line)}
+</style>
 </head>
 <body>
 <script src="splash.js"></script>
