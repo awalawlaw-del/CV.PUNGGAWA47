@@ -1,18 +1,14 @@
 /* =====================================================================
-   daftar.js — Pendaftaran akun dari halaman login, menunggu persetujuan Direktur.
-   - Pendaftar memilih peran sendiri lewat dropdown (Admin Penjualan, Admin Operasional,
-     Sales, Teknisi). Peran Direktur dan Admin Super sengaja tidak ditawarkan.
-   - Pendaftaran masuk ke kartu "Pendaftaran akun" di menu Persetujuan (hanya Direktur).
-   - Setelah disetujui, akun bisa login dengan username + kata sandi pilihan sendiri.
+   daftar.js (versi Supabase)
+   - Login ditangani index.html lewat Supabase Auth (tidak ada lagi login lokal / sandi bawaan).
+   - Pendaftar membuat akun lewat Supabase Auth, status 'pending' di tabel profiles.
+   - Direktur menyetujui / menolak di menu Persetujuan (mengubah profiles.status).
    Dimuat setelah script utama.
    ===================================================================== */
 "use strict";
 const REG_ROLES=[['adminjual','Admin Penjualan'],['adminops','Admin Operasional'],['sales','Sales'],['teknisi','Teknisi']];
 const REG_JAB={adminjual:'Admin',adminops:'Admin',sales:'Sales',teknisi:'Teknisi'};
 const REG_RESV=['admin','direktur','adminjual','adminops','sales','teknisi'];
-const regList=()=>S.reg=S.reg||[];
-const userList=()=>S.users=S.users||[];
-function regTaken(u,exceptId){return REG_RESV.includes(u)||userList().some(x=>x.user===u)||regList().some(x=>x.user===u&&x.id!==exceptId&&x.st!=='Ditolak')}
 
 /* ---------- Halaman login: tautan daftar + form daftar ---------- */
 {const _sl=showLogin;showLogin=function(){
@@ -35,51 +31,56 @@ function regForm(){const box=$('#login .lg-form');if(!box)return;const v=L.reg||
  $('#rg_nama').focus()}
 A.regOpen=()=>{L.mode='daftar';L.err='';showLogin()};
 A.regBack=()=>{L.mode='';L.err='';L.reg=null;showLogin()};
-document.addEventListener('submit',e=>{if(e.target.id!=='rf')return;e.preventDefault();
+document.addEventListener('submit',async e=>{if(e.target.id!=='rf')return;e.preventDefault();
  const nama=$('#rg_nama').value.trim(),role=$('#rg_role').value,hp=$('#rg_hp').value.trim(),user=$('#rg_user').value.trim().toLowerCase(),pw=$('#rg_pw').value,pw2=$('#rg_pw2').value;
  L.reg={nama,role,hp,user};
  const bad=m=>{L.err=m;regForm()};
  if(nama.length<3)return bad('Isi nama lengkap.');
  if(!REG_ROLES.some(r=>r[0]===role))return bad('Pilih peran Anda.');
  if(!/^[a-z0-9._-]{3,20}$/.test(user))return bad('Nama pengguna 3-20 karakter: huruf kecil, angka, titik, minus.');
- if(regTaken(user))return bad('Nama pengguna sudah dipakai, pilih yang lain.');
+ if(REG_RESV.includes(user))return bad('Nama pengguna sudah dipakai, pilih yang lain.');
  if(pw.length<6)return bad('Kata sandi minimal 6 karakter.');
  if(pw!==pw2)return bad('Ulangi kata sandi tidak sama.');
- regList().unshift({id:uid('g'),tgl:TODAY,jam:nowHM(),nama,role,hp,user,pw,st:'Menunggu'});
- notify(['direktur'],'Pendaftaran akun menunggu persetujuan',nama+' · '+ROLE_L[role]+' · username '+user,{tipe:'wait',tab:'apr'});
- save();L.mode='';L.err='';L.reg=null;L.info='Pendaftaran terkirim. Akun bisa dipakai setelah disetujui Direktur.';showLogin()});
+ const btn=e.target.querySelector('button[type=submit]');if(btn){btn.disabled=true;btn.textContent='Mengirim...'}
+ try{
+  const {data,error}=await supabaseClient.auth.signUp({email:user+'@punggawa47.app',password:pw,options:{data:{nama,role,hp}}});
+  if(error){console.error('DAFTAR GAGAL:',error);return bad(/already|registered/i.test(error.message)?'Nama pengguna sudah dipakai, pilih yang lain.':'Pendaftaran gagal: '+error.message)}
+  if(data&&data.user&&Array.isArray(data.user.identities)&&data.user.identities.length===0)return bad('Nama pengguna sudah dipakai, pilih yang lain.');
+  try{await supabaseClient.auth.signOut()}catch(_){}
+  L.mode='';L.err='';L.reg=null;L.info='Pendaftaran terkirim. Akun bisa dipakai setelah disetujui Direktur.';showLogin();
+ }catch(err){console.error(err);bad('Terjadi kesalahan jaringan.')}
+});
 
-/* ---------- Kartu persetujuan untuk Direktur ---------- */
-function regCard(){if(!isAp())return '';
- const all=regList(),P=all.filter(r=>r.st==='Menunggu'),H=all.filter(r=>r.st!=='Menunggu'),G=paginate('regH',H,H.length);
- const row=(r,a)=>`<tr><td>${fds(r.tgl)}<br><small>${esc(r.jam||'')}</small></td><td><b>${esc(r.nama)}</b>${r.hp?'<br><small class="num">'+esc(r.hp)+'</small>':''}</td><td class="num">${esc(r.user)}</td><td>${esc(ROLE_L[r.role]||r.role)}</td><td class="r">${a?`<button class="btn sm pri" data-act="regOk" data-id="${r.id}">Setujui</button> <button class="btn sm del" data-act="regNo" data-id="${r.id}">Tolak</button>`:`<span class="pill p-${r.st==='Disetujui'?'Aman':'Batal'}">${r.st}</span><br><small>${esc(r.oleh2||'')}${r.alasanTolak?' · Alasan: '+esc(r.alasanTolak):''}</small>`}</td></tr>`;
+/* ---------- Kartu persetujuan untuk Direktur (data dari tabel profiles) ---------- */
+const REGP={items:[],t:0,loading:false};
+async function regLoad(force){
+ if(REGP.loading)return;if(!force&&Date.now()-REGP.t<15000)return;
+ REGP.loading=true;
+ try{
+  const {data,error}=await supabaseClient.from('profiles').select('*').not('role','in','(admin,direktur)').order('created_at',{ascending:false});
+  if(error)console.error('Gagal memuat pendaftaran:',error);else REGP.items=data||[];
+ }catch(e){console.error(e)}
+ REGP.t=Date.now();REGP.loading=false;
+ if(S&&SES&&S.tab==='apr'&&$('#modal').hidden)render();
+}
+function regCard(){if(!isAp())return '';regLoad();
+ const all=REGP.items,P=all.filter(r=>r.status==='pending'),H=all.filter(r=>r.status!=='pending'),G=paginate('regH',H,H.length);
+ const row=(r,a)=>`<tr><td>${fds((r.created_at||'').slice(0,10))}</td><td><b>${esc(r.nama)}</b>${r.hp?'<br><small class="num">'+esc(r.hp)+'</small>':''}</td><td class="num">${esc(r.username||'')}</td><td>${esc(ROLE_L[r.role]||r.role)}</td><td class="r">${a?`<button class="btn sm pri" data-act="regOk" data-id="${r.id}">Setujui</button> <button class="btn sm del" data-act="regNo" data-id="${r.id}">Tolak</button>`:`<span class="pill p-${r.status==='active'?'Aman':'Batal'}">${r.status==='active'?'Disetujui':'Ditolak'}</span>${r.alasan?'<br><small>Alasan: '+esc(r.alasan)+'</small>':''}`}</td></tr>`;
  const T=(R,a,e)=>`<div class="tw"><table><thead><tr><th>Tanggal</th><th>Nama</th><th>Nama pengguna</th><th>Peran</th><th></th></tr></thead><tbody>${R.length?R.map(r=>row(r,a)).join(''):`<tr><td colspan="5" class="empty">${e}</td></tr>`}</tbody></table></div>`;
- return `<div class="card"><h3>Pendaftaran akun menunggu persetujuan (${P.length})</h3>${T(P,1,'Tidak ada pendaftaran yang menunggu.')}</div><div class="card"><h3>Riwayat pendaftaran akun</h3>${T(G.items,0,'Belum ada riwayat.')}${G.html}</div>`}
+ return `<div class="card"><h3>Pendaftaran akun menunggu persetujuan (${P.length})</h3>${T(P,1,'Tidak ada pendaftaran yang menunggu.')}</div><div class="card"><h3>Riwayat akun</h3>${T(G.items,0,'Belum ada riwayat.')}${G.html}</div>`}
 {const _a=V.apr;V.apr=()=>regCard()+_a()}
-A.regOk=b=>{if(!isAp()){toast('Hanya Direktur yang dapat menyetujui');return}
- const r=regList().find(x=>x.id===b.dataset.id);if(!r||r.st!=='Menunggu')return;
- if(userList().some(x=>x.user===r.user)||REG_RESV.includes(r.user)){toast('Nama pengguna sudah dipakai akun lain');return}
- const E={id:uid('e'),nama:r.nama,jabatan:REG_JAB[r.role],target:r.role==='teknisi'?20:0,pw:r.pw,user:r.user,hp:r.hp||''};
+A.regOk=async b=>{if(!isAp()){toast('Hanya Direktur yang dapat menyetujui');return}
+ const r=REGP.items.find(x=>x.id===b.dataset.id);if(!r||r.status!=='pending')return;
+ const E={id:uid('e'),nama:r.nama,jabatan:REG_JAB[r.role]||'Teknisi',target:r.role==='teknisi'?20:0,user:r.username,hp:r.hp||''};
  if(r.role==='teknisi')E.tingkat='T3';else if(r.role!=='sales')E.role=r.role;
- S.emps.push(E);userList().push({id:uid('u'),nama:r.nama,user:r.user,pw:r.pw,role:r.role,empId:E.id});
- r.st='Disetujui';r.oleh2=SES.nama;r.tglPutus=TODAY;save();render();
- toast('Akun '+r.user+' disetujui'+(r.role==='teknisi'?'. Tingkat teknisi diset T3, ubah di menu Absensi bila perlu.':''))};
-A.regNo=b=>{if(!isAp())return;const r=regList().find(x=>x.id===b.dataset.id);if(!r||r.st!=='Menunggu')return;
- askReason('Tolak pendaftaran: '+r.nama,'Alasan penolakan wajib diisi dan tercatat di log.',al=>{r.st='Ditolak';r.alasanTolak=al;r.oleh2=SES.nama;r.tglPutus=TODAY;logAksi('Tolak pendaftaran akun',r.nama+' ('+r.user+')',al);save();render();toast('Pendaftaran ditolak')})};
-
-/* ---------- Login tanpa pilih peran: peran otomatis dari akun ---------- */
-function resolveLogin(u,p){
- const ak=Object.assign({admin:'admin123',direktur:'direktur123',adminjual:'jual123',adminops:'ops123'},S.set.akun||{}),
-  N={admin:'Admin Super',direktur:'Direktur',adminjual:'Admin Penjualan',adminops:'Admin Operasional'};
- if(N[u]&&ak[u]===p)return{role:u,nama:N[u]};
- const rg=userList().find(x=>x.user===u&&x.pw===p);if(rg)return{role:rg.role,empId:rg.empId,nama:rg.nama};
- const m=S.emps.find(x=>x.jabatan!=='Admin'&&userOf(x)===u&&x.pw===p);
- return m?{role:m.jabatan==='Sales'?'sales':'teknisi',empId:m.id,nama:m.nama}:null}
-document.addEventListener('submit',e=>{if(e.target.id!=='lf')return;e.preventDefault();e.stopImmediatePropagation();
- const u=$('#lu').value.trim().toLowerCase(),p=$('#lp').value,ses=resolveLogin(u,p);
- if(!ses){const pr=regList().find(x=>x.user===u&&x.pw===p&&x.st!=='Disetujui');
-  L.err=pr?(pr.st==='Menunggu'?'Pendaftaran Anda masih menunggu persetujuan Direktur.':'Pendaftaran ditolak. Alasan: '+(pr.alasanTolak||'-')):'Nama pengguna atau kata sandi salah.';
-  showLogin();return}
- SES=ses;L.err='';saveSes();S.tab='dash';render();window.scrollTo(0,0)},true);
+ const {error}=await supabaseClient.from('profiles').update({status:'active',emp_id:E.id}).eq('id',r.id);
+ if(error){toast('Gagal menyetujui: '+error.message);return}
+ S.emps.push(E);save();await regLoad(true);render();
+ toast('Akun '+r.username+' disetujui'+(r.role==='teknisi'?'. Tingkat teknisi diset T3, ubah di menu Absensi bila perlu.':''))};
+A.regNo=b=>{if(!isAp())return;const r=REGP.items.find(x=>x.id===b.dataset.id);if(!r||r.status!=='pending')return;
+ askReason('Tolak pendaftaran: '+r.nama,'Alasan penolakan wajib diisi dan tercatat di log.',async al=>{
+  const {error}=await supabaseClient.from('profiles').update({status:'inactive',alasan:al}).eq('id',r.id);
+  if(error){toast('Gagal menolak: '+error.message);return}
+  logAksi('Tolak pendaftaran akun',r.nama+' ('+r.username+')',al);save();await regLoad(true);render();toast('Pendaftaran ditolak')})};
 
 if(S&&!SES)render();
