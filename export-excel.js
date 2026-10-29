@@ -47,6 +47,7 @@ function xlWa(){return [xlSH('Reminder Cuci AC',remList().map(r=>({'Pelanggan':r
 
 /* ---------- Persetujuan & log ---------- */
 function xlApr(){return [xlSH('Persetujuan',S.req.map(r=>({'Tanggal':r.tgl,'Jenis':RJ[r.jenis]||r.jenis,'Keterangan':r.ket,'Nilai (Rp)':r.jml||0,'Diajukan oleh':r.oleh,'Status':r.st,'Diputuskan oleh':r.oleh2||'','Alasan pengajuan':r.alasan||'','Alasan tolak':r.alasanTolak||''}))),
+  xlSH('Pendaftaran Akun',(S.reg||[]).map(r=>({'Tanggal':r.tgl,'Nama':r.nama,'Nama pengguna':r.user,'Peran':ROLE_L[r.role]||r.role,'No. WA':r.hp||'','Status':r.st,'Diputuskan oleh':r.oleh2||'','Alasan tolak':r.alasanTolak||''}))),
   xlSH('Log Aksi',(S.log||[]).map(x=>({'Tanggal':x.tgl,'Jam':x.jam,'Oleh':x.oleh,'Peran':x.role,'Aksi':x.aksi,'Data':x.ref,'Alasan':x.alasan})))]}
 
 /* ---------- Absensi (admin/direktur: semua karyawan; peran lain: hanya diri sendiri) ---------- */
