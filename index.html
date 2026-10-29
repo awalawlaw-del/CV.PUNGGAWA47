@@ -575,35 +575,38 @@ let S=null, memOnly=false;
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){memOnly=true}}
 async function load() {
   try {
-    // 1. Tarik data dari 3 tabel utama Supabase secara bersamaan
+    // Tanya dulu ke Supabase, apakah ada sesi login yang aktif?
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    
+    // Kalau belum login, jangan tarik data (biar gak error 401).
+    // Langsung kembalikan data kosong/awal.
+    if (!session) {
+      return seed(); 
+    }
+
+    // Kalau sudah login, baru tarik data dari database
     const [resOrders, resInvoices, resTx] = await Promise.all([
       supabaseClient.from('orders').select('*'),
       supabaseClient.from('invoices').select('*, invoice_items(*)'),
       supabaseClient.from('transactions').select('*')
     ]);
 
-    // Jika tabel orders masih kosong (belum ada data sama sekali di database)
-    // Maka pakai data awal (seed)
+    // Jika tabel orders masih kosong di database
     if (!resOrders.data || resOrders.data.length === 0) {
       console.log("Database kosong, memuat data awal.");
       return seed(); 
     }
 
-    // 2. Jika ada data, susun ulang agar formatnya cocok dengan aplikasi
-    const S_new = seed(); // Ambil kerangka default (setting, dll)
+    // Susun ulang data agar cocok dengan aplikasi
+    const S_new = seed(); 
     
-    // Masukkan data orders dari Supabase
     S_new.orders = resOrders.data.map(o => ({ ...o, extra: undefined, ...o.extra }));
-    
-    // Masukkan data invoice beserta item-itemnya
     S_new.inv = resInvoices.data.map(i => ({ 
       ...i, 
       items: i.invoice_items || [], 
       extra: undefined, 
       ...i.extra 
     }));
-    
-    // Masukkan data transaksi keuangan
     S_new.tx = resTx.data.map(t => ({ ...t, extra: undefined, ...t.extra }));
 
     console.log("Berhasil memuat data dari Supabase!");
@@ -611,7 +614,6 @@ async function load() {
 
   } catch (e) {
     console.error("Gagal memuat data dari Supabase:", e);
-    // Jika gagal (misal internet mati), pakai data lokal/seed
     return seed(); 
   }
 }
