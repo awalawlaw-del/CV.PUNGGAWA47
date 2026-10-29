@@ -2391,6 +2391,87 @@ A.akDel=b=>{const u=dirAk().find(x=>x.id===b.dataset.id);if(!u)return;
   logAksi('Hapus akun Direktur',u.nama+' ('+u.user+')',al);save();render();toast('Akun dihapus')})};
 A.akGen=()=>{S.set.noGenDir=!S.set.noGenDir;save();render();toast(S.set.noGenDir?'Login umum direktur dinonaktifkan':'Login umum direktur diaktifkan lagi')};
 </script>
+<script>
+/* =====================================================================
+   ABSENSI: klik "Absen masuk/pulang" -> muncul detail (tanggal, jam, lokasi)
+   -> klik "Absen" untuk menyimpan -> popup hasil (berhasil / menunggu persetujuan).
+   Tombol dikunci saat proses, jadi tidak bisa tercatat dobel.
+   ===================================================================== */
+const ABS={busy:false,p:null,kind:'',id:'',tm:null};
+function absRow(l,v){return `<div class="row" style="justify-content:space-between;align-items:flex-start;gap:12px;padding:8px 0;border-bottom:1px solid var(--line,rgba(128,128,128,.25))"><span style="color:var(--muted)">${l}</span><div style="text-align:right">${v}</div></div>`}
+function absLocHTML(p){
+  if(!p)return '<span style="color:var(--muted)">Membaca lokasi GPS...</span>';
+  const st=p.ok===false?`<span class="pill p-Batal">Di luar area kantor (${p.d} m, batas ${S.set.lok.rad} m)</span>`:p.ok?`<span class="pill p-Aman">Dalam area kantor (${p.d} m)</span>`:'<span class="pill p-Belum">Titik kantor belum diatur</span>';
+  return `<a href="https://www.google.com/maps?q=${p.lat},${p.lng}" target="_blank" rel="noopener" class="num">${p.lat}, ${p.lng}</a><br><small style="color:var(--muted)">akurasi GPS ±${p.acc} m</small><br>${st}`;
+}
+function absStop(){if(ABS.tm){clearInterval(ABS.tm);ABS.tm=null}}
+function absTick(){const j=$('#abs_jam'),t=$('#abs_tgl');if(!j){absStop();return}const d=new Date();j.textContent=pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());if(t)t.textContent=fd(TODAY)}
+async function absLoadPos(){
+  const box=$('#abs_loc'),go=$('#abs_go');
+  if(box)box.innerHTML=absLocHTML(null);
+  if(go){go.disabled=true}
+  const p=await pos();
+  if(!$('#abs_loc'))return; /* modal sudah ditutup */
+  ABS.p=p;
+  if(!p){$('#abs_loc').innerHTML='<span style="color:var(--bad,#b91c1c)">Lokasi tidak terbaca. Izinkan akses lokasi di browser.</span><br><button type="button" class="btn sm" data-act="absRetry" style="margin-top:6px">Coba baca lokasi lagi</button>';return}
+  $('#abs_loc').innerHTML=absLocHTML(p);
+  const g=$('#abs_go');if(g)g.disabled=false;
+  const w=$('#abs_warn');if(w)w.hidden=p.ok!==false;
+}
+function absModal(kind,id){
+  const day=S.att[TODAY]||{},a=day[id],e=S.emps.find(x=>x.id===id)||{nama:SES.nama};
+  if(kind==='masuk'&&a){toast('Absen masuk hari ini sudah tercatat'+(a.s==='Menunggu'?' (menunggu persetujuan Direktur)':''));return}
+  if(kind==='pulang'){
+    if(!a||a.s!=='Hadir'){toast(a&&a.s==='Menunggu'?'Absen masuk masih menunggu persetujuan Direktur':'Anda belum absen masuk');return}
+    if(a.out){toast('Absen pulang hari ini sudah tercatat');return}
+    if(a.outP){toast('Absen pulang masih menunggu persetujuan Direktur');return}
+  }
+  absStop();ABS.busy=false;ABS.p=null;ABS.kind=kind;ABS.id=id;
+  modal(`<h2 style="font-size:20px">Absen ${kind}</h2>
+  <div class="info">Periksa tanggal, jam, dan lokasi di bawah. Absen baru tercatat setelah Anda menekan tombol <b>Absen ${kind}</b>.</div>
+  <div>${absRow('Nama','<b>'+esc(e.nama)+'</b>')}${absRow('Tanggal','<b id="abs_tgl">'+fd(TODAY)+'</b>')}${absRow('Jam','<b class="num" id="abs_jam" style="font-size:20px">--:--:--</b>')}${absRow('Lokasi','<div id="abs_loc"></div>')}</div>
+  <div class="note" id="abs_warn" hidden style="margin-top:10px">Anda berada di luar area kantor. Absen akan masuk sebagai <b>menunggu persetujuan Direktur</b>.</div>
+  <div class="row" style="justify-content:flex-end;margin-top:14px"><button type="button" class="btn" data-act="close">Batal</button><button type="button" class="btn pri" id="abs_go" data-act="absGo" disabled>Absen ${kind}</button></div>`,
+  ()=>{absTick();ABS.tm=setInterval(absTick,1000);absLoadPos()});
+}
+function absDo(kind,id,p){
+  const day=(S.att[TODAY]=S.att[TODAY]||{}),a=day[id];
+  if(kind==='masuk'){
+    if(a)return{st:'dup'};
+    if(p.ok===false){day[id]={s:'Menunggu',inP:nowHM(),out:'',loc:p};absReq(id,'masuk',p);save();render();return{st:'pending'}}
+    day[id]={s:'Hadir',in:nowHM(),out:'',loc:p};save();render();return{st:'ok'}
+  }
+  if(!a||a.s!=='Hadir')return{st:'none'};
+  if(a.out||a.outP)return{st:'dup'};
+  if(p.ok===false){a.outP={t:nowHM(),loc:p};absReq(id,'pulang',p);save();render();return{st:'pending'}}
+  a.out=nowHM();a.locOut=p;save();render();return{st:'ok'};
+}
+function absResult(r,kind,p){
+  absStop();
+  const jam=nowHM(),tgl=fd(TODAY);
+  const M={
+   ok:{ic:'✓',c:'#15803d',t:'Absen '+kind+' berhasil',d:'Absen '+kind+' Anda sudah tercatat.'},
+   pending:{ic:'⏳',c:'#b45309',t:'Menunggu persetujuan Direktur',d:'Anda berada di luar area kantor ('+(p&&p.d)+' m, batas '+S.set.lok.rad+' m). Absen '+kind+' belum dihitung sampai Direktur menyetujui.'},
+   dup:{ic:'ℹ',c:'#475569',t:'Absen sudah tercatat',d:'Absen '+kind+' hari ini sudah ada, tidak dicatat dua kali.'},
+   none:{ic:'!',c:'#b91c1c',t:'Belum bisa absen '+kind,d:'Absen masuk belum tercatat atau masih menunggu persetujuan.'}
+  }[r.st]||{ic:'!',c:'#b91c1c',t:'Gagal',d:'Coba lagi.'};
+  modal(`<div style="text-align:center;padding:6px 0 2px"><div style="width:64px;height:64px;border-radius:50%;background:${M.c};color:#fff;font-size:32px;line-height:64px;margin:0 auto 12px">${M.ic}</div>
+  <h2 style="font-size:20px;margin:0 0 6px">${M.t}</h2><p style="margin:0 0 12px;color:var(--muted)">${M.d}</p></div>
+  <div>${absRow('Tanggal','<b>'+tgl+'</b>')}${absRow('Jam','<b class="num">'+jam+'</b>')}${p?absRow('Lokasi',absLocHTML(p)):''}</div>
+  <div class="row" style="justify-content:flex-end;margin-top:14px"><button type="button" class="btn pri" data-act="close">Selesai</button></div>`);
+}
+A.clockIn=b=>absModal('masuk',b.dataset.id);
+A.clockOut=b=>absModal('pulang',b.dataset.id);
+A.absRetry=()=>{absLoadPos()};
+A.absGo=()=>{
+  if(ABS.busy||!ABS.p)return;
+  ABS.busy=true;
+  const btn=$('#abs_go');if(btn){btn.disabled=true;btn.textContent='Menyimpan...'}
+  const kind=ABS.kind,p=ABS.p;
+  let r;try{r=absDo(kind,ABS.id,p)}catch(e){console.error(e);r={st:'err'}}
+  absResult(r,kind,p);
+};
+</script>
 <script src="pdf-doc.js"></script>
 <script src="daftar.js"></script>
 <script src="export-excel.js"></script>
