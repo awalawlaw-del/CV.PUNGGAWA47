@@ -873,7 +873,7 @@ const ROLE_L={admin:'Admin Super',direktur:'Direktur',adminjual:'Admin Penjualan
 const LOGO='<div class="logo lg"><img src="'+LOGO_URI+'" alt="Logo"></div>';
 const SKEY='awaljaya.ses',PAGE=15;
 const DEMO_OPEN=false; /* true = tombol masuk 1 klik tanpa kata sandi. Ubah ke false untuk pemakaian sungguhan. */
-let SES=null;const L={role:'admin',err:''};U.pg={};U.pgs={};
+let SES=null;const L={role:(()=>{try{const r=localStorage.getItem('pg.role');return r&&ROLE_L[r]?r:'admin'}catch(e){return 'admin'}})(),err:''};U.pg={};U.pgs={};
 const userOf=e=>e.nama.split(' ')[0].toLowerCase();
 function loadSes(){try{const x=JSON.parse(localStorage.getItem(SKEY)||'null');if(x&&((x.role!=='teknisi'&&x.role!=='sales')||S.emps.some(e=>e.id===x.empId)))return x}catch(e){}return null}
 function saveSes(){try{SES?localStorage.setItem(SKEY,JSON.stringify(SES)):localStorage.removeItem(SKEY)}catch(e){}}
@@ -912,7 +912,7 @@ function showLogin(){
   <div class="lg-form lgx-side"><form class="lg-box lgx-card" id="lf"><div><h2>${DEMO_OPEN?'Coba demo':'Selamat datang'}</h2><p class="lgx-sub">${DEMO_OPEN?'Pilih peran untuk langsung mencoba.':'Masuk ke '+esc(S.set.nama)+' untuk melanjutkan.'}</p></div>${DEMO_OPEN?demoBox():''}
   <div><span class="lgx-lab">Masuk sebagai <b>${ROLE_L[L.role]}</b></span><div class="seg lgx-roles" role="group" aria-label="Masuk sebagai">${['admin','direktur','adminjual','adminops','sales','teknisi'].map(r=>`<button type="button" data-act="lrole" data-r="${r}" aria-pressed="${L.role===r}">${lgxSvg(r)}<span>${ROLE_L[r]}</span></button>`).join('')}</div></div>
   <label class="f lgx-f"><span class="lgx-lab" style="margin-bottom:6px">Nama pengguna</span><span class="lgx-fld">${lgxSvg('user')}<input id="lu" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Masukkan nama pengguna" value="${esc(L.u||'')}" required></span></label>
-  <label class="f lgx-f"><span class="lgx-lab" style="margin-bottom:6px">Kata sandi</span><span class="lgx-fld">${lgxSvg('lock')}<input id="lp" type="password" autocomplete="current-password" placeholder="Masukkan kata sandi" required><button type="button" class="lgx-eye" data-act="lpw" aria-pressed="false" aria-label="Tampilkan kata sandi">${lgxSvg('eye','on')}${lgxSvg('eyeoff','off')}</button></span></label>
+  <label class="f lgx-f"><span class="lgx-lab" style="margin-bottom:6px">Kata sandi</span><span class="lgx-fld">${lgxSvg('lock')}<input id="lp" type="password" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="current-password" placeholder="Masukkan kata sandi" required><button type="button" class="lgx-eye" data-act="lpw" aria-pressed="false" aria-label="Tampilkan kata sandi">${lgxSvg('eye','on')}${lgxSvg('eyeoff','off')}</button></span></label>
   <div class="lerr lgx-err" role="alert">${esc(L.err)}</div>
   <button class="btn pri lgx-go" type="submit">Masuk${lgxSvg('go')}</button>${DEMO_OPEN?'':hint}
   <div class="lgx-foot">© ${new Date().getFullYear()} ${esc(S.set.nama)} · Ahli Sejuk, Andalan Anda</div></form></div>`;
@@ -928,10 +928,10 @@ document.addEventListener('submit',e=>{if(e.target.id!=='lf')return;e.preventDef
   const u=$('#lu').value.trim().toLowerCase(),p=$('#lp').value,ak=S.set.akun||{admin:'admin123',direktur:'direktur123',adminjual:'jual123',adminops:'ops123',sales:'sales123'};let ses=null;
   if(L.role==='teknisi'||L.role==='sales'){const sl=L.role==='sales',m=S.emps.find(x=>(sl?x.jabatan==='Sales':isTek(x))&&userOf(x)===u&&x.pw===p);if(m)ses={role:L.role,empId:m.id,nama:m.nama}}
   else if(u===L.role&&ak[L.role]===p&&!(L.role==='direktur'&&S.set.noGenDir))ses={role:L.role,nama:({admin:'Admin Super',direktur:'Direktur',adminjual:'Admin Penjualan',adminops:'Admin Operasional',sales:'Sales'})[L.role]};
-  if(!ses){const rg=(S.users||[]).find(x=>x.role===L.role&&x.user===u&&x.pw===p);if(rg)ses={role:rg.role,empId:rg.empId,nama:rg.nama}}
+  if(!ses){const nu=normU(u),us=S.users||[],rg=us.find(x=>x.role===L.role&&normU(x.user)===nu&&x.pw===p)||us.find(x=>normU(x.user)===nu&&x.pw===p);if(rg){ses={role:rg.role,empId:rg.empId,nama:rg.nama};L.role=rg.role}}
   if(!ses){const pr=(S.reg||[]).find(x=>x.user===u&&x.pw===p&&x.st!=='Disetujui');if(pr){L.err=pr.st==='Menunggu'?'Pendaftaran Anda masih menunggu persetujuan Direktur.':'Pendaftaran ditolak. Alasan: '+(pr.alasanTolak||'-');showLogin();return}}
   if(!ses){L.err='Nama pengguna atau kata sandi salah untuk peran '+ROLE_L[L.role]+'.';showLogin();return}
-  SES=ses;L.err='';saveSes();S.tab='dash';render();window.scrollTo(0,0)});
+  SES=ses;L.err='';try{localStorage.setItem('pg.role',ses.role)}catch(e){}saveSes();S.tab='dash';render();window.scrollTo(0,0)});
 A.logout=()=>{SES=null;saveSes();render()};
 function paginate(k,rows,sig){
   if(U.pgs[k]!==sig){U.pgs[k]=sig;U.pg[k]=1}
