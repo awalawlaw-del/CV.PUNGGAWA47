@@ -766,10 +766,15 @@ function orderForm(o){
       await supabaseClient.from('orders').update(orderData).eq('id', o.id);
     } else {
       // Jika Order Baru
-      const newOrder = { id: nextId, status: 'Baru', ...orderData };
-      S.orders.push(newOrder);
-      await supabaseClient.from('orders').insert([newOrder]);
-    }
+     const newOrder = { id: nextId, status: 'Baru', ...orderData };
+S.orders.push(newOrder);
+const { error } = await supabaseClient.from('orders').insert([newOrder]);
+
+if (error) {
+  console.error("GAGAL SIMPAN KE SUPABASE:", error);
+  toast('Gagal simpan ke database: ' + error.message);
+  return; // Hentikan proses jika gagal
+}
 
     // Simpan pelanggan baru (jika belum ada)
     if(!S.cust.find(c=>c.nama===v.nama)) {
