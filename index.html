@@ -3,6 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="theme-color" content="#0b2030">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Punggawa">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>CV PUNGGAWA 47 · Admin</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -2131,5 +2137,6 @@ A.akGen=()=>{S.set.noGenDir=!S.set.noGenDir;save();render();toast(S.set.noGenDir
 </script>
 <script src="daftar.js"></script>
 <script src="export-excel.js"></script>
+<script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}</script>
 </body>
 </html>
