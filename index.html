@@ -1904,7 +1904,11 @@ A.invEdit=b=>{const i=S.inv.find(x=>x.id===b.dataset.id);if(!i||i.appr!=='Ditola
 (async function init(){
   if(/^#investor=/.test(location.hash)) return;
   
-  // Tunggu data dari Supabase selesai dimuat
+  // 1. Cek dulu siapa yang login dari sesi browser
+  SES = loadSes(); 
+  if(SES && SES.role === 'internal'){ SES.role = 'adminops'; saveSes(); }
+
+  // 2. Baru ambil data dari Supabase
   S = await load(); 
   
   if(!S || !S.set){ S = seed(); save(); }
@@ -1912,10 +1916,6 @@ A.invEdit=b=>{const i=S.inv.find(x=>x.id===b.dataset.id);if(!i||i.appr!=='Ditola
   if(!V[S.tab]) S.tab = 'dash';
   S.rem = S.rem || {};
   S.emps.forEach(e => { if(!e.pw) e.pw = 'teknisi123'; });
-  
-  // Cek sesi login sebelumnya
-  SES = loadSes(); 
-  if(SES && SES.role === 'internal'){ SES.role = 'adminops'; saveSes(); }
   
   render();
 })();
