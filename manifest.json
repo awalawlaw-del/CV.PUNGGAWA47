@@ -1,18 +1,17 @@
 {
+  "id": "/",
   "name": "Punggawa Operations",
   "short_name": "Punggawa",
-  "description": "Aplikasi operasional CV PUNGGAWA 47",
+  "description": "Aplikasi operasional CV Punggawa 47",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "orientation": "any",
-  "background_color": "#f5f7fb",
+  "orientation": "portrait",
+  "background_color": "#0b2030",
   "theme_color": "#0b2030",
-  "lang": "id",
   "icons": [
     {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
     {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
-    {"src": "icons/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable"},
-    {"src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+    {"src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
   ]
 }

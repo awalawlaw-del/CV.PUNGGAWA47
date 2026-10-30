@@ -1,17 +1,8 @@
-/* sw.js: versi tanpa cache.
-   Aplikasi sekarang membutuhkan Supabase (online), jadi file tidak perlu disimpan offline.
-   Service worker ini menghapus semua cache lama lalu memuat ulang halaman,
-   supaya HP / browser yang masih memakai versi lama otomatis pindah ke versi terbaru. */
-self.addEventListener('install', () => { self.skipWaiting(); });
-
-self.addEventListener('activate', event => {
-  event.waitUntil((async () => {
-    const keys = await caches.keys();
-    await Promise.all(keys.map(k => caches.delete(k)));
-    await self.clients.claim();
-    const wins = await self.clients.matchAll({ type: 'window' });
-    wins.forEach(c => { try { c.navigate(c.url); } catch (e) {} });
-  })());
+const CACHE='punggawa-v3';
+const FILES=['./','./index.html','./logo.js','./manifest.json'];
+self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).catch(()=>{}));self.skipWaiting()});
+self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==CACHE).map(x=>caches.delete(x)))).then(()=>self.clients.claim()))});
+self.addEventListener('fetch',e=>{
+  if(e.request.method!=='GET')return;
+  e.respondWith(fetch(e.request).then(r=>{const c=r.clone();caches.open(CACHE).then(x=>x.put(e.request,c)).catch(()=>{});return r}).catch(()=>caches.match(e.request).then(m=>m||caches.match('./index.html'))));
 });
-
-/* Tidak ada handler 'fetch': semua permintaan langsung ke jaringan. */
