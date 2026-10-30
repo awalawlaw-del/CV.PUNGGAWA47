@@ -873,11 +873,11 @@ function remList(){
   const done=S.orders.filter(o=>o.layanan==='Cuci AC'&&o.status==='Selesai');
   const by={};done.forEach(o=>{if(!by[o.nama]||o.tgl>by[o.nama].tgl)by[o.nama]=o});
   return Object.values(by).map(o=>{
-    const due=addM(o.tgl,S.set.interval),left=diffD(due,TODAY);
+    const iv=Number((S.remInt&&S.remInt[o.nama])||S.set.interval)||3,due=addM(o.tgl,iv),left=diffD(due,TODAY);
     const pending=S.orders.some(x=>x.nama===o.nama&&ACT_ST.includes(x.status)&&x.tgl>o.tgl);
     const st=pending?'Aman':left<0?'Terlambat':left<=S.set.lead?'Segera':'Aman';
     const sent=S.rem[o.nama];const sentNow=sent&&sent>=o.tgl?sent:null;
-    return {nama:o.nama,hp:o.hp,alamat:o.alamat,last:o.tgl,due,left,st,pending,sent:sentNow};
+    return {nama:o.nama,hp:o.hp,alamat:o.alamat,last:o.tgl,due,left,st,pending,sent:sentNow,iv};
   }).sort((a,b)=>a.left-b.left);
 }
 function remMsg(r){return S.set.tpl.replace(/\{nama\}/g,r.nama).replace(/\{usaha\}/g,S.set.nama).replace(/\{alamat\}/g,r.alamat).replace(/\{terakhir\}/g,fd(r.last)).replace(/\{jatuh_tempo\}/g,fd(r.due))}
@@ -893,7 +893,7 @@ V.wa=()=>{
   </div>
   <div class="grid g2">
    <div class="card"><h3>Aturan pengingat</h3><div class="fgrid">
-    <label class="f">Cuci ulang setiap (bulan)<input id="s_int" type="number" min="1" max="12" value="${S.set.interval}" data-chg="set" data-k="interval"></label>
+    <label class="f">Cuci ulang setiap (default semua pelanggan)<select id="s_int" data-chg="remDef">${[...new Set([1,2,3,Number(S.set.interval)||3])].sort((a,b)=>a-b).map(n=>`<option value="${n}"${Number(S.set.interval)===n?' selected':''}>${n} bulan</option>`).join('')}</select></label>
     <label class="f">Ingatkan sebelum (hari)<input id="s_lead" type="number" min="0" max="60" value="${S.set.lead}" data-chg="set" data-k="lead"></label>
     <label class="f" style="grid-column:1/-1">Isi pesan<textarea id="s_tpl" data-chg="set" data-k="tpl">${esc(S.set.tpl)}</textarea></label></div>
     <p style="color:var(--muted);font-size:12px;margin:8px 0 0">Kata kunci: {nama} {usaha} {alamat} {terakhir} {jatuh_tempo}</p></div>
@@ -901,10 +901,10 @@ V.wa=()=>{
     ${all[0]?`<p style="margin:12px 0 4px;font-weight:600">Contoh pesan untuk ${esc(all[0].nama)}</p><div style="background:var(--surface2);border-radius:10px;padding:10px 12px;white-space:pre-wrap">${esc(remMsg(all[0]))}</div>`:''}</div>
   </div>
   <div class="card"><div class="tabs" style="margin-bottom:12px"><button class="chip" aria-pressed="${f==='perlu'}" data-act="wf" data-v="perlu">Perlu dihubungi (${need.length})</button><button class="chip" aria-pressed="${f==='semua'}" data-act="wf" data-v="semua">Semua pelanggan (${all.length})</button></div>
-  <div class="tw"><table><thead><tr><th>Pelanggan</th><th>Terakhir cuci</th><th>Jatuh tempo</th><th>Status</th><th>Pesan</th><th></th></tr></thead><tbody>
-  ${rows.length?P.items.map(r=>`<tr><td><b>${esc(r.nama)}</b><br><small class="num" style="color:var(--muted)">${esc(r.hp)}</small></td><td>${fd(r.last)}</td><td>${fd(r.due)}<br><small style="color:var(--muted)">${r.left<0?Math.abs(r.left)+' hari lewat':r.left+' hari lagi'}</small></td>
+  <div class="tw"><table><thead><tr><th>Pelanggan</th><th>Terakhir cuci</th><th>Siklus</th><th>Jatuh tempo</th><th>Status</th><th>Pesan</th><th></th></tr></thead><tbody>
+  ${rows.length?P.items.map(r=>`<tr><td><b>${esc(r.nama)}</b><br><small class="num" style="color:var(--muted)">${esc(r.hp)}</small></td><td>${fd(r.last)}</td><td><select data-chg="remInt" data-n="${esc(r.nama)}" aria-label="Siklus cuci ${esc(r.nama)}" style="width:auto;min-width:96px">${[1,2,3].map(n=>`<option value="${n}"${r.iv===n?' selected':''}>${n} bulan</option>`).join('')}${[1,2,3].includes(r.iv)?'':`<option value="${r.iv}" selected>${r.iv} bulan</option>`}</select></td><td>${fd(r.due)}<br><small style="color:var(--muted)">${r.left<0?Math.abs(r.left)+' hari lewat':r.left+' hari lagi'}</small></td>
   <td><span class="pill p-${r.st}">${r.pending?'Sudah dijadwalkan':r.st}</span></td><td>${r.sent?'<span class="pill p-Lunas">Ditandai terkirim '+fds(r.sent)+'</span>':'<small style="color:var(--muted)">Belum dikirim</small>'}</td>
-  <td class="r"><div class="row" style="justify-content:flex-end"><a class="btn sm pri" href="${waLink(r.hp,remMsg(r))}" target="_blank" rel="noopener">Buka WhatsApp</a><button class="btn sm" data-act="remCopy" data-n="${esc(r.nama)}">Salin</button><button class="btn sm" data-act="remMark" data-n="${esc(r.nama)}">Tandai terkirim</button></div></td></tr>`).join(''):'<tr><td colspan="6" class="empty">Tidak ada pelanggan yang perlu dihubungi hari ini.</td></tr>'}
+  <td class="r"><div class="row" style="justify-content:flex-end"><a class="btn sm pri" href="${waLink(r.hp,remMsg(r))}" target="_blank" rel="noopener">Buka WhatsApp</a><button class="btn sm" data-act="remCopy" data-n="${esc(r.nama)}">Salin</button><button class="btn sm" data-act="remMark" data-n="${esc(r.nama)}">Tandai terkirim</button></div></td></tr>`).join(''):'<tr><td colspan="7" class="empty">Tidak ada pelanggan yang perlu dihubungi hari ini.</td></tr>'}
   </tbody></table></div>${P.html}</div>`;
 };
 A.wf=b=>{U.wf=b.dataset.v;render()};
@@ -1324,9 +1324,9 @@ function unlinkJob(i){if(i.ref){const o=S.orders.find(x=>x.id===i.ref);if(o&&o.i
 function dropInv(i){unlinkJob(i);if(i.appr==='Disetujui')(i.items||[]).filter(x=>x.sid).forEach(x=>{const s=S.stok.find(y=>y.id===x.sid);if(s){s.qty+=x.qty;mut(s,'Masuk',x.qty,'Batal '+i.no)}});S.tx=S.tx.filter(t=>t.ref!==i.no);S.inv=S.inv.filter(x=>x!==i)}
 /* ---------- CRUD generik: pemasok, surat, diskon, stok ---------- */
 const CR={
- sup:{t:'Daftar Pemasok Barang',p:'Data pemasok AC, kabel, pipa, freon dan material lain.',n:'Pemasok baru',f:[{k:'nama',l:'Nama pemasok',req:1},{k:'pic',l:'Kontak person'},{k:'hp',l:'No. HP / WA'},{k:'produk',l:'Produk yang dipasok',wide:1},{k:'alamat',l:'Alamat',wide:1}],c:[['Pemasok',r=>`<b>${esc(r.nama)}</b><br><small>${esc(r.pic)}</small>`],['Kontak',r=>r.hp?`<a href="${waLink(r.hp,'Halo '+r.nama)}" target="_blank" rel="noopener">${esc(r.hp)}</a>`:'-'],['Produk',r=>esc(r.produk)],['Alamat',r=>esc(r.alamat)]]},
+ sup:{t:'Daftar Pemasok Barang',p:'Data pemasok AC, kabel, pipa, freon dan material lain.',n:'Pemasok baru',f:[{k:'nama',l:'Nama pemasok',req:1},{k:'pic',l:'Kontak person'},{k:'hp',l:'No. HP / WA'},{k:'termin',l:'Termin bayar (tiap transaksi)',t:'select',o:['Cash','7 hari','14 hari','21 hari','30 hari','45 hari','60 hari','90 hari'],def:'Cash'},{k:'produk',l:'Produk yang dipasok',wide:1},{k:'alamat',l:'Alamat',wide:1}],c:[['Pemasok',r=>`<b>${esc(r.nama)}</b><br><small>${esc(r.pic)}</small>`],['Kontak',r=>r.hp?`<a href="${waLink(r.hp,'Halo '+r.nama)}" target="_blank" rel="noopener">${esc(r.hp)}</a>`:'-'],['Termin',r=>esc(r.termin||'Cash')],['Produk',r=>esc(r.produk)],['Alamat',r=>esc(r.alamat)]]},
  srt:{s:'surat',t:'Surat Masuk & Keluar',p:'Catat dan proses surat serta barang yang masuk dan keluar kantor.',n:'Catat surat / barang',f:[{k:'jenis',l:'Jenis',t:'select',o:['Surat masuk','Surat keluar']},{k:'tgl',l:'Tanggal',t:'date',def:TODAY},{k:'no',l:'No. surat'},{k:'pihak',l:'Pengirim / tujuan',req:1},{k:'perihal',l:'Perihal',wide:1,req:1},{k:'barang',l:'Barang / lampiran (jika ada)',wide:1},{k:'status',l:'Status proses',t:'select',o:['Diterima','Diproses','Selesai','Diarsipkan']}],c:[['Tanggal',r=>fds(r.tgl)],['Jenis / No.',r=>`<b>${r.jenis}</b><br><small class="num">${esc(r.no)}</small>`],['Pihak & perihal',r=>`${esc(r.pihak)}<br><small>${esc(r.perihal)}${r.barang?' · Barang: '+esc(r.barang):''}</small>`],['Status',r=>`<span class="pill p-${r.status==='Selesai'||r.status==='Diarsipkan'?'Selesai':r.status==='Diproses'?'Dikerjakan':'Baru'}">${r.status}</span>`]],x:r=>r.status==='Diarsipkan'?'':`<button class="btn sm pri" data-act="srN" data-id="${r.id}">Proses lanjut</button>`},
- stk:{s:'stok',t:'Kontrol Stok Material',p:'Kabel, AC, pipa, freon dan lainnya. Stok berkurang otomatis dari pemakaian teknisi dan penjualan kasir.',n:'Barang baru',f:[{k:'nama',l:'Nama barang',req:1,wide:1},{k:'kat',l:'Kategori',t:'select',o:['AC','Kabel','Pipa','Freon','Sparepart','Lainnya']},{k:'sat',l:'Satuan (unit / meter / kg)',def:'unit'},{k:'qty',l:'Stok saat ini',t:'number',min:0,step:'any',def:0},{k:'min',l:'Stok minimum',t:'number',min:0,step:'any',def:0},{k:'harga',l:'Harga jual (Rp)',t:'number',min:0,def:0},{k:'sup',l:'Pemasok'}],c:[['Barang',r=>`<b>${esc(r.nama)}</b><br><small>${r.kat}</small>`],['Stok',r=>`<span class="num">${r.qty} ${esc(r.sat)}</span>`],['Status',r=>r.qty<=0?'<span class="pill p-Batal">Habis</span>':r.qty<=r.min?'<span class="pill p-Belum">Menipis</span>':'<span class="pill p-Aman">Aman</span>'],['Harga',r=>rp(r.harga)],['Pemasok',r=>esc(r.sup)]],x:r=>`<button class="btn sm pri" data-act="stIn" data-id="${r.id}">+ Masuk</button>`}};
+ stk:{s:'stok',t:'Kontrol Stok Material',p:'Kabel, AC, pipa, freon dan lainnya. Stok berkurang otomatis dari pemakaian teknisi dan penjualan kasir.',n:'Barang baru',f:[{k:'nama',l:'Nama barang',req:1,wide:1},{k:'kat',l:'Kategori',t:'select',o:['AC','Kabel','Pipa','Freon','Sparepart','Lainnya']},{k:'sat',l:'Satuan',t:'select',o:['unit','meter','kg','liter','pcs','roll','set','batang','botol','dus'],def:'unit'},{k:'qty',l:'Stok saat ini',t:'number',min:0,step:'any',def:0},{k:'min',l:'Stok minimum',t:'number',min:0,step:'any',def:0},{k:'harga',l:'Harga jual (Rp)',t:'number',min:0,def:0},{k:'sup',l:'Pemasok'}],c:[['Barang',r=>`<b>${esc(r.nama)}</b><br><small>${r.kat}</small>`],['Stok',r=>`<span class="num">${r.qty} ${esc(r.sat)}</span>`],['Status',r=>r.qty<=0?'<span class="pill p-Batal">Habis</span>':r.qty<=r.min?'<span class="pill p-Belum">Menipis</span>':'<span class="pill p-Aman">Aman</span>'],['Harga',r=>rp(r.harga)],['Pemasok',r=>esc(r.sup)]],x:r=>`<button class="btn sm pri" data-act="stIn" data-id="${r.id}">+ Masuk</button>`}};
 function crud(k,extra){const C=CR[k],R=S[C.s||k],P=paginate('c'+k,R,R.length);
  return `<div class="head"><div><h1>${C.t}</h1><p>${C.p}</p></div><button class="btn pri" data-act="crE" data-k="${k}">+ ${C.n}</button></div>${extra||''}<div class="card"><div class="tw"><table><thead><tr>${C.c.map(c=>`<th>${c[0]}</th>`).join('')}<th></th></tr></thead><tbody>${R.length?P.items.map(r=>`<tr>${C.c.map(c=>`<td>${c[1](r)}</td>`).join('')}<td class="r">${C.x?C.x(r):''} <button class="btn sm" data-act="crE" data-k="${k}" data-id="${r.id}">Ubah</button> <button class="btn sm del" data-act="crD" data-k="${k}" data-id="${r.id}">Hapus</button></td></tr>`).join(''):`<tr><td colspan="${C.c.length+1}" class="empty">Belum ada data.</td></tr>`}</tbody></table></div>${P.html}</div>`}
 A.crE=b=>{const k=b.dataset.k,C=CR[k],s=C.s||k,r=S[s].find(x=>x.id===b.dataset.id);form(r?'Ubah data':C.n,C.f,r,v=>{if(r)Object.assign(r,v);else S[s].unshift({id:uid(k),...v});save();render();toast('Tersimpan')})};
@@ -1369,7 +1369,7 @@ A.kSave=()=>{const items=K.lines.filter(x=>x.desc&&x.qty>0).map(x=>{const b=x.k[
  if(K.job){const o=S.orders.find(x=>x.id===K.job);if(o)o.inv=no}S.inv.push(i);K=newK();save();S.tab='inv';render();toast(isAp()?'Invoice '+no+' terbit':'Invoice '+no+' diajukan, menunggu persetujuan')};
 A.newInv=()=>{S.tab='kas';render()};
 A.viewInv=b=>{const i=S.inv.find(x=>x.id===b.dataset.id),ok=okInv(i);
- modal(`${ok?'':`<div class="note">${i.appr==='Ditolak'?'Invoice ini ditolak. Alasan: '+esc(i.alasanTolak||'-')+'.':'Menunggu persetujuan Direktur. Belum bisa dikirim atau ditandai lunas.'}</div>`}${invHTML(i)}<div class="row" style="justify-content:flex-end">${ok&&i.status!=='Lunas'?`<button class="btn pri" data-act="payInv" data-id="${i.id}">Tandai lunas</button>`:''}${ok?`<a class="btn" href="${waLink(i.hp,invText(i))}" target="_blank" rel="noopener">Buka WhatsApp</a><button class="btn" data-act="cpInv" data-id="${i.id}">Salin teks</button><button class="btn" data-act="prtInv" data-id="${i.id}">Cetak</button><button class="btn" data-act="dlInv" data-id="${i.id}">Unduh PDF</button>`:''}${i.appr==='Ditolak'&&canKas()?`<button class="btn pri" data-act="invEdit" data-id="${i.id}">Edit &amp; ajukan ulang</button>`:''}<button class="btn" data-act="close">Tutup</button></div>`)};
+ modal(`${ok?'':`<div class="note">${i.appr==='Ditolak'?'Invoice ini ditolak. Alasan: '+esc(i.alasanTolak||'-')+'.':'Menunggu persetujuan Direktur. Belum bisa dikirim atau ditandai lunas.'}</div>`}${invHTML(i)}<div class="row" style="justify-content:flex-end">${ok&&i.status!=='Lunas'?`<button class="btn pri" data-act="payInv" data-id="${i.id}">Tandai lunas</button>`:''}${ok?`<a class="btn" href="${waLink(i.hp,invText(i))}" target="_blank" rel="noopener">Buka WhatsApp</a><button class="btn" data-act="cpInv" data-id="${i.id}">Salin teks</button>`:''}<button class="btn" data-act="prtInv" data-id="${i.id}">Cetak</button>${ok?`<button class="btn" data-act="dlInv" data-id="${i.id}">Unduh PDF</button>`:''}${i.appr==='Ditolak'&&canKas()?`<button class="btn pri" data-act="invEdit" data-id="${i.id}">Edit &amp; ajukan ulang</button>`:''}<button class="btn" data-act="close">Tutup</button></div>`)};
 /* ---------- Persetujuan ---------- */
 const pend=(ref)=>S.req.some(r=>r.ref===ref&&r.st==='Menunggu'&&/^del/.test(r.jenis));
 A.delInv=b=>{const i=S.inv.find(x=>x.id===b.dataset.id);if(!i)return;if(!isAp()&&pend(i.id)){toast('Pembatalan sudah diajukan');return}
@@ -1494,7 +1494,7 @@ function trendKin(){const mo=U.kinM,ks=ar(6,i=>addM(mo+'-01',i-5).slice(0,7)),lb
 U.jobF='belum';const doneS=o=>['Selesai','Batal'].includes(o.status);
 const JF={belum:['Belum dibagi',o=>!o.teknisi&&!doneS(o)],tagih:['Selesai, belum ditagih',o=>o.status==='Selesai'&&!notaOf(o)],nota:['Sudah ditagih',o=>o.status==='Selesai'&&!!notaOf(o)],aktif:['Aktif',o=>!doneS(o)],hari:['Hari ini',o=>o.tgl===TODAY],all:['Semua',()=>true]};
 function jobForm(o){const T=S.emps.filter(e=>isTek(e));
- const F=[{k:'tgl',l:'Tanggal kerja',t:'date',req:1,def:TODAY},{k:'jam',l:'Jam',t:'time',def:'09:00'},{k:'nama',l:'Nama pelanggan',req:1},{k:'hp',l:'No. WA (62812...)'},{k:'alamat',l:'Alamat lokasi',wide:1,req:1},{k:'layanan',l:'Layanan',t:'select',o:Object.keys(SERV)},{k:'unit',l:'Jumlah unit AC',t:'number',min:1,def:1},{k:'nilai',l:'Nilai (Rp, kosong = otomatis)',t:'number',min:0,def:0},{k:'bobot',l:'Jenis pekerjaan',t:'select',o:['Ringan','Berat'],def:'Ringan'},{k:'kontraktor',l:'Pekerjaan kontraktor?',t:'select',o:['Tidak','Ya'],def:'Tidak'},{k:'teknisi',l:'Tugaskan ke teknisi',t:'select',o:[['','Belum ditugaskan'],...T.map(e=>[e.id,e.nama])]},{k:'catatan',l:'Catatan untuk teknisi',wide:1}];
+ const F=[{k:'tgl',l:'Tanggal kerja',t:'date',req:1,def:TODAY},{k:'jam',l:'Jam',t:'time',def:'09:00'},{k:'nama',l:'Nama pelanggan',req:1},{k:'hp',l:'No. WA (62812...)'},{k:'alamat',l:'Alamat lokasi',wide:1,req:1},{k:'layanan',l:'Layanan',t:'select',o:Object.keys(SERV)},{k:'unit',l:'Jumlah unit AC',t:'number',min:1,def:1},{k:'nilai',l:'Nilai (Rp, kosong = otomatis)',t:'number',min:0,def:0},{k:'bobot',l:'Jenis pekerjaan',t:'select',o:['Minor (Ringan)','Sedang','Major (Berat)'],def:'Minor (Ringan)'},{k:'kontraktor',l:'Pekerjaan kontraktor?',t:'select',o:['Tidak','Ya'],def:'Tidak'},{k:'teknisi',l:'Tugaskan ke teknisi',t:'select',o:[['','Belum ditugaskan'],...T.map(e=>[e.id,e.nama])]},{k:'catatan',l:'Catatan untuk teknisi',wide:1}];
  form(o?'Ubah job '+o.id:'Input job baru',F,o,v=>{const baru=!o,prevT=o?o.teknisi:'';if(!v.nilai)v.nilai=(SERV[v.layanan]||0)*(v.unit||1);
   if(o)Object.assign(o,v);else{const id='ORD-'+(Math.max(1000,...S.orders.map(x=>Number(x.id.slice(4))||0))+1);S.orders.push({id,status:'Baru',oleh:SES.nama,...v});o=S.orders[S.orders.length-1]}
   if(v.teknisi&&!o.ditugaskan)o.ditugaskan={oleh:SES.nama,tgl:TODAY};jobNotif(o,baru,prevT);
@@ -1642,7 +1642,7 @@ A.pnSave=()=>{if(!PN.kantor.trim()){toast('Nama perusahaan wajib diisi');return}
  S.pnw.unshift(p);addReq('pnw',p.id,p.no+' · '+p.kantor,p.total);p.reqId=S.req[0].id;PN=newPN();save();render();toast('Penawaran diajukan, menunggu ACC Direktur')};
 A.pnRev=b=>{const p=S.pnw.find(x=>x.id===b.dataset.id);if(!p)return;const c=JSON.parse(JSON.stringify(p));PN={ppn:c.ppn||'none',kid:c.kid,kantor:c.kantor,alamat:c.alamat,hp:c.hp,lines:c.lines,dt:c.dt,dn:c.dn,ongkir:c.ongkir,pasang:c.pasang,cat:c.cat,berlaku:addD(TODAY,14)};render();window.scrollTo(0,0);toast('Penawaran dimuat, ubah lalu ajukan ulang')};
 A.pnView=b=>{const p=S.pnw.find(x=>x.id===b.dataset.id);if(!p)return;
- modal(`<h2 style="font-size:20px">${p.no} <span class="pill p-${PS[p.appr]}">${p.appr}</span></h2><div class="info"><b>${esc(p.kantor)}</b><br>${esc(p.alamat||'')}${p.hp?' · '+esc(p.hp):''}<br>Tanggal ${fd(p.tgl)} · berlaku sampai ${fd(p.berlaku)}</div>${lineTbl(p)}<div class="grid" style="gap:4px"><div class="row" style="justify-content:space-between"><span>Subtotal</span><span class="num">${rp(p.sub)}</span></div><div class="row" style="justify-content:space-between"><span>Diskon</span><span class="num">-${rp(p.dsk)}</span></div><div class="row" style="justify-content:space-between"><span>Ongkos kirim</span><span class="num">${rp(p.ongkir)}</span></div><div class="row" style="justify-content:space-between"><span>Jasa pasang</span><span class="num">${rp(p.pasang)}</span></div><div class="row" style="justify-content:space-between;font-size:18px"><b>Total</b><b class="num">${rp(p.total)}</b></div></div>${p.cat?`<div>Catatan: ${esc(p.cat)}</div>`:''}${p.appr==='Ditolak'?`<div class="note">Ditolak. Alasan: ${esc(p.alasanTolak||'-')}</div>`:''}${p.apprOleh?`<small>${p.appr} oleh ${esc(p.apprOleh)}, ${fd(p.apprTgl)}</small>`:''}<div class="row" style="justify-content:flex-end"><button class="btn" data-act="close">Tutup</button>${p.appr==='Ditolak'?`<button class="btn pri" data-act="pnRev" data-id="${p.id}">Edit &amp; ajukan ulang</button>`:''}${p.appr==='Disetujui'?`<button class="btn" data-act="pnPrint" data-id="${p.id}">Cetak</button><button class="btn" data-act="pnDl" data-id="${p.id}">Unduh</button>`:''}${p.appr==='Disetujui'?`<a class="btn pri" data-act="pnSent" data-id="${p.id}" href="${pnWA(p)}" target="_blank" rel="noopener">Kirim lewat WhatsApp</a>`:''}</div>`)};
+ modal(`<div style="background:#fff;border-radius:8px;padding:12px 14px 2px;margin-bottom:10px">${typeof kopHTML==='function'?kopHTML():''}</div><h2 style="font-size:20px">${p.no} <span class="pill p-${PS[p.appr]}">${p.appr}</span></h2><div class="info"><b>${esc(p.kantor)}</b><br>${esc(p.alamat||'')}${p.hp?' · '+esc(p.hp):''}<br>Tanggal ${fd(p.tgl)} · berlaku sampai ${fd(p.berlaku)}</div>${lineTbl(p)}<div class="grid" style="gap:4px"><div class="row" style="justify-content:space-between"><span>Subtotal</span><span class="num">${rp(p.sub)}</span></div><div class="row" style="justify-content:space-between"><span>Diskon</span><span class="num">-${rp(p.dsk)}</span></div><div class="row" style="justify-content:space-between"><span>Ongkos kirim</span><span class="num">${rp(p.ongkir)}</span></div><div class="row" style="justify-content:space-between"><span>Jasa pasang</span><span class="num">${rp(p.pasang)}</span></div><div class="row" style="justify-content:space-between;font-size:18px"><b>Total</b><b class="num">${rp(p.total)}</b></div></div>${p.cat?`<div>Catatan: ${esc(p.cat)}</div>`:''}${p.appr==='Ditolak'?`<div class="note">Ditolak. Alasan: ${esc(p.alasanTolak||'-')}</div>`:''}${p.apprOleh?`<small>${p.appr} oleh ${esc(p.apprOleh)}, ${fd(p.apprTgl)}</small>`:''}<div class="row" style="justify-content:flex-end"><button class="btn" data-act="close">Tutup</button>${p.appr==='Ditolak'?`<button class="btn pri" data-act="pnRev" data-id="${p.id}">Edit &amp; ajukan ulang</button>`:''}${p.appr==='Disetujui'?`<button class="btn" data-act="pnPrint" data-id="${p.id}">Cetak</button><button class="btn" data-act="pnDl" data-id="${p.id}">Unduh</button>`:''}${p.appr==='Disetujui'?`<a class="btn pri" data-act="pnSent" data-id="${p.id}" href="${pnWA(p)}" target="_blank" rel="noopener">Kirim lewat WhatsApp</a>`:''}</div>`)};
 
 /* ---------- Database Kunjungan ---------- */
 const fuCell=k=>!fuOpen(k)?'-':`${fuLate(k)?`<span class="pill p-Batal">⚠ Lewat ${fuDays(k)} hari</span>`:`<span class="pill p-Aman">${fuDays(k)} hari</span>`}<br><small>kontak terakhir ${fds(k.lastFu||k.tgl)}</small>`;
@@ -1896,12 +1896,13 @@ const _cd1=A.clearDemo;A.clearDemo=()=>{S.prospek=[];S.sSeed=0;_cd1()};
 /* ================= TINGKAT TEKNISI (T1 / T2 / T3) ================= */
 const TK={T1:'T1 · Bisa kerja semua dan memimpin tim',T2:'T2 · Bisa kerja semua',T3:'T3 · Hanya maintenance dan perbaikan ringan'};
 function tkTag(e){return e.tingkat?' ['+e.tingkat+']':''}
-/* aturan: kontraktor = hanya T1 (butuh pemimpin tim); berat = T1 dan T2; ringan = semua tingkat. Helper dianggap setara T3 */
+/* aturan: kontraktor = hanya T1 (butuh pemimpin tim); Major (berat) = T1 dan T2; Sedang = semua teknisi, helper tidak; Minor (ringan) = semua tingkat. Helper dianggap setara T3 */
 function jobOK(e,o){const t=e.tingkat||(e.jabatan==='Teknisi'?'T2':'T3');
  if(o&&o.kontraktor==='Ya')return t==='T1';
- if(o&&o.bobot==='Berat')return t==='T1'||t==='T2';
+ if(o&&o.bobot==='Major (Berat)')return t==='T1'||t==='T2';
+ if(o&&o.bobot==='Sedang')return e.jabatan==='Teknisi';
  return true}
-function bobotPill(o){const b=o.bobot||'Ringan',k=o.kontraktor==='Ya';return `<span class="pill p-${b==='Berat'?'Belum':'Aman'}">${b}</span>${k?' <span class="pill p-Dijadwalkan">Kontraktor</span>':''}`}
+function bobotPill(o){const b=o.bobot||'Minor (Ringan)',k=o.kontraktor==='Ya';return `<span class="pill p-${b==='Major (Berat)'?'Belum':b==='Sedang'?'Dikerjakan':'Aman'}">${b}</span>${k?' <span class="pill p-Dijadwalkan">Kontraktor</span>':''}`}
 function tkEdit(e){if(e.jabatan!=='Teknisi'||!SES||!['admin','adminjual','adminops','direktur'].includes(SES.role))return e.tingkat?` <span class="pill p-Aman">${e.tingkat}</span>`:'';
  return `<br><select data-chg="empTk" data-id="${e.id}" aria-label="Tingkat ${esc(e.nama)}" style="width:auto;padding:2px 6px;font-size:12px">${Object.entries(TK).map(([k,v])=>`<option value="${k}"${(e.tingkat||'T2')===k?' selected':''}>${v}</option>`).join('')}</select>`}
 CH.empTk=el=>{const e=S.emps.find(x=>x.id===el.dataset.id);if(!e)return;e.tingkat=el.value;save();render();toast(e.nama+' sekarang '+el.value)};
@@ -1911,10 +1912,10 @@ function jobFilt(o){setTimeout(()=>{const sh=$('#sheet'),b=$('#f_bobot',sh),k=$(
  const up=()=>{const cur=t.value,job={bobot:b.value,kontraktor:k.value},L=T.filter(e=>jobOK(e,job));
   t.innerHTML='<option value="">Belum ditugaskan</option>'+L.map(e=>`<option value="${e.id}">${esc(e.nama)}${tkTag(e)}</option>`).join('');
   t.value=L.some(e=>e.id===cur)?cur:'';
-  hint.textContent=k.value==='Ya'?'Pekerjaan kontraktor: hanya teknisi T1 (pemimpin tim).':b.value==='Berat'?'Pekerjaan berat: hanya teknisi T1 dan T2.':'Pekerjaan ringan: semua tingkat boleh.'};
+  hint.textContent=k.value==='Ya'?'Pekerjaan kontraktor: hanya teknisi T1 (pemimpin tim).':b.value==='Major (Berat)'?'Pekerjaan major (berat): hanya teknisi T1 dan T2.':b.value==='Sedang'?'Pekerjaan sedang: semua teknisi (T1, T2, T3), helper tidak.':'Pekerjaan minor (ringan): semua tingkat boleh.'};
  b.addEventListener('change',up);k.addEventListener('change',up);up();
  if(o&&o.teknisi&&[...t.options].some(x=>x.value===o.teknisi))t.value=o.teknisi},0)}
-const _mig2=mig;mig=function(){_mig2();S.emps.forEach(e=>{if(e.jabatan==='Teknisi'&&!e.tingkat)e.tingkat=e.id==='e1'?'T1':'T2'});(S.orders||[]).forEach(o=>{if(!o.bobot)o.bobot='Ringan';if(!o.kontraktor)o.kontraktor='Tidak'})};
+const _mig2=mig;mig=function(){_mig2();S.emps.forEach(e=>{if(e.jabatan==='Teknisi'&&!e.tingkat)e.tingkat=e.id==='e1'?'T1':'T2'});(S.orders||[]).forEach(o=>{if(!o.bobot)o.bobot='Minor (Ringan)';if(!o.kontraktor)o.kontraktor='Tidak'})};
 
 
 /* ================= DETAIL PERSETUJUAN & EDIT ULANG SETELAH DITOLAK ================= */
@@ -2336,7 +2337,7 @@ function printDoc(title,body){const f=document.createElement('iframe');f.style.c
 const pnGet=b=>S.pnw.find(x=>x.id===b.dataset.id);
 A.pnPrint=b=>{const p=pnGet(b);if(!p)return;if(p.appr!=='Disetujui'){toast('Penawaran harus disetujui Direktur dulu sebelum dicetak');return}printDoc(p.no,pnHTML(p))};
 A.pnDl=b=>{const p=pnGet(b);if(p&&p.appr==='Disetujui')saveFile(p.no+'.html',printPage(p.no,pnHTML(p)))};
-A.prtInv=b=>{const i=S.inv.find(x=>x.id===b.dataset.id);if(!i)return;if(!okInv(i)){toast('Invoice belum disetujui Direktur');return}printDoc(i.no,invHTML(i))};
+A.prtInv=b=>{const i=S.inv.find(x=>x.id===b.dataset.id);if(!i)return;printDoc(i.no,invHTML(i))};
 </script>
 <script>
 /* ---------- Kop dokumen: logo, alamat, kontak di invoice, nota, penawaran ---------- */
@@ -2471,6 +2472,96 @@ A.absGo=()=>{
   let r;try{r=absDo(kind,ABS.id,p)}catch(e){console.error(e);r={st:'err'}}
   absResult(r,kind,p);
 };
+</script>
+<style id="mobile-fix">
+/* ===== Perbaikan tampilan HP: kolom / tombol tidak melebar keluar layar ===== */
+@media (max-width:640px){
+ html,body{max-width:100%;overflow-x:hidden}
+ .row>*,.grid>*,.fgrid>*,.head>*{min-width:0}
+ .card,.sheet,.inv{max-width:100%}
+ .inv{overflow-x:auto;-webkit-overflow-scrolling:touch}
+ .inv .row{flex-wrap:wrap}
+ .inv img{max-width:100%;height:auto}
+ .inv table{width:100%;min-width:0;font-size:12px}
+ .btn{max-width:100%;white-space:normal;overflow-wrap:anywhere;text-align:center;justify-content:center}
+ input,select,textarea{max-width:100%;font-size:16px}
+ .head{flex-direction:column;align-items:stretch}
+ .head>.btn,.head>.row{width:100%}
+ .head>.row .btn{flex:1 1 auto}
+ .tw td,.tw th{padding:8px 10px}
+ .tw td .row{justify-content:flex-start!important;flex-wrap:wrap}
+ .tw td .btn.sm{padding:6px 10px;min-height:34px}
+ .pill{white-space:normal;text-align:center}
+ .sheet{overflow-x:hidden;overflow-y:auto}
+ .sheet .row{flex-wrap:wrap}
+ .sheet .row .btn{flex:1 1 auto}
+ .kpi .v{font-size:18px}
+}
+</style>
+<script>
+/* =====================================================================
+   PERUBAHAN: reminder 1/2/3 bulan, cash/termin di kasir, invoice cetak
+   sebelum approve, menu Cetak Invoice, ttd manual, dll.
+   ===================================================================== */
+/* --- Reminder cuci AC: default & per pelanggan --- */
+CH.remDef=el=>{S.set.interval=Math.max(1,Number(el.value)||3);save();render()};
+CH.remInt=el=>{S.remInt=S.remInt||{};S.remInt[el.dataset.n]=Math.max(1,Number(el.value)||3);save();render();toast('Siklus cuci '+el.dataset.n+': '+el.value+' bulan')};
+{const _m=mig;mig=function(){_m();S.remInt=S.remInt||{};
+ (S.orders||[]).forEach(o=>{if(o.bobot==='Ringan')o.bobot='Minor (Ringan)';else if(o.bobot==='Berat')o.bobot='Major (Berat)'})}}
+
+/* --- Kasir: pilihan Cash atau Termin + TOP (hari) --- */
+{const _vk=V.kas;V.kas=function(){
+ if(K.bayar===undefined){
+  if(K.editId){const i0=S.inv.find(x=>x.id===K.editId);
+   K.bayar=(i0&&(i0.bayar||(i0.tempo&&i0.tempo!==i0.tgl?'termin':'cash')))||'cash';
+   K.top=(i0&&(i0.top||(i0.tempo&&i0.tgl?Math.max(1,diffD(i0.tempo,i0.tgl)):7)))||7;
+  }else{K.bayar='cash';K.top=7}
+ }
+ const h=_vk.apply(this,arguments);
+ const pay=`<div class="fgrid" style="margin-top:12px"><label class="f">Cara pembayaran<select data-chg="kBayar"><option value="cash"${K.bayar==='cash'?' selected':''}>Cash (lunas saat itu)</option><option value="termin"${K.bayar==='termin'?' selected':''}>Termin (TOP)</option></select></label>${K.bayar==='termin'?`<label class="f">TOP (jumlah hari)<input type="number" min="1" max="365" step="1" value="${K.top}" data-chg="kTop"><small style="color:var(--muted)">Jatuh tempo: ${fd(addD(TODAY,K.top))}</small></label>`:''}</div>`;
+ return h.replace('<div id="ksum"',pay+'<div id="ksum"')}}
+CH.kBayar=el=>{K.bayar=el.value;if(K.bayar==='termin'&&!(K.top>0))K.top=7;render()};
+CH.kTop=el=>{K.top=Math.max(1,Math.min(365,Math.round(Number(el.value)||1)));render()};
+{const _k=A.kSave;A.kSave=function(b,e){
+ const by=K.bayar||'cash',top=Math.max(1,Math.round(Number(K.top)||7)),eid=K.editId,n=S.inv.length;
+ const r=_k.apply(this,arguments);
+ let i=null;
+ if(eid){if(K.editId!==eid)i=S.inv.find(x=>x.id===eid)}else if(S.inv.length>n)i=S.inv[S.inv.length-1];
+ if(i){i.bayar=by;i.top=by==='termin'?top:0;i.tempo=by==='termin'?addD(i.tgl,top):i.tgl;save();render()}
+ return r}}
+
+/* --- Invoice: label pembayaran + tanda tangan manual --- */
+const MAN_DIR=()=>S.set.ttdNama||'WAHYU';
+function manualTtd(){return `<div style="display:flex;justify-content:flex-end;margin-top:28px"><div style="text-align:center;min-width:210px;color:#14232a"><div>Menyetujui,</div><div style="height:74px"></div><div style="font-weight:800;text-decoration:underline">${esc(MAN_DIR())}</div><div style="font-size:12px;font-weight:600">DIREKTUR CV. PUNGGAWA</div></div></div>`}
+{const _ih=invHTML;invHTML=function(i){let h=_ih(i);
+ const termin=i.bayar==='termin'||(!i.bayar&&i.tempo&&i.tgl&&i.tempo!==i.tgl);
+ const lbl=termin?'Termin '+(i.top||Math.max(1,diffD(i.tempo,i.tgl)))+' hari (TOP)':'Cash';
+ const a='Jatuh tempo</small> '+fd(i.tempo)+'<br>';
+ if(h.includes(a))h=h.replace(a,a+'<small style="color:#4b6068">Pembayaran</small> '+lbl+'<br>');
+ if(!i.ttd)h=h.replace(/<\/div>\s*$/,manualTtd()+'</div>');
+ return h}}
+
+/* --- Menu baru: Cetak Invoice (cari berdasarkan nomor) --- */
+TABS2.push(['cetak','Cetak Invoice']);if(!TABS.some(t=>t[0]==='cetak'))TABS.push(['cetak','Cetak Invoice']);
+ICON.cetak='<path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M7 14h10v7H7z"/>';EMO.cetak='🖨️';
+{const _at=allowedTabs;allowedTabs=function(){const t=_at();
+ if(['direktur','adminjual','adminops'].includes(SES.role)&&!t.some(x=>x[0]==='cetak')){const k=t.findIndex(x=>x[0]==='inv');t.splice(k>=0?k+1:t.length,0,['cetak','Cetak Invoice'])}
+ return t}}
+function cqFind(q){const n=String(q||'').trim().toLowerCase();if(!n)return[];
+ let m=S.inv.filter(i=>String(i.no).toLowerCase()===n);
+ if(!m.length)m=S.inv.filter(i=>String(i.no).toLowerCase().includes(n));return m}
+V.cetak=()=>{
+ const q=U.cq||'',m=cqFind(q),one=m.length===1?m[0]:null;
+ const stat=i=>i.appr==='Menunggu'?'Menunggu persetujuan':i.appr==='Ditolak'?'Ditolak':'Disetujui';
+ return `<div class="head"><div><h1>Cetak Invoice</h1><p>Ketik nomor invoice untuk melihat pratinjau lalu mencetak. Invoice yang belum disetujui tetap bisa dicetak (tanda tangan manual).</p></div></div>
+ <div class="card"><div class="row" style="gap:10px;flex-wrap:nowrap"><input id="cq" placeholder="Contoh: INV-2610-001" value="${esc(q)}" list="cq_dl" autocomplete="off" style="flex:1;min-width:0"><button class="btn pri" data-act="cqGo">Tampilkan</button></div>
+ <datalist id="cq_dl">${S.inv.slice(-60).reverse().map(i=>`<option value="${esc(i.no)}">${esc(i.nama)}</option>`).join('')}</datalist>
+ ${q&&!m.length?`<div class="note" style="margin-top:12px">Invoice dengan nomor "${esc(q)}" tidak ditemukan.</div>`:''}
+ ${m.length>1?`<p style="margin:12px 0 6px;color:var(--muted)">Ditemukan ${m.length} invoice, pilih salah satu:</p><div class="grid" style="gap:6px">${m.slice(0,20).map(i=>`<button class="btn" data-act="cqPick" data-no="${esc(i.no)}" style="justify-content:space-between"><span class="num">${esc(i.no)}</span><span>${esc(i.nama)} · ${rp(invTot(i).tot)}</span></button>`).join('')}</div>`:''}</div>
+ ${one?`<div class="card"><div class="row" style="justify-content:space-between;margin-bottom:12px"><div><b class="num">${esc(one.no)}</b> <span class="pill p-${one.appr==='Menunggu'?'Belum':one.appr==='Ditolak'?'Batal':'Aman'}">${stat(one)}</span></div><div class="row"><button class="btn pri" data-act="prtInv" data-id="${one.id}">Cetak</button>${okInv(one)?`<button class="btn" data-act="dlInv" data-id="${one.id}">Unduh PDF</button>`:''}</div></div>${okInv(one)?'':`<div class="note" style="margin-bottom:12px">Invoice ini ${one.appr==='Ditolak'?'ditolak':'belum disetujui Direktur'}. Tetap bisa dicetak, tanda tangan dilakukan manual.</div>`}<div style="background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px;overflow-x:auto">${invHTML(one)}</div></div>`:''}`};
+A.cqGo=()=>{const el=$('#cq');U.cq=el?el.value.trim():'';render();const e2=$('#cq');if(e2&&!U.cq)e2.focus()};
+A.cqPick=b=>{U.cq=b.dataset.no;render()};
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target&&e.target.id==='cq'){e.preventDefault();A.cqGo()}});
 </script>
 <script src="pdf-doc.js"></script>
 <script src="daftar.js"></script>
