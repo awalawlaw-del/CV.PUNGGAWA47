@@ -2656,15 +2656,22 @@ const BW_CSS='@page{size:A4;margin:12mm}html,body{display:block!important;backgr
  +'.inv th.r,.inv td.r{text-align:right}.inv th{font-weight:700}'
  +'.pill{border:1px solid #000!important;background:transparent!important}';
 function directPrint(title,body){
- const f=document.createElement('iframe');f.setAttribute('aria-hidden','true');
- f.style.cssText='position:fixed;left:-10000px;top:0;width:794px;height:1123px;border:0';
- document.body.appendChild(f);
  const css=[...document.querySelectorAll('style')].map(x=>x.textContent).join('\n');
+ const head='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(title)+'</title><style>'+css+'</style><style>'+BW_CSS+'</style><style>@media print{.noprint{display:none!important}}</style></head><body>';
+ /* Cara utama: tab baru berisi invoice, dialog cetak muncul otomatis (jalan di HP dan komputer) */
+ const w=window.open('','_blank');
+ if(w){
+  const html=head+'<div class="noprint" style="padding:10px;background:#eee;display:flex;gap:10px;align-items:center;font:14px sans-serif;color:#000"><button onclick="window.print()" style="padding:9px 16px;font-size:15px;font-weight:700">Cetak</button><span>Jika dialog cetak tidak muncul, tekan tombol Cetak.</span></div><div style="max-width:760px;margin:0 auto;padding:6px">'+body+'</div><script>window.addEventListener("load",function(){setTimeout(function(){window.focus();window.print()},400)});window.onafterprint=function(){setTimeout(function(){window.close()},300)};<\/script></body></html>';
+  w.document.open();w.document.write(html);w.document.close();return;
+ }
+ /* Cadangan jika pop-up diblokir: cetak lewat iframe */
+ const f=document.createElement('iframe');f.setAttribute('aria-hidden','true');
+ f.style.cssText='position:fixed;right:0;bottom:0;width:794px;height:1123px;border:0;opacity:0;pointer-events:none';
+ document.body.appendChild(f);
  const d=f.contentWindow.document;d.open();
- d.write('<!doctype html><html><head><meta charset="utf-8"><title>'+esc(title)+'</title><style>'+css+'</style><style>'+BW_CSS+'</style></head><body><div style="max-width:760px;margin:0 auto;padding:6px">'+body+'</div></body></html>');
- d.close();
+ d.write(head+'<div style="max-width:760px;margin:0 auto;padding:6px">'+body+'</div></body></html>');d.close();
  let done=false;
- const go=()=>{if(done)return;done=true;try{f.contentWindow.focus();f.contentWindow.print()}catch(e){console.error(e);toast('Cetak tidak tersedia di tampilan ini')}setTimeout(()=>f.remove(),60000)};
+ const go=()=>{if(done)return;done=true;try{f.contentWindow.focus();f.contentWindow.print()}catch(e){console.error(e);toast('Cetak diblokir browser. Izinkan pop-up untuk situs ini, lalu coba lagi.')}setTimeout(()=>f.remove(),60000)};
  f.onload=()=>setTimeout(go,300);setTimeout(go,1500);
 }
 A.prtInv=function(b){
