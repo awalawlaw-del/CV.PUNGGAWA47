@@ -2540,12 +2540,7 @@ function invCetakApprove(i){
  try{useStock((i.items||[]).filter(x=>x.sid),i.no)}catch(err){console.error(err)}
  (S.req||[]).forEach(r=>{if(r.jenis==='inv'&&r.ref===i.id&&r.st==='Menunggu'){r.st='Disetujui';r.oleh2='Dicetak, ttd manual';r.tglPutus=TODAY}});
  save();return true}
-{const _pi=A.prtInv;A.prtInv=function(b,e){
- const i=S.inv.find(x=>x.id===b.dataset.id),was=invCetakApprove(i);
- const r=_pi.apply(this,arguments);
- if(was){render();toast('Invoice '+i.no+' dicetak, otomatis keluar dari daftar Menunggu persetujuan');
-  const m=$('#modal');if(m&&!m.hidden)A.viewInv({dataset:{id:i.id}})}
- return r}}
+
 
 /* --- Invoice: label pembayaran + tanda tangan manual --- */
 const MAN_DIR=()=>S.set.ttdNama||'WAHYU';
@@ -2635,6 +2630,20 @@ A.akCopy=b=>{copyText(b.dataset.p)};
 <script src="pdf-doc.js"></script>
 <script src="daftar.js"></script>
 <script src="export-excel.js"></script>
+<script>
+/* ===== Cetak invoice: SELALU boleh dicetak, meski belum disetujui (dipasang paling akhir,
+   supaya tidak tertimpa file tambahan seperti pdf-doc.js) ===== */
+{const _pi=A.prtInv;A.prtInv=function(b,e){
+ const i=S.inv.find(x=>x.id===b.dataset.id);
+ if(!i)return _pi.apply(this,arguments);
+ const was=invCetakApprove(i),prev=i.appr;
+ if(prev==='Ditolak')i.appr='Disetujui'; /* sementara, agar pengecekan lama tidak memblokir */
+ let r;try{r=_pi.apply(this,arguments)}finally{if(prev==='Ditolak')i.appr=prev}
+ if(was){render();toast('Invoice '+i.no+' dicetak, otomatis keluar dari daftar Menunggu persetujuan');
+  const m=$('#modal');if(m&&!m.hidden)A.viewInv({dataset:{id:i.id}})}
+ return r}}
+</script>
+
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}</script>
 </body>
 </html>
