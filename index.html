@@ -2764,11 +2764,14 @@ A.hdGo=()=>{if((($('#hdc')||{}).value||'').trim().toUpperCase()!=='HAPUS SEMUA')
 var APV='trx';
 {const _at=allowedTabs;allowedTabs=function(){const t=_at();if(SES&&SES.role==='direktur'){const k=t.findIndex(x=>x[0]==='ana');if(k>0)t.unshift(t.splice(k,1)[0])}return t}}
 function aprAkun(){
- const P=AK.items.filter(u=>u.status==='pending'),rl=r=>ROLE_L[r]||r;
+ const P=AK.items.filter(u=>u.status==='pending'),rl=r=>ROLE_L[r]||r,H=S.akRiwayat||[];
  return `<div class="head"><div><h1>Persetujuan</h1><p>Akun baru menunggu persetujuan sebelum bisa login.</p></div></div>
- <div class="card"><h3>Akun menunggu (${P.length})</h3><div class="tw"><table><thead><tr><th>Nama</th><th>Nama pengguna</th><th>Peran</th><th></th></tr></thead><tbody>${P.length?P.map(u=>`<tr><td><b>${esc(u.nama)}</b></td><td class="num">${esc(u.username||'')}</td><td>${esc(rl(u.role))}</td><td class="r"><button class="btn sm pri" data-act="akOk" data-id="${u.id}">Setujui</button> <button class="btn sm del" data-act="akNo" data-id="${u.id}">Tolak</button></td></tr>`).join(''):`<tr><td colspan="4" class="empty">${AK.items.length?'Tidak ada akun yang menunggu.':'Memuat...'}</td></tr>`}</tbody></table></div></div>`}
+ <div class="card"><h3>Akun menunggu (${P.length})</h3><div class="tw"><table><thead><tr><th>Nama</th><th>Nama pengguna</th><th>Peran</th><th></th></tr></thead><tbody>${P.length?P.map(u=>`<tr><td><b>${esc(u.nama)}</b></td><td class="num">${esc(u.username||'')}</td><td>${esc(rl(u.role))}</td><td class="r"><button class="btn sm pri" data-act="akOk" data-id="${u.id}">Setujui</button> <button class="btn sm del" data-act="akNo" data-id="${u.id}">Tolak</button></td></tr>`).join(''):`<tr><td colspan="4" class="empty">${AK.items.length?'Tidak ada akun yang menunggu.':'Memuat...'}</td></tr>`}</tbody></table></div></div>
+ <div class="card"><h3>Riwayat keputusan akun</h3><div class="tw"><table><thead><tr><th>Tanggal</th><th>Nama</th><th>Nama pengguna</th><th>Peran</th><th>Keputusan</th><th>Oleh</th></tr></thead><tbody>${H.length?H.map(h=>`<tr><td>${fds(h.tgl)}<br><small>${esc(h.jam||'')}</small></td><td><b>${esc(h.nama)}</b></td><td class="num">${esc(h.username||'')}</td><td>${esc(rl(h.role))}</td><td><span class="pill p-${h.hasil==='Disetujui'?'Aman':'Batal'}">${h.hasil}</span></td><td>${esc(h.oleh||'')}</td></tr>`).join(''):'<tr><td colspan="6" class="empty">Belum ada riwayat.</td></tr>'}</tbody></table></div></div>`}
 async function akSet(b,st,msg){try{const {error}=await supabaseClient.from('profiles').update({status:st}).eq('id',b.dataset.id);
- if(error){toast('Gagal: '+error.message);return}toast(msg);await akLoad(true);render()}catch(e){console.error(e);toast('Gagal (cek internet)')}}
+ if(error){toast('Gagal: '+error.message);return}
+ const u=AK.items.find(x=>x.id===b.dataset.id)||{};S.akRiwayat=S.akRiwayat||[];S.akRiwayat.unshift({id:uid('a'),tgl:TODAY,jam:nowHM(),nama:u.nama||'-',username:u.username||'',role:u.role||'',hasil:st==='active'?'Disetujui':'Ditolak',oleh:SES.nama});save();
+ toast(msg);await akLoad(true);render()}catch(e){console.error(e);toast('Gagal (cek internet)')}}
 A.akOk=b=>akSet(b,'active','Akun disetujui, sudah bisa login');
 A.akNo=b=>akSet(b,'inactive','Akun ditolak');
 {const _a=V.apr;V.apr=()=>{if(!SES||SES.role!=='direktur')return _a();
