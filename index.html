@@ -80,6 +80,7 @@ main{min-width:0;display:flex;flex-direction:column;gap:18px}
 .p-Dikerjakan{background:var(--heat-soft);color:var(--heat)}
 .p-Selesai,.p-Lunas,.p-Hadir,.p-Aman{background:var(--good-soft);color:var(--good)}
 .p-Batal,.p-Alpa,.p-Terlambat{background:var(--bad-soft);color:var(--bad)}
+.p-Dicetak{background:var(--surface2);color:var(--muted);border:1px solid var(--line)}
 .p-Belum,.p-Segera,.p-Izin,.p-Sakit,.p-Telat{background:var(--warn-soft);color:var(--warn)}
 .tw{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
 table{border-collapse:collapse;width:100%;min-width:560px}
@@ -917,7 +918,7 @@ const ppnOf=(mat,sub,dsk,mode,rate)=>{const mn=sub?Math.round(mat*(sub-dsk)/sub)
 const invTot=i=>{const s=sum(i.items,x=>x.qty*x.harga),net=Math.max(0,s-(i.diskon||0)),r={sub:s,tot:net};
  if(i.ppn&&i.ppn.rate){const m=sum(i.items,x=>(x.jenis==='barang'||x.sid)?x.qty*x.harga:0),o=ppnOf(m,s,Math.min(s,i.diskon||0),i.ppn.mode,i.ppn.rate);r.ppn=o.v;r.mat=o.mn;r.tot=net+o.add}
  return r};
-const invStat=i=>i.appr==='Menunggu'?'Menunggu':i.appr==='Ditolak'?'Ditolak':i.status==='Lunas'?'Lunas':i.tempo<TODAY?'Telat':'Belum';
+const invStat=i=>i.appr==='Menunggu'&&i.dicetak?'Dicetak':i.appr==='Menunggu'?'Menunggu':i.appr==='Ditolak'?'Ditolak':i.status==='Lunas'?'Lunas':i.tempo<TODAY?'Telat':'Belum';
 V.inv=()=>{
   const q=U.invq.toLowerCase(),L=[...S.inv].sort((a,b)=>a.tgl<b.tgl?1:-1).filter(i=>!q||(i.no+i.nama).toLowerCase().includes(q));
   const open=S.inv.filter(i=>i.status!=='Lunas'&&(!i.appr||i.appr==='Disetujui'));const P=paginate('i',L,U.invq);
@@ -1369,7 +1370,7 @@ A.kSave=()=>{const items=K.lines.filter(x=>x.desc&&x.qty>0).map(x=>{const b=x.k[
  if(K.job){const o=S.orders.find(x=>x.id===K.job);if(o)o.inv=no}S.inv.push(i);K=newK();save();S.tab='inv';render();toast(isAp()?'Invoice '+no+' terbit':'Invoice '+no+' diajukan, menunggu persetujuan')};
 A.newInv=()=>{S.tab='kas';render()};
 A.viewInv=b=>{const i=S.inv.find(x=>x.id===b.dataset.id),ok=okInv(i);
- modal(`${ok?'':`<div class="note">${i.appr==='Ditolak'?'Invoice ini ditolak. Alasan: '+esc(i.alasanTolak||'-')+'.':'Status: menunggu persetujuan Direktur. Invoice tetap bisa dicetak, dan setelah dicetak (tanda tangan manual) otomatis dianggap disetujui.'}</div>`}${invHTML(i)}<div class="row" style="justify-content:flex-end">${ok&&i.status!=='Lunas'?`<button class="btn pri" data-act="payInv" data-id="${i.id}">Tandai lunas</button>`:''}${ok?`<a class="btn" href="${waLink(i.hp,invText(i))}" target="_blank" rel="noopener">Buka WhatsApp</a><button class="btn" data-act="cpInv" data-id="${i.id}">Salin teks</button>`:''}<button class="btn" data-act="prtInv" data-id="${i.id}">Cetak</button>${ok?`<button class="btn" data-act="dlInv" data-id="${i.id}">Unduh PDF</button>`:''}${i.appr==='Ditolak'&&canKas()?`<button class="btn pri" data-act="invEdit" data-id="${i.id}">Edit &amp; ajukan ulang</button>`:''}<button class="btn" data-act="close">Tutup</button></div>`)};
+ modal(`${ok?'':`<div class="note">${i.appr==='Ditolak'?'Invoice ini ditolak. Alasan: '+esc(i.alasanTolak||'-')+'.':'Status: menunggu persetujuan Direktur. Invoice tetap bisa dicetak (tanda tangan manual). Setelah dicetak, invoice keluar dari daftar persetujuan Direktur dan langsung berlaku seperti invoice yang sudah disetujui (lunas, omzet, stok), hanya penandatanganannya manual.'}</div>`}${invHTML(i)}<div class="row" style="justify-content:flex-end">${ok&&i.status!=='Lunas'?`<button class="btn pri" data-act="payInv" data-id="${i.id}">Tandai lunas</button>`:''}${ok?`<a class="btn" href="${waLink(i.hp,invText(i))}" target="_blank" rel="noopener">Buka WhatsApp</a><button class="btn" data-act="cpInv" data-id="${i.id}">Salin teks</button>`:''}<button class="btn" data-act="prtInv" data-id="${i.id}">Cetak</button>${ok?`<button class="btn" data-act="dlInv" data-id="${i.id}">Unduh PDF</button>`:''}${i.appr==='Ditolak'&&canKas()?`<button class="btn pri" data-act="invEdit" data-id="${i.id}">Edit &amp; ajukan ulang</button>`:''}<button class="btn" data-act="close">Tutup</button></div>`)};
 /* ---------- Persetujuan ---------- */
 const pend=(ref)=>S.req.some(r=>r.ref===ref&&r.st==='Menunggu'&&/^del/.test(r.jenis));
 A.delInv=b=>{const i=S.inv.find(x=>x.id===b.dataset.id);if(!i)return;if(!isAp()&&pend(i.id)){toast('Pembatalan sudah diajukan');return}
@@ -2518,7 +2519,7 @@ CH.remInt=el=>{S.remInt=S.remInt||{};S.remInt[el.dataset.n]=Math.max(1,Number(el
   }else{K.bayar='cash';K.top=7}
  }
  let h=_vk.apply(this,arguments);
- h=h.replace('Invoice menunggu persetujuan Direktur sebelum terbit.','Invoice menunggu persetujuan Direktur. Jika dicetak untuk ditandatangani manual, invoice otomatis dianggap disetujui.');
+ h=h.replace('Invoice menunggu persetujuan Direktur sebelum terbit.','Invoice menunggu persetujuan Direktur. Jika dicetak untuk ditandatangani manual, invoice keluar dari daftar persetujuan dan langsung berlaku (omzet, stok, tandai lunas), dengan tanda tangan manual.');
  const pay=`<div class="fgrid" style="margin-top:12px"><label class="f">Cara pembayaran<select data-chg="kBayar"><option value="cash"${K.bayar==='cash'?' selected':''}>Cash (lunas saat itu)</option><option value="termin"${K.bayar==='termin'?' selected':''}>Termin (TOP)</option></select></label>${K.bayar==='termin'?`<label class="f">TOP (jumlah hari)<input type="number" min="1" max="365" step="1" value="${K.top}" data-chg="kTop"><small style="color:var(--muted)">Jatuh tempo: ${fd(addD(TODAY,K.top))}</small></label>`:''}</div>`;
  return h.replace('<div id="ksum"',pay+'<div id="ksum"')}}
 CH.kBayar=el=>{K.bayar=el.value;if(K.bayar==='termin'&&!(K.top>0))K.top=7;render()};
@@ -2535,10 +2536,10 @@ CH.kTop=el=>{K.top=Math.max(1,Math.min(365,Math.round(Number(el.value)||1)));ren
 /* Invoice yang DICETAK dianggap ditandatangani manual: otomatis keluar dari daftar "Menunggu persetujuan".
    Invoice yang tidak dicetak tetap menunggu persetujuan Direktur. */
 function invCetakApprove(i){
- if(!i||i.appr!=='Menunggu')return false;
- i.appr='Disetujui';i.cetakManual={oleh:SES.nama,at:TODAY+' '+nowHM()};
+ if(!i||i.appr!=='Menunggu'||i.dicetak)return false;
+ i.appr='Disetujui';i.dicetak=i.cetakManual={oleh:SES.nama,at:TODAY+' '+nowHM()};
  try{useStock((i.items||[]).filter(x=>x.sid),i.no)}catch(err){console.error(err)}
- (S.req||[]).forEach(r=>{if(r.jenis==='inv'&&r.ref===i.id&&r.st==='Menunggu'){r.st='Disetujui';r.oleh2='Dicetak, ttd manual';r.tglPutus=TODAY}});
+ (S.req||[]).forEach(r=>{if(r.jenis==='inv'&&r.ref===i.id&&r.st==='Menunggu'){r.st='Dicetak';r.oleh2='Dicetak, ttd manual';r.tglPutus=TODAY}});
  save();return true}
 
 
@@ -2564,7 +2565,7 @@ function cqFind(q){const n=String(q||'').trim().toLowerCase();if(!n)return[];
  if(!m.length)m=S.inv.filter(i=>String(i.no).toLowerCase().includes(n));return m}
 V.cetak=()=>{
  const q=U.cq||'',m=cqFind(q),one=m.length===1?m[0]:null;
- const stat=i=>i.appr==='Menunggu'?'Menunggu persetujuan':i.appr==='Ditolak'?'Ditolak':'Disetujui';
+ const stat=i=>i.cetakManual?'Dicetak, ttd manual':i.appr==='Menunggu'?'Menunggu persetujuan':i.appr==='Ditolak'?'Ditolak':'Disetujui';
  return `<div class="head"><div><h1>Cetak Invoice</h1><p>Ketik nomor invoice untuk melihat pratinjau lalu mencetak. Invoice yang belum disetujui tetap bisa dicetak (tanda tangan manual).</p></div></div>
  <div class="card"><div class="row" style="gap:10px;flex-wrap:nowrap"><input id="cq" placeholder="Contoh: INV-2610-001" value="${esc(q)}" list="cq_dl" autocomplete="off" style="flex:1;min-width:0"><button class="btn pri" data-act="cqGo">Tampilkan</button></div>
  <datalist id="cq_dl">${S.inv.slice(-60).reverse().map(i=>`<option value="${esc(i.no)}">${esc(i.nama)}</option>`).join('')}</datalist>
@@ -2678,11 +2679,25 @@ A.prtInv=function(b){
  const i=S.inv.find(x=>x.id===b.dataset.id);if(!i)return;
  const was=invCetakApprove(i);
  directPrint(i.no,invFix(invHTML(i),i));
- if(was){render();toast('Invoice '+i.no+' dicetak, otomatis keluar dari daftar Menunggu persetujuan');
+ if(was){render();toast('Invoice '+i.no+' dicetak, keluar dari daftar persetujuan Direktur, ttd manual');
   const m=$('#modal');if(m&&!m.hidden)A.viewInv({dataset:{id:i.id}})}
 };
 </script>
 
+<script>
+/* Popup nomor invoice / penawaran / jurnal setelah disimpan, dengan tombol Salin nomor */
+function noPopup(jenis,no,sub){
+ modal(`<h2 style="font-size:20px">${jenis} tersimpan</h2><div class="info">${sub}</div><div class="card" style="text-align:center;margin:14px 0"><small style="color:var(--muted)">Nomor ${jenis}</small><div class="num" style="font-size:26px;font-weight:800;margin-top:6px;user-select:all;-webkit-user-select:all;word-break:break-all">${esc(no)}</div></div><div class="row" style="justify-content:flex-end"><button class="btn pri" data-act="npCopy" data-no="${esc(no)}">Salin nomor</button><button class="btn" data-act="close">Tutup</button></div>`)}
+A.npCopy=async b=>{const ok=await copyTxt(b.dataset.no);toast(ok?'Nomor tersalin':'Gagal menyalin, tekan lama pada nomor')};
+{const _k=A.kSave;A.kSave=function(b,e){const eid=K.editId,n=S.inv.length,r=_k.apply(this,arguments);
+ let i=null;if(eid){if(K.editId!==eid)i=S.inv.find(x=>x.id===eid)}else if(S.inv.length>n)i=S.inv[S.inv.length-1];
+ if(i)setTimeout(()=>noPopup('Invoice',i.no,isAp()?'Invoice sudah terbit.':'Invoice diajukan, menunggu persetujuan Direktur.'),0);return r}}
+{const _p=A.pnSave;A.pnSave=function(b,e){const eid=PN.editId,n=S.pnw.length,r=_p.apply(this,arguments);
+ let p=null;if(eid){if(!PN.editId)p=S.pnw.find(x=>x.id===eid)}else if(S.pnw.length>n)p=S.pnw[0];
+ if(p)setTimeout(()=>noPopup('Penawaran',p.no,'Penawaran diajukan, menunggu ACC Direktur.'),0);return r}}
+{const _j=jurSave;jurSave=function(){const no=_j.apply(this,arguments);
+ setTimeout(()=>noPopup('Jurnal',no,isAp()?'Jurnal sudah tersimpan.':'Jurnal diajukan, menunggu persetujuan Direktur.'),0);return no}}
+</script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}</script>
 </body>
 </html>
