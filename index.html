@@ -1307,7 +1307,7 @@ const nPend=()=>S.req.filter(r=>r.st==='Menunggu').length+(S.reg||[]).filter(r=>
 function allowedTabs(){const r=SES.role;if(r==='teknisi')return[['dash','Order Saya'],['abs','Absensi']];
   const ok={admin:TABS2.map(t=>t[0]).filter(x=>x!=='apr'),direktur:['ana','keu','inv','apr','kin','stk','sup','dbk','lap'],adminjual:['dash','job','kas','wa','inv','stk','abs'],adminops:['dash','job','kas','wa','inv','stk','abs','sup','srt','sewa','jur'],sales:['kjg','pnw','dbk','lap','kin','abs']}[r]||['dash'];
   return (r==='sales'?ok.map(k=>TABS2.find(t=>t[0]===k)):TABS2.filter(t=>ok.includes(t[0]))).map(t=>t[0]==='apr'&&nPend()?[t[0],t[1]+' ('+nPend()+')']:t[0]==='lap'&&nLate()?[t[0],t[1]+' ⚠'+nLate()]:t)}
-function ensureTab(){const t=allowedTabs();if(!t.some(x=>x[0]===S.tab))S.tab=SES.role==='direktur'?'apr':t[0][0]}
+function ensureTab(){const t=allowedTabs();if(!t.some(x=>x[0]===S.tab))S.tab=SES.role==='direktur'?'ana':t[0][0]}
 function fixCust(){let n=Math.max(0,...S.cust.map(c=>parseInt(String(c.no||'').slice(4))||0));S.cust.forEach(c=>{if(!c.no)c.no='CUS-'+String(++n).padStart(3,'0')})}
 function mig(){fixCust();if(S.set.nama==='Awal Jaya Jaya'||S.set.nama==='Awal Jaya Jaya Admin'||/^cv punggawa 47$/i.test(S.set.nama))S.set.nama='CV PUNGGAWA 47';if(S.set.bank)S.set.bank=S.set.bank.replace(/cv punggawa 47/gi,'CV PUNGGAWA 47');if(/Awal Jaya Jaya/.test(S.set.bank||''))S.set.bank=S.set.bank.replace(/Awal Jaya Jaya/g,'CV PUNGGAWA 47');
   S.stok=S.stok||(!S.demo?[]:[['AC Split 1/2 PK Type 1','AC','unit',6,2,3600000],['AC Split 1 PK Type 2','AC','unit',4,2,4900000],['Kabel NYM 3x2,5 mm','Kabel','meter',120,30,18000],['Kabel kontrol 4 core','Kabel','meter',80,20,9000],['Pipa AC 1/4" + 3/8"','Pipa','meter',60,20,70000],['Pipa drain','Pipa','meter',50,15,12000],['Freon R32','Freon','kg',12,3,150000],['Braket outdoor','Sparepart','pcs',15,5,75000]].map((x,i)=>({id:'s'+(i+1),nama:x[0],kat:x[1],sat:x[2],qty:x[3],min:x[4],harga:x[5],sup:''})));
@@ -1392,8 +1392,8 @@ function decide(id,ok,alasan){if(!isAp()){toast('Hanya Direktur yang dapat menye
  r.st=ok?'Disetujui':'Ditolak';r.oleh2=SES.nama;decNotif(r,ok,alasan);save();render();toast(ok?'Disetujui':'Ditolak')}
 A.apOk=b=>decide(b.dataset.id,1);A.apNo=b=>askReason('Tolak pengajuan','Alasan penolakan wajib diisi. Pengaju akan melihatnya dan tercatat di log.',al=>decide(b.dataset.id,0,al));
 V.apr=()=>{const row=(r,a)=>`<tr><td>${fds(r.tgl)}</td><td><b>${RJ[r.jenis]}</b></td><td>${apLink(r)}${r.alasan?'<br><small>Alasan pembatalan: '+esc(r.alasan)+'</small>':''}</td><td class="r num">${rp(r.jml)}</td><td>${esc(r.oleh)}</td><td class="r">${a?`<button class="btn sm pri" data-act="apOk" data-id="${r.id}">Setujui</button> <button class="btn sm del" data-act="apNo" data-id="${r.id}">Tolak</button>`:`<span class="pill p-${r.st==='Disetujui'?'Aman':'Batal'}">${r.st}</span><br><small>${esc(r.oleh2||'')}${r.alasanTolak?' · Alasan tolak: '+esc(r.alasanTolak):''}</small>`}</td></tr>`,
- T=(R,a,e)=>{const G=paginate('apr'+a,R,R.length);return `<div class="tw"><table><thead><tr><th>Tanggal</th><th>Jenis</th><th>Keterangan</th><th class="r">Nilai</th><th>Diajukan oleh</th><th></th></tr></thead><tbody>${R.length?G.items.map(r=>row(r,a)).join(''):`<tr><td colspan="6" class="empty">${e}</td></tr>`}</tbody></table></div>${G.html}`},P=S.req.filter(r=>r.st==='Menunggu');
- return `<div class="head"><div><h1>Persetujuan</h1><p>Invoice dan transaksi baru, serta pembatalan, menunggu keputusan Direktur.</p></div></div><div class="card"><h3>Menunggu persetujuan (${P.length})</h3>${T(P,1,'Tidak ada yang menunggu.')}</div><div class="card"><h3>Riwayat keputusan</h3>${T(S.req.filter(r=>r.st!=='Menunggu'),0,'Belum ada riwayat.')}</div>`};
+ T=(R,a,e)=>{const G=paginate('apr'+a,R,R.length);return `<div class="tw"><table><thead><tr><th>Tanggal</th><th>Jenis</th><th>Keterangan</th><th class="r">Nilai</th><th>Diajukan oleh</th><th></th></tr></thead><tbody>${R.length?G.items.map(r=>row(r,a)).join(''):`<tr><td colspan="6" class="empty">${e}</td></tr>`}</tbody></table></div>${G.html}`},P=S.req.filter(r=>r.st==='Menunggu'&&(APV==='abs'?r.jenis==='abs':r.jenis!=='abs'));
+ return `<div class="head"><div><h1>Persetujuan</h1><p>Invoice dan transaksi baru, serta pembatalan, menunggu keputusan Direktur.</p></div></div><div class="card"><h3>Menunggu persetujuan (${P.length})</h3>${T(P,1,'Tidak ada yang menunggu.')}</div><div class="card"><h3>Riwayat keputusan</h3>${T(S.req.filter(r=>r.st!=='Menunggu'&&(APV==='abs'?r.jenis==='abs':r.jenis!=='abs')),0,'Belum ada riwayat.')}</div>`};
 /* ---------- Grafik garis & Keuangan industrial ---------- */
 let LC=0;
 function lineChart(lb,ser,H0){const iw=(window.innerWidth||1200),W=iw>=900?1100:iw>=600?640:380,H=H0||(W>1000?300:W>500?260:230),L=W>500?56:46,R=14,T=14,B=26,pw=W-L-R,ph=H-T-B,all=ser.flatMap(s=>s.d),mx=niceMax(Math.max(...all,1)),m0=Math.min(...all,0),mn=m0<0?-niceMax(-m0):0,n=lb.length,X=i=>L+(n>1?pw*i/(n-1):pw/2),Y=v=>T+ph-ph*(v-mn)/(mx-mn),id='lc'+(++LC);
@@ -1548,7 +1548,7 @@ function askReason(judul,info,cb){modal(`<h2 style="font-size:20px">${esc(judul)
 function logAksi(aksi,ref,alasan){S.log=S.log||[];S.log.unshift({tgl:TODAY,jam:nowHM(),oleh:SES.nama,role:ROLE_L[SES.role],aksi,ref,alasan});S.log.length=Math.min(S.log.length,200)}
 const _dO=A.delOrder;A.delOrder=b=>{const o=S.orders.find(x=>x.id===b.dataset.id);if(!o)return;askReason('Hapus order '+o.id,'Penghapusan order harus disertai alasan.',al=>{logAksi('Hapus order',o.id+' - '+o.nama,al);_dO(b)})};
 const logCard=()=>{const L0=(S.log||[]),G=paginate('log',L0,L0.length),L=G.items;return `<div class="card"><h3>Log pembatalan, penolakan &amp; penghapusan</h3><div class="tw"><table><thead><tr><th>Waktu</th><th>Aksi</th><th>Data</th><th>Oleh</th><th>Alasan</th></tr></thead><tbody>${L.length?L.map(x=>`<tr><td>${fds(x.tgl)}<br><small>${x.jam}</small></td><td><b>${esc(x.aksi)}</b></td><td>${esc(x.ref)}</td><td>${esc(x.oleh)}<br><small>${esc(x.role)}</small></td><td>${esc(x.alasan)}</td></tr>`).join(''):'<tr><td colspan="5" class="empty">Belum ada.</td></tr>'}</tbody></table></div>${G.html}</div>`};
-const _apr=V.apr;V.apr=()=>_apr()+logCard();const _jur=V.jur;V.jur=()=>_jur()+logCard();
+const _apr=V.apr;V.apr=()=>_apr()+(APV==='trx'?logCard():'');const _jur=V.jur;V.jur=()=>_jur()+logCard();
 /* ================= ROLE SALES: kunjungan, penawaran, database, laporan daily ================= */
 const FU_MAX=3,KST=['Butuh follow up konsumen','Sementara tender','Sementara pengerjaan','Closing / selesai','Tidak lanjut'];
 const KPILL={'Butuh follow up konsumen':'Belum','Sementara tender':'Dijadwalkan','Sementara pengerjaan':'Dikerjakan','Closing / selesai':'Selesai','Tidak lanjut':'Batal'};
@@ -1592,7 +1592,7 @@ const _dec0=decide;decide=function(id,ok,al){const r=S.req.find(x=>x.id===id);if
 const lineTbl=p=>`<div class="tw" style="margin:8px 0"><table><thead><tr><th>Item</th><th class="r">Qty</th><th class="r">Harga</th><th class="r">Jumlah</th></tr></thead><tbody>${p.lines.map(x=>`<tr><td>${esc(x.desc)}</td><td class="r num">${x.qty}</td><td class="r num">${rp(x.harga)}</td><td class="r num">${rp(x.qty*x.harga)}</td></tr>`).join('')}</tbody></table></div>`;
 const pnwCard=()=>{const L=S.pnw.filter(p=>p.appr==='Menunggu');if(!L.length||!isAp())return '';
  return `<div class="card"><h3>Rincian penawaran Sales menunggu persetujuan (${L.length})</h3><div class="list">${L.map(p=>`<div class="card" style="background:var(--surface2)"><div class="row" style="justify-content:space-between"><div><b>${esc(p.kantor)}</b> <a href="#" data-act="apDet" data-id="${p.reqId}" class="num" style="color:var(--brand);font-weight:600;text-decoration:underline">${p.no}</a><br><small>Diajukan ${esc(p.oleh)} · ${fd(p.tgl)} · berlaku s/d ${fd(p.berlaku)}</small></div><b class="num" style="font-size:18px">${rp(p.total)}</b></div>${lineTbl(p)}<div class="row" style="gap:18px;font-size:13px"><span>Subtotal <b class="num">${rp(p.sub)}</b></span><span>Diskon <b class="num">${rp(p.dsk)}</b></span><span>Ongkir <b class="num">${rp(p.ongkir)}</b></span><span>Jasa pasang <b class="num">${rp(p.pasang)}</b></span></div>${p.cat?`<div class="info" style="margin-top:8px">Catatan: ${esc(p.cat)}</div>`:''}<div class="row" style="justify-content:flex-end;margin-top:8px"><button class="btn sm pri" data-act="apOk" data-id="${p.reqId}">Setujui</button><button class="btn sm del" data-act="apNo" data-id="${p.reqId}">Tolak</button></div></div>`).join('')}</div></div>`};
-const _apr3=V.apr;V.apr=()=>pnwCard()+_apr3();
+const _apr3=V.apr;V.apr=()=>(APV==='trx'?pnwCard():'')+_apr3();
 
 /* ---------- Form Kunjungan ---------- */
 let KJ=null;const newKJ=()=>({tgl:TODAY,tipe:'Kunjungan',sid:'',kantor:'',alamat:'',kontak:'',ditemui:'',keb:[{j:'AC',s:'',q:1}],kebLain:'',kendala:'',status:KST[0],foto:[],proy:[]});
@@ -2068,7 +2068,7 @@ A.clockOut=async b=>{const id=b.dataset.id,a=(S.att[TODAY]||{})[id];if(!a)return
 apLink=(_al=>function(r){if(r.jenis!=='abs')return _al(r);const p=r.loc||{};return esc(r.ket)+'<br><small><a href="https://www.google.com/maps?q='+p.lat+','+p.lng+'" target="_blank" rel="noopener">Lihat di peta</a> · batas '+S.set.lok.rad+' m, akurasi GPS ±'+(p.acc||'?')+' m</small>'})(apLink);
 {const _a=V.apr;V.apr=()=>{let h=_a();const k=h.indexOf('<h1>Persetujuan</h1>');
  h=h.replace(/(<b>Absen di luar lokasi<\/b>[\s\S]*?<td class="r num">)Rp 0(<\/td>)/g,'$1-$2');
- return h+stempelCard()+kopCard()+ppnCard()}}
+ return h+(APV==='trx'?stempelCard()+kopCard()+ppnCard():'')}}
 
 /* ---------- 4. Link investor (laporan keuangan + dashboard) ---------- */
 const b64u={enc:u=>{let s='';u.forEach(x=>s+=String.fromCharCode(x));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')},
@@ -2708,15 +2708,16 @@ A.npCopy=async b=>{const ok=await copyTxt(b.dataset.no);toast(ok?'Nomor tersalin
  const dark=()=>R.dataset.theme?R.dataset.theme==='dark':matchMedia('(prefers-color-scheme:dark)').matches;
  try{const t=localStorage.getItem(K);if(t==='dark'||t==='light')R.dataset.theme=t}catch(e){}
  const st=document.createElement('style');
- st.textContent='.pgbar{display:flex;justify-content:flex-end;gap:8px;margin:0 0 8px}.pgbar button{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:18px;line-height:1;cursor:pointer;display:grid;place-items:center}.pgbar button:hover{background:var(--surface2)}.pgbar .pgx{font-size:20px;font-weight:700}';
+ st.textContent='.pgbar{display:flex;justify-content:flex-end;gap:8px;margin:0 0 8px}.pgbar button{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:18px;line-height:1;cursor:pointer;display:grid;place-items:center}.pgbar button:hover{background:var(--surface2)}.pgbar .pgx{font-size:20px;font-weight:700}@media(max-width:700px){.pgbar{gap:6px;margin-bottom:6px}.pgbar button{width:30px;height:30px;font-size:14px;border-radius:8px}.pgbar .pgx{font-size:16px}}';
  document.head.appendChild(st);
  A.pgTema=()=>{const n=dark()?'light':'dark';R.dataset.theme=n;try{localStorage.setItem(K,n)}catch(e){}render()};
- A.pgClose=()=>{S.tab='dash';render();window.scrollTo(0,0)};
+ const pgHome=()=>SES&&SES.role==='direktur'?'ana':'dash';
+ A.pgClose=()=>{S.tab=pgHome();render();window.scrollTo(0,0)};
  const _r=render;
  render=function(){_r.apply(this,arguments);
   if(!SES)return;const v=document.getElementById('view');if(!v)return;
   const old=v.querySelector('.pgbar');if(old)old.remove();
-  v.insertAdjacentHTML('afterbegin','<div class="pgbar"><button type="button" data-act="pgTema" aria-label="Ganti mode gelap atau terang" title="Mode gelap / terang">'+(dark()?'☀️':'🌙')+'</button>'+(S.tab&&S.tab!=='dash'?'<button type="button" class="pgx" data-act="pgClose" aria-label="Tutup menu" title="Tutup menu">✕</button>':'')+'</div>')};
+  v.insertAdjacentHTML('afterbegin','<div class="pgbar"><button type="button" data-act="pgTema" aria-label="Ganti mode gelap atau terang" title="Mode gelap / terang">'+(dark()?'☀️':'🌙')+'</button>'+(S.tab&&S.tab!==pgHome()?'<button type="button" class="pgx" data-act="pgClose" aria-label="Tutup menu" title="Tutup menu">✕</button>':'')+'</div>')};
 })();
 </script>
 <script>
@@ -2726,7 +2727,7 @@ ICON.hapusdata='<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/>';EMO.hapusdata='�
 {const _at=allowedTabs;allowedTabs=function(){const t=_at();
  if(SES&&SES.role==='admin'){if(!t.some(x=>x[0]==='kelola'))t.push(['kelola','Kelola Akun']);if(!t.some(x=>x[0]==='hapusdata'))t.push(['hapusdata','Hapus Semua Data'])}
  return t}}
-{const _al=akLoad;akLoad=async function(f){const t0=AK.t;await _al(f);if(AK.t!==t0&&S&&SES&&S.tab==='kelola'&&$('#modal').hidden)render()}}
+{const _al=akLoad;akLoad=async function(f){const t0=AK.t;await _al(f);if(AK.t!==t0&&S&&SES&&(S.tab==='kelola'||S.tab==='apr')&&$('#modal').hidden)render()}}
 const KL={only:false};
 V.kelola=()=>{
  if(SES.role!=='admin')return '<div class="note">Menu ini hanya untuk Admin Super.</div>';
@@ -2757,6 +2758,23 @@ A.hdGo=()=>{if((($('#hdc')||{}).value||'').trim().toUpperCase()!=='HAPUS SEMUA')
  const keep=['set','emps','users','tab','demo'];
  Object.keys(S).forEach(k=>{if(keep.includes(k))return;const v=S[k];if(Array.isArray(v))S[k]=[];else if(v&&typeof v==='object')S[k]={}});
  S.demo=false;S.tab='dash';closeModal();save();render();toast('Semua data dihapus. Cadangan sudah diunduh.')};
+</script>
+<script>
+/* Persetujuan dipisah: Transaksi, Absensi, Akun. Beranda Direktur = Analisa Penjualan */
+var APV='trx';
+{const _at=allowedTabs;allowedTabs=function(){const t=_at();if(SES&&SES.role==='direktur'){const k=t.findIndex(x=>x[0]==='ana');if(k>0)t.unshift(t.splice(k,1)[0])}return t}}
+function aprAkun(){
+ const P=AK.items.filter(u=>u.status==='pending'),rl=r=>ROLE_L[r]||r;
+ return `<div class="head"><div><h1>Persetujuan</h1><p>Akun baru menunggu persetujuan sebelum bisa login.</p></div></div>
+ <div class="card"><h3>Akun menunggu (${P.length})</h3><div class="tw"><table><thead><tr><th>Nama</th><th>Nama pengguna</th><th>Peran</th><th></th></tr></thead><tbody>${P.length?P.map(u=>`<tr><td><b>${esc(u.nama)}</b></td><td class="num">${esc(u.username||'')}</td><td>${esc(rl(u.role))}</td><td class="r"><button class="btn sm pri" data-act="akOk" data-id="${u.id}">Setujui</button> <button class="btn sm del" data-act="akNo" data-id="${u.id}">Tolak</button></td></tr>`).join(''):`<tr><td colspan="4" class="empty">${AK.items.length?'Tidak ada akun yang menunggu.':'Memuat...'}</td></tr>`}</tbody></table></div></div>`}
+async function akSet(b,st,msg){try{const {error}=await supabaseClient.from('profiles').update({status:st}).eq('id',b.dataset.id);
+ if(error){toast('Gagal: '+error.message);return}toast(msg);await akLoad(true);render()}catch(e){console.error(e);toast('Gagal (cek internet)')}}
+A.akOk=b=>akSet(b,'active','Akun disetujui, sudah bisa login');
+A.akNo=b=>akSet(b,'inactive','Akun ditolak');
+{const _a=V.apr;V.apr=()=>{if(!SES||SES.role!=='direktur')return _a();
+ const v=U.aprsub||'trx';U.aprsub=v;APV=v==='abs'?'abs':'trx';akLoad();
+ const rq=S.req.filter(r=>r.st==='Menunggu'),nT=rq.filter(r=>r.jenis!=='abs').length,nA=rq.filter(r=>r.jenis==='abs').length,nK=AK.items.filter(u=>u.status==='pending').length,c=n=>n?' ('+n+')':'';
+ return subBar('aprsub',[['trx','Transaksi'+c(nT)],['abs','Absensi'+c(nA)],['akun','Akun'+c(nK)]])+(v==='akun'?aprAkun():_a())}}
 </script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}</script>
 </body>
