@@ -1369,7 +1369,7 @@ A.kSave=()=>{const items=K.lines.filter(x=>x.desc&&x.qty>0).map(x=>{const b=x.k[
  if(K.job){const o=S.orders.find(x=>x.id===K.job);if(o)o.inv=no}S.inv.push(i);K=newK();save();S.tab='inv';render();toast(isAp()?'Invoice '+no+' terbit':'Invoice '+no+' diajukan, menunggu persetujuan')};
 A.newInv=()=>{S.tab='kas';render()};
 A.viewInv=b=>{const i=S.inv.find(x=>x.id===b.dataset.id),ok=okInv(i);
- modal(`${ok?'':`<div class="note">${i.appr==='Ditolak'?'Invoice ini ditolak. Alasan: '+esc(i.alasanTolak||'-')+'.':'Menunggu persetujuan Direktur. Belum bisa dikirim atau ditandai lunas.'}</div>`}${invHTML(i)}<div class="row" style="justify-content:flex-end">${ok&&i.status!=='Lunas'?`<button class="btn pri" data-act="payInv" data-id="${i.id}">Tandai lunas</button>`:''}${ok?`<a class="btn" href="${waLink(i.hp,invText(i))}" target="_blank" rel="noopener">Buka WhatsApp</a><button class="btn" data-act="cpInv" data-id="${i.id}">Salin teks</button>`:''}<button class="btn" data-act="prtInv" data-id="${i.id}">Cetak</button>${ok?`<button class="btn" data-act="dlInv" data-id="${i.id}">Unduh PDF</button>`:''}${i.appr==='Ditolak'&&canKas()?`<button class="btn pri" data-act="invEdit" data-id="${i.id}">Edit &amp; ajukan ulang</button>`:''}<button class="btn" data-act="close">Tutup</button></div>`)};
+ modal(`${ok?'':`<div class="note">${i.appr==='Ditolak'?'Invoice ini ditolak. Alasan: '+esc(i.alasanTolak||'-')+'.':'Menunggu persetujuan Direktur. Belum bisa dikirim atau ditandai lunas. Jika dicetak untuk ditandatangani manual, invoice otomatis disetujui.'}</div>`}${invHTML(i)}<div class="row" style="justify-content:flex-end">${ok&&i.status!=='Lunas'?`<button class="btn pri" data-act="payInv" data-id="${i.id}">Tandai lunas</button>`:''}${ok?`<a class="btn" href="${waLink(i.hp,invText(i))}" target="_blank" rel="noopener">Buka WhatsApp</a><button class="btn" data-act="cpInv" data-id="${i.id}">Salin teks</button>`:''}<button class="btn" data-act="prtInv" data-id="${i.id}">Cetak</button>${ok?`<button class="btn" data-act="dlInv" data-id="${i.id}">Unduh PDF</button>`:''}${i.appr==='Ditolak'&&canKas()?`<button class="btn pri" data-act="invEdit" data-id="${i.id}">Edit &amp; ajukan ulang</button>`:''}<button class="btn" data-act="close">Tutup</button></div>`)};
 /* ---------- Persetujuan ---------- */
 const pend=(ref)=>S.req.some(r=>r.ref===ref&&r.st==='Menunggu'&&/^del/.test(r.jenis));
 A.delInv=b=>{const i=S.inv.find(x=>x.id===b.dataset.id);if(!i)return;if(!isAp()&&pend(i.id)){toast('Pembatalan sudah diajukan');return}
@@ -2517,7 +2517,8 @@ CH.remInt=el=>{S.remInt=S.remInt||{};S.remInt[el.dataset.n]=Math.max(1,Number(el
    K.top=(i0&&(i0.top||(i0.tempo&&i0.tgl?Math.max(1,diffD(i0.tempo,i0.tgl)):7)))||7;
   }else{K.bayar='cash';K.top=7}
  }
- const h=_vk.apply(this,arguments);
+ let h=_vk.apply(this,arguments);
+ h=h.replace('Invoice menunggu persetujuan Direktur sebelum terbit.','Invoice menunggu persetujuan Direktur. Jika dicetak untuk ditandatangani manual, invoice otomatis dianggap disetujui.');
  const pay=`<div class="fgrid" style="margin-top:12px"><label class="f">Cara pembayaran<select data-chg="kBayar"><option value="cash"${K.bayar==='cash'?' selected':''}>Cash (lunas saat itu)</option><option value="termin"${K.bayar==='termin'?' selected':''}>Termin (TOP)</option></select></label>${K.bayar==='termin'?`<label class="f">TOP (jumlah hari)<input type="number" min="1" max="365" step="1" value="${K.top}" data-chg="kTop"><small style="color:var(--muted)">Jatuh tempo: ${fd(addD(TODAY,K.top))}</small></label>`:''}</div>`;
  return h.replace('<div id="ksum"',pay+'<div id="ksum"')}}
 CH.kBayar=el=>{K.bayar=el.value;if(K.bayar==='termin'&&!(K.top>0))K.top=7;render()};
@@ -2527,7 +2528,23 @@ CH.kTop=el=>{K.top=Math.max(1,Math.min(365,Math.round(Number(el.value)||1)));ren
  const r=_k.apply(this,arguments);
  let i=null;
  if(eid){if(K.editId!==eid)i=S.inv.find(x=>x.id===eid)}else if(S.inv.length>n)i=S.inv[S.inv.length-1];
- if(i){i.bayar=by;i.top=by==='termin'?top:0;i.tempo=by==='termin'?addD(i.tgl,top):i.tgl;save();render()}
+ if(i){i.bayar=by;i.top=by==='termin'?top:0;i.tempo=by==='termin'?addD(i.tgl,top):i.tgl;
+  save();render()}
+ return r}}
+
+/* Invoice yang DICETAK dianggap ditandatangani manual: otomatis keluar dari daftar "Menunggu persetujuan".
+   Invoice yang tidak dicetak tetap menunggu persetujuan Direktur. */
+function invCetakApprove(i){
+ if(!i||i.appr!=='Menunggu')return false;
+ i.appr='Disetujui';i.cetakManual={oleh:SES.nama,at:TODAY+' '+nowHM()};
+ try{useStock((i.items||[]).filter(x=>x.sid),i.no)}catch(err){console.error(err)}
+ (S.req||[]).forEach(r=>{if(r.jenis==='inv'&&r.ref===i.id&&r.st==='Menunggu'){r.st='Disetujui';r.oleh2='Dicetak, ttd manual';r.tglPutus=TODAY}});
+ save();return true}
+{const _pi=A.prtInv;A.prtInv=function(b,e){
+ const i=S.inv.find(x=>x.id===b.dataset.id),was=invCetakApprove(i);
+ const r=_pi.apply(this,arguments);
+ if(was){render();toast('Invoice '+i.no+' dicetak, otomatis keluar dari daftar Menunggu persetujuan');
+  const m=$('#modal');if(m&&!m.hidden)A.viewInv({dataset:{id:i.id}})}
  return r}}
 
 /* --- Invoice: label pembayaran + tanda tangan manual --- */
@@ -2562,6 +2579,58 @@ V.cetak=()=>{
 A.cqGo=()=>{const el=$('#cq');U.cq=el?el.value.trim():'';render();const e2=$('#cq');if(e2&&!U.cq)e2.focus()};
 A.cqPick=b=>{U.cq=b.dataset.no;render()};
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target&&e.target.id==='cq'){e.preventDefault();A.cqGo()}});
+</script>
+<script>
+/* =====================================================================
+   AKUN & PASSWORD: semua user bisa ganti password sendiri;
+   Admin & Direktur bisa reset password user lain.
+   ===================================================================== */
+TABS2.push(['akun','Akun & Password']);
+if(!TABS.some(t=>t[0]==='akun'))TABS.push(['akun','Akun & Password']);
+ICON.akun='<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3M14 9l2 2"/>';EMO.akun='🔑';
+{const _at=allowedTabs;allowedTabs=function(){const t=_at();if(!t.some(x=>x[0]==='akun'))t.push(['akun','Akun & Password']);return t}}
+const AK={items:[],t:0,loading:false};
+async function akLoad(force){
+ if(AK.loading)return;if(!force&&Date.now()-AK.t<20000)return;
+ AK.loading=true;
+ try{const {data,error}=await supabaseClient.from('profiles').select('id,username,nama,role,status').order('nama');
+  if(error)console.error('Gagal memuat akun:',error);else AK.items=data||[]}catch(e){console.error(e)}
+ AK.t=Date.now();AK.loading=false;
+ if(S&&SES&&S.tab==='akun'&&$('#modal').hidden)render();
+}
+const akRand=()=>{const c='abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';let r='';const a=new Uint32Array(8);crypto.getRandomValues(a);a.forEach(x=>r+=c[x%c.length]);return r};
+V.akun=()=>{
+ const adm=['admin','direktur'].includes(SES.role);
+ if(adm)akLoad();
+ const U2=AK.items,rl=r=>ROLE_L[r]||r;
+ return `<div class="head"><div><h1>Akun &amp; Password</h1><p>Ganti password Anda sendiri${adm?', atau reset password pengguna lain jika lupa':''}.</p></div></div>
+ <div class="card"><h3>Akun saya</h3><div class="row" style="justify-content:space-between;gap:12px"><div><b>${esc(SES.nama)}</b><br><small style="color:var(--muted)">${esc(rl(SES.role))}</small></div><button class="btn pri" data-act="akPw">Ganti password saya</button></div></div>
+ ${adm?`<div class="card"><h3>Reset password pengguna</h3><p style="margin:0 0 10px;color:var(--muted);font-size:13px">Dipakai jika pengguna lupa password. Isi password baru, lalu berikan ke yang bersangkutan dan minta dia menggantinya sendiri lewat menu ini.</p><div class="tw"><table><thead><tr><th>Nama</th><th>Nama pengguna</th><th>Peran</th><th>Status</th><th></th></tr></thead><tbody>${U2.length?U2.map(u=>`<tr><td><b>${esc(u.nama)}</b></td><td class="num">${esc(u.username||'')}</td><td>${esc(rl(u.role))}</td><td><span class="pill p-${u.status==='active'?'Aman':u.status==='pending'?'Belum':'Batal'}">${u.status==='active'?'Aktif':u.status==='pending'?'Menunggu':'Nonaktif'}</span></td><td class="r">${u.role==='admin'&&SES.role!=='admin'?'<small style="color:var(--muted)">Hanya Admin</small>':`<button class="btn sm" data-act="akReset" data-id="${u.id}">Reset password</button>`}</td></tr>`).join(''):'<tr><td colspan="5" class="empty">Memuat daftar pengguna...</td></tr>'}</tbody></table></div></div>`:''}`};
+A.akPw=()=>form('Ganti password saya',[{k:'lama',l:'Password lama',t:'password',req:1,wide:1},{k:'baru',l:'Password baru (minimal 6 karakter)',t:'password',req:1,wide:1},{k:'ulang',l:'Ulangi password baru',t:'password',req:1,wide:1}],{},async v=>{
+ const again=()=>setTimeout(()=>A.akPw(),50);
+ if(v.baru.length<6){toast('Password baru minimal 6 karakter');again();return}
+ if(v.baru!==v.ulang){toast('Ulangi password baru tidak sama');again();return}
+ if(v.baru===v.lama){toast('Password baru harus berbeda dari yang lama');again();return}
+ try{
+  const {data:{user}}=await supabaseClient.auth.getUser();
+  if(!user){toast('Sesi habis, silakan login ulang');return}
+  const re=await supabaseClient.auth.signInWithPassword({email:user.email,password:v.lama});
+  if(re.error){toast('Password lama salah');again();return}
+  const up=await supabaseClient.auth.updateUser({password:v.baru});
+  if(up.error){toast('Gagal ganti password: '+up.error.message);return}
+  toast('Password berhasil diganti');
+ }catch(e){console.error(e);toast('Gagal ganti password (cek internet)')}
+});
+A.akReset=b=>{const u=AK.items.find(x=>x.id===b.dataset.id);if(!u)return;
+ form('Reset password: '+u.nama+' ('+u.username+')',[{k:'baru',l:'Password baru (minimal 6 karakter, boleh diubah)',t:'text',req:1,wide:1,def:akRand()}],{},async v=>{
+  if(v.baru.length<6){toast('Password minimal 6 karakter');return}
+  try{
+   const {error}=await supabaseClient.rpc('admin_reset_password',{p_username:u.username,p_pass:v.baru});
+   if(error){toast('Gagal reset: '+error.message);return}
+   modal(`<h2 style="font-size:20px">Password diganti</h2><div class="info">Password baru untuk <b>${esc(u.nama)}</b> (<span class="num">${esc(u.username)}</span>):</div><div style="font-size:22px;font-weight:800;letter-spacing:.04em;text-align:center;padding:14px;border:2px dashed var(--line);border-radius:10px;margin:12px 0;user-select:all" class="num">${esc(v.baru)}</div><p style="color:var(--muted);font-size:13px;margin:0 0 12px">Catat dan berikan ke yang bersangkutan, lalu minta dia menggantinya sendiri lewat menu Akun &amp; Password.</p><div class="row" style="justify-content:flex-end"><button class="btn" data-act="akCopy" data-p="${esc(v.baru)}">Salin</button><button class="btn pri" data-act="close">Selesai</button></div>`);
+  }catch(e){console.error(e);toast('Gagal reset (cek internet)')}
+ })};
+A.akCopy=b=>{copyText(b.dataset.p)};
 </script>
 <script src="pdf-doc.js"></script>
 <script src="daftar.js"></script>
