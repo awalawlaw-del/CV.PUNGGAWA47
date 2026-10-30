@@ -882,7 +882,8 @@ function remList(){
   }).sort((a,b)=>a.left-b.left);
 }
 function remMsg(r){return S.set.tpl.replace(/\{nama\}/g,r.nama).replace(/\{usaha\}/g,S.set.nama).replace(/\{alamat\}/g,r.alamat).replace(/\{terakhir\}/g,fd(r.last)).replace(/\{jatuh_tempo\}/g,fd(r.due))}
-const waLink=(hp,t)=>'https://wa.me/'+String(hp||'').replace(/\D/g,'')+'?text='+encodeURIComponent(t);
+const waNo=hp=>{let d=String(hp||'').replace(/\D/g,'');if(d.startsWith('620'))d='62'+d.slice(3);else if(d.startsWith('0'))d='62'+d.slice(1);else if(d.startsWith('8'))d='62'+d;return d};
+const waLink=(hp,t)=>'https://wa.me/'+waNo(hp)+'?text='+encodeURIComponent(t);
 V.wa=()=>{
   const all=remList(),need=all.filter(r=>r.st!=='Aman'&&!r.sent),f=U.wf||'perlu',rows=f==='perlu'?need:all;const P=paginate('w',rows,f);
   return `<div class="head"><div><h1>Reminder WA Cuci AC</h1><p>Pelanggan yang sudah waktunya cuci rutin, lengkap dengan pesan siap kirim.</p></div></div>
