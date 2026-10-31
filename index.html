@@ -1392,8 +1392,8 @@ function decide(id,ok,alasan){if(!isAp()){toast('Hanya Direktur yang dapat menye
  r.st=ok?'Disetujui':'Ditolak';r.oleh2=SES.nama;decNotif(r,ok,alasan);save();render();toast(ok?'Disetujui':'Ditolak')}
 A.apOk=b=>decide(b.dataset.id,1);A.apNo=b=>askReason('Tolak pengajuan','Alasan penolakan wajib diisi. Pengaju akan melihatnya dan tercatat di log.',al=>decide(b.dataset.id,0,al));
 V.apr=()=>{const row=(r,a)=>`<tr><td>${fds(r.tgl)}</td><td><b>${RJ[r.jenis]}</b></td><td>${apLink(r)}${r.alasan?'<br><small>Alasan pembatalan: '+esc(r.alasan)+'</small>':''}</td><td class="r num">${rp(r.jml)}</td><td>${esc(r.oleh)}</td><td class="r">${a?`<button class="btn sm pri" data-act="apOk" data-id="${r.id}">Setujui</button> <button class="btn sm del" data-act="apNo" data-id="${r.id}">Tolak</button>`:`<span class="pill p-${r.st==='Disetujui'?'Aman':'Batal'}">${r.st==='Ditolak'?'Pengajuan ditolak':r.st}</span><br><small>${r.st==='Ditolak'?'Ditolak oleh ':''}${esc(r.oleh2||'')}${r.alasanTolak?' · Alasan tolak: '+esc(r.alasanTolak):''}${r.st==='Ditolak'?'<br>Menunggu diperbaiki dan diajukan ulang oleh '+esc(r.oleh):''}</small>`}</td></tr>`,
- T=(R,a,e)=>{const G=paginate('apr'+a,R,R.length);return `<div class="tw"><table><thead><tr><th>Tanggal</th><th>Jenis</th><th>Keterangan</th><th class="r">Nilai</th><th>Diajukan oleh</th><th></th></tr></thead><tbody>${R.length?G.items.map(r=>row(r,r.st==='Menunggu')).join(''):`<tr><td colspan="6" class="empty">${e}</td></tr>`}</tbody></table></div>${G.html}`},P=S.req.filter(r=>(r.st==='Menunggu'&&(APV==='abs'?r.jenis==='abs':r.jenis!=='abs'))||(APV!=='abs'&&r.jenis!=='abs'&&rejOpen(r)));
- return `<div class="head"><div><h1>Persetujuan</h1><p>Invoice dan transaksi baru, serta pembatalan, menunggu keputusan Direktur.</p></div></div><div class="card"><h3>Menunggu persetujuan (${P.filter(r=>r.st==='Menunggu').length})${P.some(r=>r.st==='Ditolak')?' · '+P.filter(r=>r.st==='Ditolak').length+' pengajuan ditolak, menunggu diperbaiki':''}</h3>${T(P,1,'Tidak ada yang menunggu.')}</div>`};
+ T=(R,a,e)=>{const G=paginate('apr'+a,R,R.length);return `<div class="tw"><table><thead><tr><th>Tanggal</th><th>Jenis</th><th>Keterangan</th><th class="r">Nilai</th><th>Diajukan oleh</th><th></th></tr></thead><tbody>${R.length?G.items.map(r=>row(r,r.st==='Menunggu')).join(''):`<tr><td colspan="6" class="empty">${e}</td></tr>`}</tbody></table></div>${G.html}`},P=S.req.filter(r=>(r.st==='Menunggu'&&(APV==='abs'?r.jenis==='abs':r.jenis!=='abs')));
+ return `<div class="head"><div><h1>Persetujuan</h1><p>Invoice dan transaksi baru, serta pembatalan, menunggu keputusan Direktur.</p></div></div><div class="card"><h3>Menunggu persetujuan (${P.length})</h3>${T(P,1,'Tidak ada yang menunggu.')}</div>`};
 /* ---------- Grafik garis & Keuangan industrial ---------- */
 let LC=0;
 function lineChart(lb,ser,H0){const iw=(window.innerWidth||1200),W=iw>=900?1100:iw>=600?640:380,H=H0||(W>1000?300:W>500?260:230),L=W>500?56:46,R=14,T=14,B=26,pw=W-L-R,ph=H-T-B,all=ser.flatMap(s=>s.d),mx=niceMax(Math.max(...all,1)),m0=Math.min(...all,0),mn=m0<0?-niceMax(-m0):0,n=lb.length,X=i=>L+(n>1?pw*i/(n-1):pw/2),Y=v=>T+ph-ph*(v-mn)/(mx-mn),id='lc'+(++LC);
@@ -2255,7 +2255,7 @@ A.jrRev=b=>{if(!canJur()){toast('Hanya Admin Operasional yang dapat mengedit jur
 function jurPending(){
  const mp=r=>{const k=reqKey(r),tx=k?S.tx.filter(t=>jKey(t)===k):[];return k&&tx.length?{r,k,tx}:null};
  const R=S.req.filter(r=>r.st==='Menunggu'&&['tx','txb','delTx'].includes(r.jenis)).map(mp).filter(Boolean);
- const X=S.req.filter(r=>['tx','txb'].includes(r.jenis)&&rejOpen(r)).map(mp).filter(Boolean),L=X.concat(R);
+ const X=isAp()?[]:S.req.filter(r=>['tx','txb'].includes(r.jenis)&&rejOpen(r)).map(mp).filter(Boolean),L=X.concat(R);
  const row=x=>{const e=jEntries(x.tx)[0],del=x.r.jenis==='delTx',rj=x.r.st==='Ditolak';
   return `<tr${rj?' style="background:var(--bad-soft)"':''}><td>${fds(x.r.tgl)}</td><td>${jLink(x.k)}</td><td>${esc(e.ket)}${x.tx.length>1?'<br><small>'+x.tx.length+' baris</small>':''}${x.r.alasan?'<br><small>Alasan pembatalan: '+esc(x.r.alasan)+'</small>':''}${rj?'<br><small>Alasan tolak: '+esc(x.r.alasanTolak||'-')+' · oleh '+esc(x.r.oleh2||'Direktur')+'</small>':''}</td><td><span class="pill p-${rj||del?'Batal':'Belum'}">${rj?'Pengajuan ditolak':del?'Pembatalan':'Jurnal baru'}</span></td><td class="r num">${rp(e.d)}</td><td>${esc(x.r.oleh)}</td><td class="r">${rj?(canJur()?`<button class="btn sm pri" data-act="jrRev" data-key="${esc(x.k)}">Edit &amp; ajukan ulang</button>`:'<small style="color:var(--muted)">Menunggu diperbaiki pengaju</small>'):isAp()?`<button class="btn sm pri" data-act="apOk" data-id="${x.r.id}">Setujui</button> <button class="btn sm del" data-act="apNo" data-id="${x.r.id}">Tolak</button>`:'<small style="color:var(--muted)">Menunggu Direktur</small>'}</td></tr>`};
  return `<div class="card"><div class="row" style="justify-content:space-between"><h3>Jurnal menunggu persetujuan Direktur (${R.length})${X.length?' · '+X.length+' ditolak':''}</h3>${L.length?'<span class="pill p-Belum">Belum masuk laporan</span>':''}</div><div class="tw"><table><thead><tr><th>Diajukan</th><th>No. Referensi</th><th>Keterangan</th><th>Jenis</th><th class="r">Nilai</th><th>Oleh</th><th></th></tr></thead><tbody>${L.length?L.map(row).join(''):'<tr><td colspan="7" class="empty">Tidak ada jurnal yang menunggu persetujuan.</td></tr>'}</tbody></table></div></div>`}
@@ -2787,10 +2787,27 @@ async function akSet(b,st,msg){try{const {error}=await supabaseClient.from('prof
  toast(msg);await akLoad(true);render()}catch(e){console.error(e);toast('Gagal (cek internet)')}}
 A.akOk=b=>akSet(b,'active','Akun disetujui, sudah bisa login');
 A.akNo=b=>akSet(b,'inactive','Akun ditolak');
-{const _a=V.apr;V.apr=()=>{if(!SES||SES.role!=='direktur')return _a();
- const v=U.aprsub||'trx';U.aprsub=v;APV=v==='abs'?'abs':'trx';akLoad();
- const rq=S.req.filter(r=>r.st==='Menunggu'),nT=rq.filter(r=>r.jenis!=='abs').length,nA=rq.filter(r=>r.jenis==='abs').length,nK=AK.items.filter(u=>u.status==='pending').length,c=n=>n?' ('+n+')':'';
- return subBar('aprsub',[['trx','Transaksi'+c(nT)],['abs','Absensi'+c(nA)],['akun','Akun'+c(nK)]])+(v==='akun'?aprAkun():_a())}}
+{const _a=V.apr,REGRX=/^(Pendaftaran akun|Riwayat akun)/i;
+ const parse=h=>{const t=document.createElement('template');t.innerHTML=h;return t.content};
+ const out=f=>{const d=document.createElement('div');d.appendChild(f);return d.innerHTML};
+ const h3=c=>((c.querySelector('h3')||{}).textContent||'').trim();
+ const hist=(L,id)=>{const G=paginate('aprh'+id,L,L.length);
+  return `<div class="card"><h3>Riwayat persetujuan (${L.length})</h3><div class="tw"><table><thead><tr><th>Tanggal</th><th>Jenis</th><th>Keterangan</th><th class="r">Nilai</th><th>Diajukan oleh</th><th>Keputusan</th></tr></thead><tbody>${L.length?G.items.map(r=>`<tr><td>${fds(r.tgl)}</td><td><b>${esc(RJ[r.jenis]||r.jenis)}</b></td><td>${apLink(r)}</td><td class="r num">${r.jenis==='abs'?'-':rp(r.jml)}</td><td>${esc(r.oleh)}</td><td><span class="pill p-${r.st==='Disetujui'?'Aman':r.st==='Ditolak'?'Batal':'Dicetak'}">${esc(r.st)}</span><br><small>${esc(r.oleh2||'')}${r.alasanTolak?' · Alasan tolak: '+esc(r.alasanTolak):''}</small></td></tr>`).join(''):'<tr><td colspan="6" class="empty">Belum ada riwayat.</td></tr>'}</tbody></table></div>${G.html}</div>`};
+ V.apr=()=>{if(!SES||SES.role!=='direktur')return _a();
+  const v=U.aprsub||'trx';U.aprsub=v;APV=v==='abs'?'abs':'trx';akLoad();
+  const rq=S.req.filter(r=>r.st==='Menunggu'),nT=rq.filter(r=>r.jenis!=='abs').length,nA=rq.filter(r=>r.jenis==='abs').length,nK=AK.items.filter(u=>u.status==='pending').length,c=n=>n?' ('+n+')':'';
+  const bar=subBar('aprsub',[['trx','Transaksi'+c(nT)],['abs','Absensi'+c(nA)],['akun','Akun'+c(nK)]]);
+  if(v==='akun'){
+   const all=parse(_a()),regP=[],regH=[];
+   [...all.querySelectorAll('.card')].forEach(cd=>{const t=h3(cd);if(/^Pendaftaran akun/i.test(t))regP.push(cd.outerHTML);else if(/^Riwayat akun/i.test(t))regH.push(cd.outerHTML)});
+   const a=parse(aprAkun()),head=a.querySelector('.head'),cs=[...a.querySelectorAll('.card')];
+   return bar+(head?head.outerHTML:'')+(cs[0]?cs[0].outerHTML:'')+regP.join('')+(cs[1]?cs[1].outerHTML:'')+regH.join('')}
+  const f=parse(_a());
+  [...f.querySelectorAll('.card')].forEach(cd=>{const t=h3(cd);if(REGRX.test(t)||(v==='abs'&&/rekening/i.test(cd.textContent)))cd.remove()});
+  const L=S.req.filter(r=>r.st!=='Menunggu'&&(v==='abs'?r.jenis==='abs':r.jenis!=='abs')),hc=parse(hist(L,v)),
+   pend=[...f.querySelectorAll('.card')].find(cd=>/^Menunggu persetujuan/i.test(h3(cd)));
+  if(pend)pend.after(hc);else f.appendChild(hc);
+  return bar+out(f)}}
 </script>
 <script>
 /* Tombol WA: langsung ke aplikasi WhatsApp di komputer (tanpa tab baru). Jika aplikasi tidak ada, jatuh ke wa.me */
