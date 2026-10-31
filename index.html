@@ -1119,7 +1119,7 @@ V.dashT=()=>{
   <div class="row" style="justify-content:space-between"><div class="tabs">${['Aktif','Selesai','Batal','Semua'].map(x=>`<button class="chip" aria-pressed="${f===x}" data-act="tf" data-v="${x}">${x}</button>`).join('')}</div><input id="tq" placeholder="Cari nama, alamat, no. order" value="${esc(U.tq||'')}" data-inp="tq" style="max-width:260px"></div>
   <div class="list">${rows.length?P.items.map(o=>`<div class="card ocard"><div class="row" style="justify-content:space-between"><div><b>${esc(o.nama)}</b> <span class="num" style="color:var(--muted)">${o.id}</span></div><span class="pill p-${o.status}">${o.status}</span></div>
   <div>${esc(o.alamat)}</div><div style="color:var(--muted)">${esc(o.layanan)}, ${o.unit} unit, ${fd(o.tgl)}${o.jam?', '+o.jam:''}</div>${o.catatan?`<div class="info">Catatan: ${esc(o.catatan)}</div>`:''}
-  <div class="row">${o.hp?`<a class="btn sm" href="tel:+${String(o.hp).replace(/\D/g,'')}">Telepon</a><a class="btn sm" href="${waLink(o.hp,'Halo '+o.nama+', kami teknisi '+S.set.nama+'.')}" target="_blank" rel="noopener">WhatsApp</a>`:''}<a class="btn sm" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(o.alamat)}" target="_blank" rel="noopener">Peta</a>${NEXT[o.status]?`<button class="btn sm pri" data-act="tNext" data-id="${o.id}">${NEXT[o.status][1]}</button>`:''}</div></div>`).join(''):'<div class="card empty">Tidak ada order di filter ini.</div>'}</div>${P.html}`;
+  <div class="row"><a class="btn sm" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(o.alamat)}" target="_blank" rel="noopener">Peta</a>${NEXT[o.status]?`<button class="btn sm pri" data-act="tNext" data-id="${o.id}">${NEXT[o.status][1]}</button>`:''}</div></div>`).join(''):'<div class="card empty">Tidak ada order di filter ini.</div>'}</div>${P.html}`;
 };
 A.tf=b=>{U.tst=b.dataset.v;render()};
 CH.tq=el=>{U.tq=el.value;render()};
@@ -1244,7 +1244,7 @@ const nVis=n=>{if(!SES)return false;if(SES.role==='admin')return true;if(!(n.rol
 const nList=()=>(S&&S.notif||[]).filter(nVis);
 const nUnread=()=>{const k=nKey();return nList().filter(n=>!rdOf(n)[k])};
 function notify(roles,judul,teks,o){o=o||{};S.notif=S.notif||[];
- S.notif.unshift({id:uid('n'),ts:Date.now(),roles:[].concat(roles),emp:o.emp||null,judul,teks:teks||'',tipe:o.tipe||'info',tab:o.tab||'',jobF:o.jobF||'',rd:{}});
+ S.notif.unshift({id:uid('n'),ts:Date.now(),roles:[].concat(roles),emp:o.emp||null,judul,teks:teks||'',tipe:o.tipe||'info',tab:o.tab||'',jobF:o.jobF||'',sub:o.sub||'',rd:{}});
  if(S.notif.length>NKEEP)S.notif.length=NKEEP}
 function nAgo(ts){const m=Math.floor((Date.now()-ts)/6e4);if(m<1)return 'baru saja';if(m<60)return m+' mnt lalu';const h=Math.floor(m/60);if(h<24)return h+' jam lalu';const d=new Date(ts);return fds(iso(d))+', '+pad(d.getHours())+':'+pad(d.getMinutes())}
 function bellHTML(){const n=SES?nUnread().length:0,p=$('#np'),open=!!p&&!p.hidden;
@@ -1261,7 +1261,7 @@ A.npClose=npClose;
 A.npF=b=>{U.npf=b.dataset.v;npRender()};
 A.npAll=()=>{const k=nKey();nList().forEach(n=>rdOf(n)[k]=1);save();render()};
 A.npGo=b=>{const n=(S.notif||[]).find(x=>x.id===b.dataset.id);if(!n)return;rdOf(n)[nKey()]=1;let go=false;
- if(n.tab&&allowedTabs().some(t=>t[0]===n.tab)){S.tab=n.tab;if(n.jobF&&n.tab==='job')U.jobF=n.jobF;go=true}
+ if(n.tab&&allowedTabs().some(t=>t[0]===n.tab)){S.tab=n.tab;if(n.sub&&n.tab==='apr')U.aprsub=n.sub;if(n.jobF&&n.tab==='job')U.jobF=n.jobF;go=true}
  save();npClose();render();if(go)window.scrollTo(0,0)};
 document.addEventListener('click',e=>{const p=$('#np');if(!p||p.hidden)return;if(e.target.closest('#np')||e.target.closest('.bell'))return;npClose()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){const p=$('#np');if(p&&!p.hidden)npClose()}});
@@ -1273,7 +1273,7 @@ const _r0=render;render=function(){_r0();A.navClose();if(SES){const tb=$('#tbTit
 
 /* ---------- Pemicu pemberitahuan ---------- */
 function reqNotif(jenis,ket,jml,alasan){const j=RJ[jenis]||jenis;
- notify(['direktur'],j+' menunggu persetujuan',ket+' · '+rp(jml)+' · diajukan oleh '+SES.nama+(alasan?' · Alasan: '+alasan:''),{tipe:'wait',tab:'apr'});
+ notify(['direktur'],j+' menunggu persetujuan',ket+' · '+rp(jml)+' · diajukan oleh '+SES.nama+(alasan?' · Alasan: '+alasan:''),{tipe:'wait',tab:'apr',sub:'trx'});
  notify([SES.role],'Menunggu persetujuan Direktur',j+': '+ket+' · '+rp(jml),{emp:SES.empId,tipe:'wait',tab:pnTab(jenis)})}
 function decNotif(r,ok,al){const j=RJ[r.jenis]||r.jenis;
  notify(r.role?[r.role]:['adminjual','adminops'],j+(ok?' disetujui':' ditolak'),r.ket+' · '+rp(r.jml)+' · oleh '+SES.nama+(ok?'':' · Alasan: '+al),{emp:r.empId,tipe:ok?'ok':'no',tab:pnTab(r.jenis)})}
@@ -1391,9 +1391,9 @@ function decide(id,ok,alasan){if(!isAp()){toast('Hanya Direktur yang dapat menye
  if(!ok){r.alasanTolak=alasan;if(i)i.alasanTolak=alasan;if(t)t.alasanTolak=alasan;logAksi('Tolak '+RJ[r.jenis],r.ket,alasan)}
  r.st=ok?'Disetujui':'Ditolak';r.oleh2=SES.nama;decNotif(r,ok,alasan);save();render();toast(ok?'Disetujui':'Ditolak')}
 A.apOk=b=>decide(b.dataset.id,1);A.apNo=b=>askReason('Tolak pengajuan','Alasan penolakan wajib diisi. Pengaju akan melihatnya dan tercatat di log.',al=>decide(b.dataset.id,0,al));
-V.apr=()=>{const row=(r,a)=>`<tr><td>${fds(r.tgl)}</td><td><b>${RJ[r.jenis]}</b></td><td>${apLink(r)}${r.alasan?'<br><small>Alasan pembatalan: '+esc(r.alasan)+'</small>':''}</td><td class="r num">${rp(r.jml)}</td><td>${esc(r.oleh)}</td><td class="r">${a?`<button class="btn sm pri" data-act="apOk" data-id="${r.id}">Setujui</button> <button class="btn sm del" data-act="apNo" data-id="${r.id}">Tolak</button>`:`<span class="pill p-${r.st==='Disetujui'?'Aman':'Batal'}">${r.st}</span><br><small>${esc(r.oleh2||'')}${r.alasanTolak?' · Alasan tolak: '+esc(r.alasanTolak):''}</small>`}</td></tr>`,
- T=(R,a,e)=>{const G=paginate('apr'+a,R,R.length);return `<div class="tw"><table><thead><tr><th>Tanggal</th><th>Jenis</th><th>Keterangan</th><th class="r">Nilai</th><th>Diajukan oleh</th><th></th></tr></thead><tbody>${R.length?G.items.map(r=>row(r,a)).join(''):`<tr><td colspan="6" class="empty">${e}</td></tr>`}</tbody></table></div>${G.html}`},P=S.req.filter(r=>r.st==='Menunggu'&&(APV==='abs'?r.jenis==='abs':r.jenis!=='abs'));
- return `<div class="head"><div><h1>Persetujuan</h1><p>Invoice dan transaksi baru, serta pembatalan, menunggu keputusan Direktur.</p></div></div><div class="card"><h3>Menunggu persetujuan (${P.length})</h3>${T(P,1,'Tidak ada yang menunggu.')}</div>`};
+V.apr=()=>{const row=(r,a)=>`<tr><td>${fds(r.tgl)}</td><td><b>${RJ[r.jenis]}</b></td><td>${apLink(r)}${r.alasan?'<br><small>Alasan pembatalan: '+esc(r.alasan)+'</small>':''}</td><td class="r num">${rp(r.jml)}</td><td>${esc(r.oleh)}</td><td class="r">${a?`<button class="btn sm pri" data-act="apOk" data-id="${r.id}">Setujui</button> <button class="btn sm del" data-act="apNo" data-id="${r.id}">Tolak</button>`:`<span class="pill p-${r.st==='Disetujui'?'Aman':'Batal'}">${r.st==='Ditolak'?'Pengajuan ditolak':r.st}</span><br><small>${r.st==='Ditolak'?'Ditolak oleh ':''}${esc(r.oleh2||'')}${r.alasanTolak?' · Alasan tolak: '+esc(r.alasanTolak):''}${r.st==='Ditolak'?'<br>Menunggu diperbaiki dan diajukan ulang oleh '+esc(r.oleh):''}</small>`}</td></tr>`,
+ T=(R,a,e)=>{const G=paginate('apr'+a,R,R.length);return `<div class="tw"><table><thead><tr><th>Tanggal</th><th>Jenis</th><th>Keterangan</th><th class="r">Nilai</th><th>Diajukan oleh</th><th></th></tr></thead><tbody>${R.length?G.items.map(r=>row(r,r.st==='Menunggu')).join(''):`<tr><td colspan="6" class="empty">${e}</td></tr>`}</tbody></table></div>${G.html}`},P=S.req.filter(r=>(r.st==='Menunggu'&&(APV==='abs'?r.jenis==='abs':r.jenis!=='abs'))||(APV!=='abs'&&r.jenis!=='abs'&&rejOpen(r)));
+ return `<div class="head"><div><h1>Persetujuan</h1><p>Invoice dan transaksi baru, serta pembatalan, menunggu keputusan Direktur.</p></div></div><div class="card"><h3>Menunggu persetujuan (${P.filter(r=>r.st==='Menunggu').length})${P.some(r=>r.st==='Ditolak')?' · '+P.filter(r=>r.st==='Ditolak').length+' pengajuan ditolak, menunggu diperbaiki':''}</h3>${T(P,1,'Tidak ada yang menunggu.')}</div>`};
 /* ---------- Grafik garis & Keuangan industrial ---------- */
 let LC=0;
 function lineChart(lb,ser,H0){const iw=(window.innerWidth||1200),W=iw>=900?1100:iw>=600?640:380,H=H0||(W>1000?300:W>500?260:230),L=W>500?56:46,R=14,T=14,B=26,pw=W-L-R,ph=H-T-B,all=ser.flatMap(s=>s.d),mx=niceMax(Math.max(...all,1)),m0=Math.min(...all,0),mn=m0<0?-niceMax(-m0):0,n=lb.length,X=i=>L+(n>1?pw*i/(n-1):pw/2),Y=v=>T+ph-ph*(v-mn)/(mx-mn),id='lc'+(++LC);
@@ -1481,13 +1481,15 @@ function jTot(){let m=0,k=0;$$('#jb tr').forEach(r=>{const v=Number($('[data-j=j
 function jurSave(R,tgl,ket){const p='JRN-'+tgl.slice(2,4)+tgl.slice(5,7)+'-',no=p+pad(new Set(S.tx.filter(t=>t.grp&&t.grp.startsWith(p)).map(t=>t.grp)).size+1);
  R.forEach(x=>S.tx.push({id:uid('t'),tgl,jenis:x.jenis,kat:x.kat,akun:x.akun,jml:x.jml,ket:x.ket||ket||x.kat,ref:no,grp:no,...(isAp()?{}:{appr:'Menunggu'})}));
  if(!isAp())addReq('txb',no,(ket||'Jurnal')+' ('+R.length+' baris)',sum(R,x=>x.jml));return no}
-A.newTx=()=>{if(!canJur()){toast('Input jurnal hanya untuk Admin Operasional');return}
- modal(`<h2 style="font-size:20px">Input jurnal</h2><div class="info">Isi satu atau beberapa baris dalam satu transaksi. Semua baris baru tersimpan saat Anda menekan Submit.</div><form id="mf" class="grid" style="gap:14px"><div class="fgrid"><label class="f">Tanggal<input id="j_tgl" type="date" value="${TODAY}" required></label><label class="f">Keterangan transaksi (opsional)<input id="j_ket"></label></div><div class="tw"><table style="min-width:0"><thead><tr><th>Jenis</th><th>Kategori</th><th>Akun</th><th>Keterangan baris</th><th>Jumlah (Rp)</th><th></th></tr></thead><tbody id="jb">${jRow()}</tbody></table></div><div class="row" style="justify-content:space-between"><button type="button" class="btn sm" data-act="jAdd">+ Tambah baris</button><div id="jtot" class="num"></div></div><div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-act="close">Batal</button><button class="btn pri" type="submit">Submit</button></div></form>`,sh=>{sh.style.width='min(920px,100%)';jTot();
+A.newTx=(b,e,pre)=>{if(!canJur()){toast('Input jurnal hanya untuk Admin Operasional');return}
+ modal(`<h2 style="font-size:20px">${pre?'Edit & ajukan ulang jurnal '+esc(pre.no):'Input jurnal'}</h2><div class="info">${pre?'Perbaiki baris yang ditolak Direktur, lalu tekan Submit. Nomor jurnal tetap sama dan diajukan ulang untuk disetujui.':'Isi satu atau beberapa baris dalam satu transaksi. Semua baris baru tersimpan saat Anda menekan Submit.'}</div><form id="mf" class="grid" style="gap:14px"><div class="fgrid"><label class="f">Tanggal<input id="j_tgl" type="date" value="${pre?pre.tgl:TODAY}" required></label><label class="f">Keterangan transaksi (opsional)<input id="j_ket"></label></div><div class="tw"><table style="min-width:0"><thead><tr><th>Jenis</th><th>Kategori</th><th>Akun</th><th>Keterangan baris</th><th>Jumlah (Rp)</th><th></th></tr></thead><tbody id="jb">${jRow()}</tbody></table></div><div class="row" style="justify-content:space-between"><button type="button" class="btn sm" data-act="jAdd">+ Tambah baris</button><div id="jtot" class="num"></div></div><div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-act="close">Batal</button><button class="btn pri" type="submit">Submit</button></div></form>`,sh=>{sh.style.width='min(920px,100%)';
+  if(pre){const jb=$('#jb',sh);jb.innerHTML='';pre.rows.forEach(x=>{jb.insertAdjacentHTML('beforeend',jRow());const tr=jb.lastElementChild;$('[data-j=jenis]',tr).value=x.jenis;$('[data-j=kat]',tr).innerHTML=(x.jenis==='Pemasukan'?KAT_IN:KAT_OUT).map(k=>`<option>${esc(k)}</option>`).join('');$('[data-j=kat]',tr).value=x.kat;$('[data-j=akun]',tr).value=x.akun;$('[data-j=ket]',tr).value=x.ket||'';$('[data-j=jml]',tr).value=x.jml})}
+  jTot();
   sh.addEventListener('input',jTot);
   sh.addEventListener('change',e=>{const s=e.target;if(s.dataset&&s.dataset.j==='jenis'){$('[data-j=kat]',s.closest('tr')).innerHTML=(s.value==='Pemasukan'?KAT_IN:KAT_OUT).map(x=>`<option>${x}</option>`).join('')}jTot()});
   $('#mf',sh).addEventListener('submit',e=>{e.preventDefault();const R=$$('#jb tr',sh).map(r=>({jenis:$('[data-j=jenis]',r).value,kat:$('[data-j=kat]',r).value,akun:$('[data-j=akun]',r).value,ket:$('[data-j=ket]',r).value.trim(),jml:Number($('[data-j=jml]',r).value)||0})).filter(x=>x.jml>0);
    if(!R.length){toast('Isi jumlah minimal satu baris');return}
-   const no=jurSave(R,$('#j_tgl',sh).value,$('#j_ket',sh).value.trim());save();closeModal();render();toast(isAp()?'Jurnal '+no+' tersimpan':'Jurnal '+no+' diajukan, menunggu persetujuan')})})};
+   if(pre)S.tx=S.tx.filter(t=>jKey(t)!==pre.no);const no=jurSave(R,$('#j_tgl',sh).value,$('#j_ket',sh).value.trim(),pre?pre.no:undefined);save();closeModal();render();toast(isAp()?'Jurnal '+no+' tersimpan':'Jurnal '+no+' diajukan, menunggu persetujuan')})})};
 A.jAdd=()=>{$('#jb').insertAdjacentHTML('beforeend',jRow());jTot()};A.jDel=b=>{if(b.closest('tbody').rows.length>1){b.closest('tr').remove();jTot()}};
 
 function trendKin(){const mo=U.kinM,ks=ar(6,i=>addM(mo+'-01',i-5).slice(0,7)),lb=ks.map(k=>BLN[+k.slice(5)-1]+' '+k.slice(2,4)),T=OKTX(),mv=(k,j)=>sum(T.filter(t=>t.tgl.startsWith(k)&&t.jenis===j),t=>t.jml),E=S.emps.filter(e=>isTek(e)),C=['#2563eb','#15935f','#e8792b','#7c3aed','#db2777','#0891b2'];
@@ -2043,7 +2045,7 @@ RJ.abs='Absen di luar lokasi';
 function absReq(id,kind,p){
  const e=S.emps.find(x=>x.id===id)||{nama:SES.nama},ket=e.nama+' · absen '+kind+' '+nowHM()+' · '+p.d+' m dari kantor';
  S.req.unshift({id:uid('r'),jenis:'abs',ref:id+'|'+TODAY+'|'+kind,ket,jml:0,alasan:'',oleh:SES.nama,role:SES.role,empId:id,tgl:TODAY,st:'Menunggu',loc:p,kind,jam:nowHM()});
- notify(['direktur'],'Absen di luar lokasi menunggu persetujuan',ket+' (radius kantor '+S.set.lok.rad+' m)',{tipe:'wait',tab:'apr'});
+ notify(['direktur'],'Absen di luar lokasi menunggu persetujuan',ket+' (radius kantor '+S.set.lok.rad+' m)',{tipe:'wait',tab:'apr',sub:'abs'});
  notify([SES.role],'Absen '+kind+' menunggu persetujuan Direktur',ket,{emp:id,tipe:'wait',tab:'abs'})}
 A.clockIn=async b=>{const id=b.dataset.id,p=await pos();if(!p)return;const day=(S.att[TODAY]=S.att[TODAY]||{});
  if(p.ok===false){day[id]={s:'Menunggu',inP:nowHM(),out:'',loc:p};absReq(id,'masuk',p);save();render();toast('Di luar area kantor ('+p.d+' m). Absen masuk menunggu persetujuan Direktur.');return}
@@ -2212,7 +2214,7 @@ function jrModal(key,req){
  <div class="tw"><table style="min-width:0"><thead><tr><th>Akun</th><th class="r">Debit</th><th class="r">Kredit</th></tr></thead><tbody>${e.lines.map(l=>`<tr><td style="padding-left:${l.k?28:8}px">${esc(l.a)}</td><td class="r num">${l.d?rp(l.d):''}</td><td class="r num">${l.k?rp(l.k):''}</td></tr>`).join('')}</tbody><tfoot><tr><td><b>Total</b> ${jBal(e.d,e.k)}</td><td class="r num"><b>${rp(e.d)}</b></td><td class="r num"><b>${rp(e.k)}</b></td></tr></tfoot></table></div>
  <h3 style="margin:14px 0 6px">Rincian transaksi (${txs.length})</h3><div class="tw"><table style="min-width:0"><thead><tr><th>Jenis</th><th>Kategori</th><th>Keterangan</th><th>Akun</th><th class="r">Jumlah</th><th></th></tr></thead><tbody>${txs.map(t=>`<tr><td>${t.jenis}</td><td>${esc(t.kat)}</td><td>${esc(t.ket)}</td><td>${esc(t.akun)}</td><td class="r num">${rp(t.jml)}</td><td class="r">${!rq&&st==='Disetujui'?`<button class="btn sm" data-act="editTx" data-id="${t.id}">Ubah</button> <button class="btn sm del" data-act="delTx" data-id="${t.id}">Hapus</button>`:''}</td></tr>`).join('')}</tbody></table></div>
  ${jSumber(txs[0])}
- <div class="row" style="justify-content:flex-end;margin-top:12px">${pend?`<button class="btn pri" data-act="apOk" data-id="${rq.id}">Setujui</button><button class="btn del" data-act="apNo" data-id="${rq.id}">Tolak</button>`:''}<button class="btn" data-act="close">Tutup</button></div>`)}
+ <div class="row" style="justify-content:flex-end;margin-top:12px">${pend?`<button class="btn pri" data-act="apOk" data-id="${rq.id}">Setujui</button><button class="btn del" data-act="apNo" data-id="${rq.id}">Tolak</button>`:''}${st==='Ditolak'&&canJur()?`<button class="btn pri" data-act="jrRev" data-key="${esc(key)}">Edit &amp; ajukan ulang</button>`:''}<button class="btn" data-act="close">Tutup</button></div>`)}
 A.jrDet=(b,e)=>{if(e&&e.preventDefault)e.preventDefault();jrModal(b.dataset.key)};
 const reqKey=r=>{if(r.jenis==='txb')return S.tx.some(t=>t.grp===r.ref)?r.ref:null;if(r.jenis==='tx'||r.jenis==='delTx'){const t=S.tx.find(x=>x.id===r.ref);return t?jKey(t):null}return null};
 {const _al=apLink;apLink=function(r){const k=reqKey(r);if(!k)return _al(r);
@@ -2233,7 +2235,7 @@ function ensureJno(){let ch=false;const rm={};
  S.tx.forEach(t=>{if(t.jno&&t.sp&&t.ref)rm[t.ref]=t.jno});
  S.tx.map((t,i)=>[t,i]).filter(x=>!x[0].jno).sort((x,y)=>x[0].tgl<y[0].tgl?-1:x[0].tgl>y[0].tgl?1:x[1]-y[1]).forEach(([t])=>{
   if(t.grp)t.jno=t.grp;else if(t.sp&&t.ref&&rm[t.ref])t.jno=rm[t.ref];else{t.jno=nextJno(t.tgl);if(t.sp&&t.ref)rm[t.ref]=t.jno}ch=true});return ch}
-jurSave=function(R,tgl,ket){const no=nextJno(tgl);
+jurSave=function(R,tgl,ket,keep){const no=keep||nextJno(tgl);
  R.forEach(x=>S.tx.push({id:uid('t'),tgl,jenis:x.jenis,kat:x.kat,akun:x.akun,jml:x.jml,ket:x.ket||ket||x.kat,ref:no,grp:no,jno:no,...(isAp()?{}:{appr:'Menunggu'})}));
  if(!isAp())addReq('txb',no,(ket||'Jurnal')+' ('+R.length+' baris)',sum(R,x=>x.jml));return no};
 {const _ad0=addTx;addTx=function(v){_ad0(v);const t=S.tx[S.tx.length-1];if(t&&!t.jno)t.jno=nextJno(t.tgl)}}
@@ -2241,11 +2243,22 @@ jurSave=function(R,tgl,ket){const no=nextJno(tgl);
 </script>
 <script>
 /* ---------- Kartu: jurnal menunggu persetujuan Direktur ---------- */
+function rejOpen(r){if(!r||r.st!=='Ditolak'||r.ulang)return false;
+ if(r.jenis==='pnw'){const p=S.pnw.find(x=>x.id===r.ref);return !!p&&p.appr==='Ditolak'}
+ if(r.jenis==='inv'){const i=S.inv.find(x=>x.id===r.ref);return !!i&&i.appr==='Ditolak'}
+ if(r.jenis==='tx'){const t=S.tx.find(x=>x.id===r.ref);return !!t&&t.appr==='Ditolak'}
+ if(r.jenis==='txb')return S.tx.some(t=>t.grp===r.ref&&t.appr==='Ditolak');
+ return false}
+A.jrRev=b=>{if(!canJur()){toast('Hanya Admin Operasional yang dapat mengedit jurnal');return}
+ const key=b.dataset.key,tx=S.tx.filter(t=>jKey(t)===key&&t.appr==='Ditolak');if(!tx.length)return;
+ A.newTx(null,null,{no:key,tgl:tx[0].tgl,rows:tx.map(t=>({jenis:t.jenis,kat:t.kat,akun:t.akun,ket:t.ket,jml:t.jml}))})};
 function jurPending(){
- const R=S.req.filter(r=>r.st==='Menunggu'&&['tx','txb','delTx'].includes(r.jenis)).map(r=>{const k=reqKey(r),tx=k?S.tx.filter(t=>jKey(t)===k):[];return k&&tx.length?{r,k,tx}:null}).filter(Boolean);
- const row=x=>{const e=jEntries(x.tx)[0],del=x.r.jenis==='delTx';
-  return `<tr><td>${fds(x.r.tgl)}</td><td>${jLink(x.k)}</td><td>${esc(e.ket)}${x.tx.length>1?'<br><small>'+x.tx.length+' baris</small>':''}${x.r.alasan?'<br><small>Alasan pembatalan: '+esc(x.r.alasan)+'</small>':''}</td><td><span class="pill p-${del?'Batal':'Belum'}">${del?'Pembatalan':'Jurnal baru'}</span></td><td class="r num">${rp(e.d)}</td><td>${esc(x.r.oleh)}</td><td class="r">${isAp()?`<button class="btn sm pri" data-act="apOk" data-id="${x.r.id}">Setujui</button> <button class="btn sm del" data-act="apNo" data-id="${x.r.id}">Tolak</button>`:'<small style="color:var(--muted)">Menunggu Direktur</small>'}</td></tr>`};
- return `<div class="card"><div class="row" style="justify-content:space-between"><h3>Jurnal menunggu persetujuan Direktur (${R.length})</h3>${R.length?'<span class="pill p-Belum">Belum masuk laporan</span>':''}</div><div class="tw"><table><thead><tr><th>Diajukan</th><th>No. Referensi</th><th>Keterangan</th><th>Jenis</th><th class="r">Nilai</th><th>Oleh</th><th></th></tr></thead><tbody>${R.length?R.map(row).join(''):'<tr><td colspan="7" class="empty">Tidak ada jurnal yang menunggu persetujuan.</td></tr>'}</tbody></table></div></div>`}
+ const mp=r=>{const k=reqKey(r),tx=k?S.tx.filter(t=>jKey(t)===k):[];return k&&tx.length?{r,k,tx}:null};
+ const R=S.req.filter(r=>r.st==='Menunggu'&&['tx','txb','delTx'].includes(r.jenis)).map(mp).filter(Boolean);
+ const X=S.req.filter(r=>['tx','txb'].includes(r.jenis)&&rejOpen(r)).map(mp).filter(Boolean),L=X.concat(R);
+ const row=x=>{const e=jEntries(x.tx)[0],del=x.r.jenis==='delTx',rj=x.r.st==='Ditolak';
+  return `<tr${rj?' style="background:var(--bad-soft)"':''}><td>${fds(x.r.tgl)}</td><td>${jLink(x.k)}</td><td>${esc(e.ket)}${x.tx.length>1?'<br><small>'+x.tx.length+' baris</small>':''}${x.r.alasan?'<br><small>Alasan pembatalan: '+esc(x.r.alasan)+'</small>':''}${rj?'<br><small>Alasan tolak: '+esc(x.r.alasanTolak||'-')+' · oleh '+esc(x.r.oleh2||'Direktur')+'</small>':''}</td><td><span class="pill p-${rj||del?'Batal':'Belum'}">${rj?'Pengajuan ditolak':del?'Pembatalan':'Jurnal baru'}</span></td><td class="r num">${rp(e.d)}</td><td>${esc(x.r.oleh)}</td><td class="r">${rj?(canJur()?`<button class="btn sm pri" data-act="jrRev" data-key="${esc(x.k)}">Edit &amp; ajukan ulang</button>`:'<small style="color:var(--muted)">Menunggu diperbaiki pengaju</small>'):isAp()?`<button class="btn sm pri" data-act="apOk" data-id="${x.r.id}">Setujui</button> <button class="btn sm del" data-act="apNo" data-id="${x.r.id}">Tolak</button>`:'<small style="color:var(--muted)">Menunggu Direktur</small>'}</td></tr>`};
+ return `<div class="card"><div class="row" style="justify-content:space-between"><h3>Jurnal menunggu persetujuan Direktur (${R.length})${X.length?' · '+X.length+' ditolak':''}</h3>${L.length?'<span class="pill p-Belum">Belum masuk laporan</span>':''}</div><div class="tw"><table><thead><tr><th>Diajukan</th><th>No. Referensi</th><th>Keterangan</th><th>Jenis</th><th class="r">Nilai</th><th>Oleh</th><th></th></tr></thead><tbody>${L.length?L.map(row).join(''):'<tr><td colspan="7" class="empty">Tidak ada jurnal yang menunggu persetujuan.</td></tr>'}</tbody></table></div></div>`}
 {const _jv=V.jur;V.jur=()=>{const h=_jv(),c=jurPending(),k=h.indexOf('<div class="ind">');return k>=0?h.slice(0,k)+c+h.slice(k):h+c}}
 </script>
 <script>
@@ -2778,6 +2791,23 @@ A.akNo=b=>akSet(b,'inactive','Akun ditolak');
  const v=U.aprsub||'trx';U.aprsub=v;APV=v==='abs'?'abs':'trx';akLoad();
  const rq=S.req.filter(r=>r.st==='Menunggu'),nT=rq.filter(r=>r.jenis!=='abs').length,nA=rq.filter(r=>r.jenis==='abs').length,nK=AK.items.filter(u=>u.status==='pending').length,c=n=>n?' ('+n+')':'';
  return subBar('aprsub',[['trx','Transaksi'+c(nT)],['abs','Absensi'+c(nA)],['akun','Akun'+c(nK)]])+(v==='akun'?aprAkun():_a())}}
+</script>
+<script>
+/* Tombol WA: langsung ke aplikasi WhatsApp di komputer (tanpa tab baru). Jika aplikasi tidak ada, jatuh ke wa.me */
+(function(){
+ const mobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent),_wo=window.open.bind(window);
+ function openWA(url){
+  const m=String(url).match(/^https:\/\/wa\.me\/(\d*)\?text=([\s\S]*)$/);
+  if(!m||mobile){_wo(url,'_blank','noopener');return}
+  const app='whatsapp://send?'+(m[1]?'phone='+m[1]+'&':'')+'text='+m[2];
+  let opened=false;const mark=()=>{opened=true};
+  window.addEventListener('blur',mark,{once:true});document.addEventListener('visibilitychange',mark,{once:true});
+  const a=document.createElement('a');a.href=app;a.style.display='none';document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>{window.removeEventListener('blur',mark);document.removeEventListener('visibilitychange',mark);if(!opened&&!document.hidden)_wo(url,'_blank','noopener')},2500);
+ }
+ window.open=function(u){if(!mobile&&typeof u==='string'&&/^https:\/\/wa\.me\//.test(u)){openWA(u);return null}return _wo.apply(window,arguments)};
+ document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('a[href^="https://wa.me/"]');if(!a||mobile||e.button||e.ctrlKey||e.metaKey||e.shiftKey)return;e.preventDefault();openWA(a.href)},true);
+})();
 </script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}</script>
 </body>
