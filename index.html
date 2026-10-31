@@ -568,7 +568,7 @@ const fds=s=>{const d=pd(s);return d.getDate()+' '+BLN[d.getMonth()]};
 const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
 const sum=(a,f)=>a.reduce((t,x)=>t+(f?f(x):x),0);
 const KEY='awaljaya.v1';
-const SERV={'Cuci AC':85000,'Tambah Freon':250000,'Perbaikan':350000,'Instalasi':450000,'Bongkar Pasang':400000};
+const SERV={'Cuci AC':85000,'Tambah Freon':250000,'Perbaikan':350000,'Instalasi':450000,'Bongkar Pasang':400000,'Pengecekan':0};
 const STAT=['Baru','Dijadwalkan','Dikerjakan','Selesai','Batal'];
 const KAT_IN=['Jasa servis','Penjualan sparepart','Kontrak perawatan','Lainnya'];
 const KAT_OUT=['Material & freon','Gaji karyawan','Bensin & transport','Sewa & listrik','Peralatan','Lainnya'];
@@ -1118,7 +1118,7 @@ V.dashT=()=>{
   <div class="grid g4"><div class="card kpi"><small>Order aktif</small><span class="v">${aktif}</span><span class="s">belum selesai</span></div><div class="card kpi"><small>Selesai bulan ini</small><span class="v">${sel}</span><span class="s">order</span></div></div>
   <div class="row" style="justify-content:space-between"><div class="tabs">${['Aktif','Selesai','Batal','Semua'].map(x=>`<button class="chip" aria-pressed="${f===x}" data-act="tf" data-v="${x}">${x}</button>`).join('')}</div><input id="tq" placeholder="Cari nama, alamat, no. order" value="${esc(U.tq||'')}" data-inp="tq" style="max-width:260px"></div>
   <div class="list">${rows.length?P.items.map(o=>`<div class="card ocard"><div class="row" style="justify-content:space-between"><div><b>${esc(o.nama)}</b> <span class="num" style="color:var(--muted)">${o.id}</span></div><span class="pill p-${o.status}">${o.status}</span></div>
-  <div>${esc(o.alamat)}</div><div style="color:var(--muted)">${esc(o.layanan)}, ${o.unit} unit, ${fd(o.tgl)}${o.jam?', '+o.jam:''}</div>${o.catatan?`<div class="info">Catatan: ${esc(o.catatan)}</div>`:''}
+  <div>${esc(o.alamat)}</div><div style="color:var(--muted)">${esc(o.layanan)}, ${o.unit} unit, ${fd(o.tgl)}${o.jam?', '+o.jam:''}</div>${o.catatan?`<div class="info">Catatan: ${esc(o.catatan)}</div>`:''}${bawaTxt(o)?`<div class="info">Barang yang dibawa: ${bawaTxt(o)}</div>`:''}
   <div class="row"><a class="btn sm" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(o.alamat)}" target="_blank" rel="noopener">Peta</a>${NEXT[o.status]?`<button class="btn sm pri" data-act="tNext" data-id="${o.id}">${NEXT[o.status][1]}</button>`:''}</div></div>`).join(''):'<div class="card empty">Tidak ada order di filter ini.</div>'}</div>${P.html}`;
 };
 A.tf=b=>{U.tst=b.dataset.v;render()};
@@ -1326,13 +1326,15 @@ function addTx(v){const t={id:uid('t'),ref:'',...v};if(!isAp()){t.appr='Menunggu
 function unlinkJob(i){if(i.ref){const o=S.orders.find(x=>x.id===i.ref);if(o&&o.inv===i.no)delete o.inv}}
 function dropInv(i){unlinkJob(i);if(i.appr==='Disetujui')(i.items||[]).filter(x=>x.sid).forEach(x=>{const s=S.stok.find(y=>y.id===x.sid);if(s){s.qty+=x.qty;mut(s,'Masuk',x.qty,'Batal '+i.no)}});S.tx=S.tx.filter(t=>t.ref!==i.no);S.inv=S.inv.filter(x=>x!==i)}
 /* ---------- CRUD generik: pemasok, surat, diskon, stok ---------- */
+let _supCur='';
+const supOpts=cur=>{const n=(S.sup||[]).map(x=>x.nama);if(cur&&!n.includes(cur))n.push(cur);return[['','Pilih pemasok'],...n.map(x=>[x,x])]};
 const CR={
  sup:{t:'Daftar Pemasok Barang',p:'Data pemasok AC, kabel, pipa, freon dan material lain.',n:'Pemasok baru',f:[{k:'nama',l:'Nama pemasok',req:1},{k:'pic',l:'Kontak person'},{k:'hp',l:'No. HP / WA'},{k:'termin',l:'Termin bayar (tiap transaksi)',t:'select',o:['Cash','7 hari','14 hari','21 hari','30 hari','45 hari','60 hari','90 hari'],def:'Cash'},{k:'produk',l:'Produk yang dipasok',wide:1},{k:'alamat',l:'Alamat',wide:1}],c:[['Pemasok',r=>`<b>${esc(r.nama)}</b><br><small>${esc(r.pic)}</small>`],['Kontak',r=>r.hp?`<a href="${waLink(r.hp,'Halo '+r.nama)}" target="_blank" rel="noopener">${esc(r.hp)}</a>`:'-'],['Termin',r=>esc(r.termin||'Cash')],['Produk',r=>esc(r.produk)],['Alamat',r=>esc(r.alamat)]]},
  srt:{s:'surat',t:'Surat Masuk & Keluar',p:'Catat dan proses surat serta barang yang masuk dan keluar kantor.',n:'Catat surat / barang',f:[{k:'jenis',l:'Jenis',t:'select',o:['Surat masuk','Surat keluar']},{k:'tgl',l:'Tanggal',t:'date',def:TODAY},{k:'no',l:'No. surat'},{k:'pihak',l:'Pengirim / tujuan',req:1},{k:'perihal',l:'Perihal',wide:1,req:1},{k:'barang',l:'Barang / lampiran (jika ada)',wide:1},{k:'status',l:'Status proses',t:'select',o:['Diterima','Diproses','Selesai','Diarsipkan']}],c:[['Tanggal',r=>fds(r.tgl)],['Jenis / No.',r=>`<b>${r.jenis}</b><br><small class="num">${esc(r.no)}</small>`],['Pihak & perihal',r=>`${esc(r.pihak)}<br><small>${esc(r.perihal)}${r.barang?' · Barang: '+esc(r.barang):''}</small>`],['Status',r=>`<span class="pill p-${r.status==='Selesai'||r.status==='Diarsipkan'?'Selesai':r.status==='Diproses'?'Dikerjakan':'Baru'}">${r.status}</span>`]],x:r=>r.status==='Diarsipkan'?'':`<button class="btn sm pri" data-act="srN" data-id="${r.id}">Proses lanjut</button>`},
- stk:{s:'stok',t:'Kontrol Stok Material',p:'Kabel, AC, pipa, freon dan lainnya. Stok berkurang otomatis dari pemakaian teknisi dan penjualan kasir.',n:'Barang baru',f:[{k:'nama',l:'Nama barang',req:1,wide:1},{k:'kat',l:'Kategori',t:'select',o:['AC','Kabel','Pipa','Freon','Sparepart','Lainnya']},{k:'sat',l:'Satuan',t:'select',o:['unit','meter','kg','liter','pcs','roll','set','batang','botol','dus'],def:'unit'},{k:'qty',l:'Stok saat ini',t:'number',min:0,step:'any',def:0},{k:'min',l:'Stok minimum',t:'number',min:0,step:'any',def:0},{k:'harga',l:'Harga jual (Rp)',t:'number',min:0,def:0},{k:'sup',l:'Pemasok'}],c:[['Barang',r=>`<b>${esc(r.nama)}</b><br><small>${r.kat}</small>`],['Stok',r=>`<span class="num">${r.qty} ${esc(r.sat)}</span>`],['Status',r=>r.qty<=0?'<span class="pill p-Batal">Habis</span>':r.qty<=r.min?'<span class="pill p-Belum">Menipis</span>':'<span class="pill p-Aman">Aman</span>'],['Harga',r=>rp(r.harga)],['Pemasok',r=>esc(r.sup)]],x:r=>`<button class="btn sm pri" data-act="stIn" data-id="${r.id}">+ Masuk</button>`}};
+ stk:{s:'stok',t:'Kontrol Stok Material',p:'Kabel, AC, pipa, freon dan lainnya. Stok berkurang otomatis dari pemakaian teknisi dan penjualan kasir.',n:'Barang baru',f:[{k:'nama',l:'Nama barang',req:1,wide:1},{k:'kat',l:'Kategori',t:'select',o:['AC','Kabel','Pipa','Freon','Sparepart','Lainnya']},{k:'sat',l:'Satuan',t:'select',o:['unit','meter','kg','liter','pcs','roll','set','batang','botol','dus'],def:'unit'},{k:'qty',l:'Stok saat ini',t:'number',min:0,step:'any',def:0},{k:'min',l:'Stok minimum',t:'number',min:0,step:'any',def:0},{k:'harga',l:'Harga jual (Rp)',t:'number',min:0,def:0},{k:'sup',l:'Pemasok',t:'select',get o(){return supOpts(_supCur)}}],c:[['Barang',r=>`<b>${esc(r.nama)}</b><br><small>${r.kat}</small>`],['Stok',r=>`<span class="num">${r.qty} ${esc(r.sat)}</span>`],['Status',r=>r.qty<=0?'<span class="pill p-Batal">Habis</span>':r.qty<=r.min?'<span class="pill p-Belum">Menipis</span>':'<span class="pill p-Aman">Aman</span>'],['Harga',r=>rp(r.harga)],['Pemasok',r=>esc(r.sup)]],x:r=>`<button class="btn sm pri" data-act="stIn" data-id="${r.id}">+ Masuk</button>`}};
 function crud(k,extra){const C=CR[k],R=S[C.s||k],P=paginate('c'+k,R,R.length);
  return `<div class="head"><div><h1>${C.t}</h1><p>${C.p}</p></div><button class="btn pri" data-act="crE" data-k="${k}">+ ${C.n}</button></div>${extra||''}<div class="card"><div class="tw"><table><thead><tr>${C.c.map(c=>`<th>${c[0]}</th>`).join('')}<th></th></tr></thead><tbody>${R.length?P.items.map(r=>`<tr>${C.c.map(c=>`<td>${c[1](r)}</td>`).join('')}<td class="r">${C.x?C.x(r):''} <button class="btn sm" data-act="crE" data-k="${k}" data-id="${r.id}">Ubah</button> <button class="btn sm del" data-act="crD" data-k="${k}" data-id="${r.id}">Hapus</button></td></tr>`).join(''):`<tr><td colspan="${C.c.length+1}" class="empty">Belum ada data.</td></tr>`}</tbody></table></div>${P.html}</div>`}
-A.crE=b=>{const k=b.dataset.k,C=CR[k],s=C.s||k,r=S[s].find(x=>x.id===b.dataset.id);form(r?'Ubah data':C.n,C.f,r,v=>{if(r)Object.assign(r,v);else S[s].unshift({id:uid(k),...v});save();render();toast('Tersimpan')})};
+A.crE=b=>{_supCur=b.dataset.k==='stk'?((S.stok.find(x=>x.id===b.dataset.id)||{}).sup||''):'';const k=b.dataset.k,C=CR[k],s=C.s||k,r=S[s].find(x=>x.id===b.dataset.id);form(r?'Ubah data':C.n,C.f,r,v=>{if(r)Object.assign(r,v);else S[s].unshift({id:uid(k),...v});save();render();toast('Tersimpan')})};
 A.crD=b=>{const k=b.dataset.k,C=CR[k],s=C.s||k,r=S[s].find(x=>x.id===b.dataset.id);if(!r)return;const nm=r.nama||r.perihal||r.no||r.id;askReason('Hapus data: '+nm,'Penghapusan harus disertai alasan.',al=>{S[s]=S[s].filter(x=>x.id!==r.id);logAksi('Hapus '+C.t,nm,al);save();render();toast('Dihapus')})};
 A.srN=b=>{const r=S.surat.find(x=>x.id===b.dataset.id),o=['Diterima','Diproses','Selesai','Diarsipkan'];r.status=o[Math.min(3,o.indexOf(r.status)+1)];save();render()};
 V.sup=()=>crud('sup');V.srt=()=>crud('srt');
@@ -1498,12 +1500,17 @@ function trendKin(){const mo=U.kinM,ks=ar(6,i=>addM(mo+'-01',i-5).slice(0,7)),lb
 /* ---------- Pembagian Job ---------- */
 U.jobF='belum';const doneS=o=>['Selesai','Batal'].includes(o.status);
 const JF={belum:['Belum dibagi',o=>!o.teknisi&&!doneS(o)],tagih:['Selesai, belum ditagih',o=>o.status==='Selesai'&&!notaOf(o)],nota:['Sudah ditagih',o=>o.status==='Selesai'&&!!notaOf(o)],aktif:['Aktif',o=>!doneS(o)],hari:['Hari ini',o=>o.tgl===TODAY],all:['Semua',()=>true]};
+const bwRow=x=>`<tr><td><select data-bw="s">${S.stok.map(t=>`<option value="${t.id}"${x&&x.sid===t.id?' selected':''}>${esc(t.nama)} (${esc(t.sat)})</option>`).join('')}</select></td><td style="width:110px"><input data-bw="q" type="number" min="0" step="any" value="${x?x.qty:1}"></td><td style="width:44px"><button type="button" class="btn sm del" data-act="bwDel" aria-label="Hapus barang">×</button></td></tr>`;
+const bwBox=o=>S.stok.length?`<div><b>Barang yang dibawa teknisi</b> <small style="color:var(--muted)">(opsional, pilih dari daftar Stok Material)</small><div class="tw" style="margin-top:8px"><table style="min-width:0"><thead><tr><th>Barang</th><th>Jumlah</th><th></th></tr></thead><tbody id="bw">${((o&&o.bawa)||[]).map(bwRow).join('')}</tbody></table></div><button type="button" class="btn sm" data-act="bwAdd" style="margin-top:8px">+ Tambah barang</button></div>`:'<div class="info">Belum ada barang di menu Stok Material, jadi daftar barang yang dibawa teknisi belum bisa diisi.</div>';
+const bwRead=()=>{const m={};$$('#bw tr').forEach(r=>{const q=Number($('[data-bw=q]',r).value)||0,k=$('[data-bw=s]',r).value;if(q>0&&k)m[k]=(m[k]||0)+q});return Object.entries(m).map(([sid,qty])=>({sid,qty}))};
+const bawaTxt=o=>(o.bawa||[]).map(p=>{const t=S.stok.find(x=>x.id===p.sid);return t?esc(t.nama)+' '+p.qty+' '+esc(t.sat):''}).filter(Boolean).join(', ');
+A.bwAdd=()=>{const b=$('#bw');if(b)b.insertAdjacentHTML('beforeend',bwRow(null))};A.bwDel=b=>{const r=b.closest('tr');if(r)r.remove()};
 function jobForm(o){const T=S.emps.filter(e=>isTek(e));
  const F=[{k:'tgl',l:'Tanggal kerja',t:'date',req:1,def:TODAY},{k:'jam',l:'Jam',t:'time',def:'09:00'},{k:'nama',l:'Nama pelanggan',req:1},{k:'hp',l:'No. WA (62812...)'},{k:'alamat',l:'Alamat lokasi',wide:1,req:1},{k:'layanan',l:'Layanan',t:'select',o:Object.keys(SERV)},{k:'unit',l:'Jumlah unit AC',t:'number',min:1,def:1},{k:'nilai',l:'Nilai (Rp, kosong = otomatis)',t:'number',min:0,def:0},{k:'bobot',l:'Jenis pekerjaan',t:'select',o:['Minor (Ringan)','Sedang','Major (Berat)'],def:'Minor (Ringan)'},{k:'kontraktor',l:'Pekerjaan kontraktor?',t:'select',o:['Tidak','Ya'],def:'Tidak'},{k:'teknisi',l:'Tugaskan ke teknisi',t:'select',o:[['','Belum ditugaskan'],...T.map(e=>[e.id,e.nama])]},{k:'catatan',l:'Catatan untuk teknisi',wide:1}];
- form(o?'Ubah job '+o.id:'Input job baru',F,o,v=>{const baru=!o,prevT=o?o.teknisi:'';if(!v.nilai)v.nilai=(SERV[v.layanan]||0)*(v.unit||1);
+ form(o?'Ubah job '+o.id:'Input job baru',F,o,v=>{v.bawa=bwRead();const baru=!o,prevT=o?o.teknisi:'';if(!v.nilai)v.nilai=(SERV[v.layanan]||0)*(v.unit||1);
   if(o)Object.assign(o,v);else{const id='ORD-'+(Math.max(1000,...S.orders.map(x=>Number(x.id.slice(4))||0))+1);S.orders.push({id,status:'Baru',oleh:SES.nama,...v});o=S.orders[S.orders.length-1]}
   if(v.teknisi&&!o.ditugaskan)o.ditugaskan={oleh:SES.nama,tgl:TODAY};jobNotif(o,baru,prevT);
-  if(!S.cust.find(c=>c.nama===v.nama))S.cust.push({nama:v.nama,hp:v.hp,alamat:v.alamat});save();render();toast('Job '+o.id+' disimpan')});jobFilt(o)}
+  if(!S.cust.find(c=>c.nama===v.nama))S.cust.push({nama:v.nama,hp:v.hp,alamat:v.alamat});save();render();toast('Job '+o.id+' disimpan')},bwBox(o));jobFilt(o)}
 A.jobF=b=>{U.jobF=b.dataset.v;render()};A.jobNew=()=>jobForm(null);A.jobEd=b=>jobForm(S.orders.find(x=>x.id===b.dataset.id));
 CH.jobAs=el=>{const o=S.orders.find(x=>x.id===el.dataset.id);if(!o)return;const prevT=o.teknisi;o.teknisi=el.value;o.ditugaskan=el.value?{oleh:SES.nama,tgl:TODAY}:null;jobNotif(o,false,prevT);save();render();toast(el.value?o.id+' ditugaskan ke '+S.emps.find(e=>e.id===el.value).nama:o.id+' belum ditugaskan')};
 V.job=()=>{const T=S.emps.filter(e=>isTek(e)),day=S.att[TODAY]||{},ak=S.orders.filter(o=>!doneS(o)),nb=S.orders.filter(JF.belum[1]).length,R=S.orders.filter(JF[U.jobF][1]).sort((a,b)=>(U.jobF==='belum'||U.jobF==='tagih')?(a.tgl>b.tgl?1:-1):(a.tgl<b.tgl?1:-1)),P=paginate('job'+U.jobF,R,R.length);
@@ -1512,7 +1519,7 @@ V.job=()=>{const T=S.emps.filter(e=>isTek(e)),day=S.att[TODAY]||{},ak=S.orders.f
  <div class="grid g4"><div class="card kpi"><small>Belum dibagi</small><span class="v" style="color:${nb?'var(--bad)':'var(--good)'}">${nb}</span></div><div class="card kpi"><small>Job aktif</small><span class="v">${ak.length}</span></div><div class="card kpi"><small>Job hari ini</small><span class="v">${S.orders.filter(o=>o.tgl===TODAY).length}</span></div><div class="card kpi"><small>Selesai, belum ditagih</small><span class="v" style="color:${tagihN().length?'var(--heat)':'var(--good)'}">${tagihN().length}</span><span class="s">${rp(sum(tagihN(),o=>o.nilai))}</span></div></div>
  <div class="card"><div class="row" style="justify-content:space-between;cursor:pointer" role="button" tabindex="0" data-act="tgl" data-k="bebanT" aria-expanded="${U.bebanT?'true':'false'}"><h3 style="margin:0">Beban teknisi</h3><span style="color:var(--brand);font-weight:600;font-size:13px">${U.bebanT?'Sembunyikan ▲':'Lihat rincian ▼'}</span></div><div class="tw" style="margin-top:12px"${U.bebanT?'':' hidden'}><table><thead><tr><th>Teknisi</th><th>Kehadiran</th><th class="r">Job aktif</th><th class="r">Hari ini</th></tr></thead><tbody>${T.map(e=>{const a=day[e.id];return `<tr><td><b>${esc(e.nama)}</b><br><small>${esc(e.jabatan)}${e.tingkat?' · '+e.tingkat:''}</small></td><td>${a&&a.s==='Hadir'?'<span class="pill p-Aman">Hadir '+a.in+'</span>':'<span class="pill p-Belum">'+(a?a.s:'Belum absen')+'</span>'}</td><td class="r num">${ak.filter(o=>o.teknisi===e.id).length}</td><td class="r num">${S.orders.filter(o=>o.teknisi===e.id&&o.tgl===TODAY).length}</td></tr>`}).join('')}</tbody></table></div></div>
  ${U.jobF==='tagih'?'':tagihBanner()}<div class="tabs">${Object.entries(JF).map(([k,v])=>`<button class="chip" aria-pressed="${U.jobF===k}" data-act="jobF" data-v="${k}">${v[0]}</button>`).join('')}</div>
- <div class="card"><div class="tw"><table><thead><tr><th>Tanggal</th><th>Pelanggan</th><th>Layanan</th><th>Teknisi</th><th>Status</th><th>Nota</th><th></th></tr></thead><tbody>${R.length?P.items.map(o=>`<tr><td>${fds(o.tgl)}<br><small>${esc(o.jam||'')}</small></td><td><b>${esc(o.nama)}</b><br><small>${esc(o.alamat)}</small></td><td>${esc(o.layanan)} ×${o.unit}<br><small class="num">${o.id} · ${rp(o.nilai)}</small><br>${bobotPill(o)}</td><td>${sel(o)}</td><td><span class="pill p-${o.status}">${o.status}</span></td><td>${notaCell(o)}</td><td class="r"><button class="btn sm" data-act="jobEd" data-id="${o.id}">Ubah</button></td></tr>`).join(''):'<tr><td colspan="7" class="empty">Tidak ada job.</td></tr>'}</tbody></table></div>${P.html}</div>`};
+ <div class="card"><div class="tw"><table><thead><tr><th>Tanggal</th><th>Pelanggan</th><th>Layanan</th><th>Teknisi</th><th>Status</th><th>Nota</th><th></th></tr></thead><tbody>${R.length?P.items.map(o=>`<tr><td>${fds(o.tgl)}<br><small>${esc(o.jam||'')}</small></td><td><b>${esc(o.nama)}</b><br><small>${esc(o.alamat)}</small></td><td>${esc(o.layanan)} ×${o.unit}<br><small class="num">${o.id} · ${rp(o.nilai)}</small><br>${bobotPill(o)}${bawaTxt(o)?`<br><small>Bawa: ${bawaTxt(o)}</small>`:''}</td><td>${sel(o)}</td><td><span class="pill p-${o.status}">${o.status}</span></td><td>${notaCell(o)}</td><td class="r"><button class="btn sm" data-act="jobEd" data-id="${o.id}">Ubah</button></td></tr>`).join(''):'<tr><td colspan="7" class="empty">Tidak ada job.</td></tr>'}</tbody></table></div>${P.html}</div>`};
 /* ---------- Monitoring Sewa AC ---------- */
 const SW=['Booking','Pengiriman','Terpasang','Pengambilan','Selesai'];
 const swD=r=>diffD(r.selesai,TODAY);
@@ -1690,7 +1697,7 @@ A.lapWA=()=>{const d=U.lapD||TODAY,kv=KJS().filter(k=>k.tgl===d),pn=PNS().filter
 /* ================= KINERJA SALES, TARGET HARIAN & KARTU INTERAKTIF ================= */
 const isTek=e=>!['Admin','Sales'].includes(e.jabatan);
 const salesL=()=>S.emps.filter(e=>e.jabatan==='Sales');
-const empNm=id=>(S.emps.find(e=>e.id===id)||{nama:'-'}).nama;
+const empNm=id=>(S.emps.find(e=>e.id===id)||(S.empsOld||[]).find(e=>e.id===id)||{nama:'-'}).nama;
 const mySid=()=>SES&&SES.role==='sales'?SES.empId:'';
 const KJS=()=>{const a=S.kjg||[],m=mySid();return m?a.filter(k=>k.sid===m):a};
 const PNS=()=>{const a=S.pnw||[],m=mySid();return m?a.filter(p=>p.sid===m):a};
@@ -2016,9 +2023,10 @@ A.stIn=b=>{const s=S.stok.find(x=>x.id===b.dataset.id);
  form('Barang masuk: '+s.nama,[
   {k:'q',l:'Jumlah masuk ('+s.sat+')',t:'number',min:0,step:'any',req:1},
   {k:'hb',l:'Harga beli per '+s.sat+' (Rp)',t:'number',min:0,def:s.hargaBeli||0},
+  {k:'sup',l:'Nama pemasok',t:'select',o:supOpts(s.sup||''),def:s.sup||''},
   {k:'ket',l:'Keterangan / no. nota',def:'Pembelian dari pemasok',wide:1}],null,
   v=>{if(v.q>0){s.qty=Math.round((s.qty+v.q)*100)/100;if(v.hb>0)s.hargaBeli=v.hb;
-   mut(s,'Masuk',v.q,v.ket+(v.hb>0?' · beli '+rp(v.hb)+'/'+s.sat:''));save();render();toast('Stok bertambah')}})};
+   if(v.sup)s.sup=v.sup;mut(s,'Masuk',v.q,v.ket+(v.sup?' · pemasok '+v.sup:'')+(v.hb>0?' · beli '+rp(v.hb)+'/'+s.sat:''));save();render();toast('Stok bertambah')}})};
 {const _stk=V.stk;V.stk=()=>{const nv=sum(S.stok,s=>(s.qty||0)*(s.hargaBeli||0));
  return _stk().replace('<div class="grid g4">','<div class="grid g4"><div class="card kpi"><small>Nilai stok (harga beli)</small><span class="v">'+rp(nv)+'</span><span class="s">stok × harga beli</span></div>')}}
 
@@ -2825,6 +2833,25 @@ A.akNo=b=>akSet(b,'inactive','Akun ditolak');
  window.open=function(u){if(!mobile&&typeof u==='string'&&/^https:\/\/wa\.me\//.test(u)){openWA(u);return null}return _wo.apply(window,arguments)};
  document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('a[href^="https://wa.me/"]');if(!a||mobile||e.button||e.ctrlKey||e.metaKey||e.shiftKey)return;e.preventDefault();openWA(a.href)},true);
 })();
+</script>
+<script>
+/* ---------- Daftar Pegawai (Direktur & Admin Super): hapus pegawai yang sudah resign ---------- */
+ICON.peg='<circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 8h6M16 12h6"/>';EMO.peg='🧑‍💼';
+{const _at=allowedTabs;allowedTabs=function(){const t=_at();return SES&&(SES.role==='direktur'||SES.role==='admin')&&!t.some(x=>x[0]==='peg')?t.concat([['peg','Daftar Pegawai']]):t}}
+V.peg=()=>{
+ if(!(isAp()||isSA()))return '<div class="note">Menu ini hanya untuk Direktur dan Admin Super.</div>';
+ const E=[...S.emps].sort((a,b)=>String(a.nama).localeCompare(String(b.nama))),P=paginate('peg',E,E.length);
+ return `<div class="head"><div><h1>Daftar Pegawai</h1><p>Hapus pegawai yang sudah tidak bekerja agar tidak muncul lagi di absensi, pembagian job, dan kinerja.</p></div><button class="btn pri" data-act="newEmp">+ Karyawan</button></div>
+ <div class="card"><h3>Pegawai (${E.length})</h3><div class="tw"><table><thead><tr><th>Nama</th><th>Jabatan</th><th class="r">Job aktif</th><th></th></tr></thead><tbody>${E.length?P.items.map(e=>{const n=S.orders.filter(o=>o.teknisi===e.id&&ACT_ST.includes(o.status)).length;
+  return `<tr><td><b>${esc(e.nama)}</b></td><td>${esc(e.jabatan)}${e.tingkat?' · '+esc(e.tingkat):''}</td><td class="r num">${n}</td><td class="r"><button class="btn sm del" data-act="pegDel" data-id="${e.id}">Hapus</button></td></tr>`}).join(''):'<tr><td colspan="4" class="empty">Belum ada pegawai.</td></tr>'}</tbody></table></div>${P.html}
+ <p style="color:var(--muted);margin:10px 0 0;font-size:12px">Riwayat order, absensi, dan kinerja lama tetap tersimpan. Akun login pegawai dihapus terpisah lewat menu Kelola Akun.</p></div>`};
+A.pegDel=b=>{if(!(isAp()||isSA()))return;const e=S.emps.find(x=>x.id===b.dataset.id);if(!e)return;
+ if(SES.empId&&e.id===SES.empId){toast('Tidak bisa menghapus pegawai yang sedang login');return}
+ const n=S.orders.filter(o=>o.teknisi===e.id&&ACT_ST.includes(o.status)).length;
+ if(n){toast(e.nama+' masih punya '+n+' job aktif. Alihkan atau selesaikan dulu di Pembagian Job.');return}
+ askReason('Hapus pegawai: '+e.nama,'Pegawai dihapus dari daftar absensi, pembagian job, dan kinerja. Riwayat lama tetap tersimpan. Alasan wajib diisi.',al=>{
+  S.empsOld=S.empsOld||[];S.empsOld.push({...e,dihapus:TODAY});S.emps=S.emps.filter(x=>x.id!==e.id);
+  logAksi('Hapus pegawai',e.nama+' ('+e.jabatan+')',al);save();render();toast('Pegawai '+e.nama+' dihapus')})};
 </script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}</script>
 </body>
