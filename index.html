@@ -338,7 +338,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brand-soft);bord
 .btn.wa{background:#1fa855;border-color:#1fa855;color:#fff}
 .btn.wa:hover{filter:brightness(1.08)}
 /* ---- Watermark ---- */
-body::after{content:"AYRAVA PROJECT";position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);white-space:nowrap;z-index:2147483000;font:700 15px/1 system-ui,-apple-system,"Segoe UI",sans-serif;letter-spacing:.3em;color:#8593a3;opacity:.5;pointer-events:none;user-select:none;-webkit-user-select:none}
+body::after{content:"A SITECLUB PROJECT";position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);white-space:nowrap;z-index:2147483000;font:700 15px/1 system-ui,-apple-system,"Segoe UI",sans-serif;letter-spacing:.3em;color:#8593a3;opacity:.5;pointer-events:none;user-select:none;-webkit-user-select:none}
 @media (max-width:480px){body::after{font-size:11px;letter-spacing:.22em}}
 @media print{body::after{display:none}}
 </style>
@@ -907,7 +907,7 @@ V.wa=()=>{
   <div class="tw"><table><thead><tr><th>Pelanggan</th><th>Terakhir cuci</th><th>Siklus</th><th>Jatuh tempo</th><th>Status</th><th>Pesan</th><th></th></tr></thead><tbody>
   ${rows.length?P.items.map(r=>`<tr><td><b>${esc(r.nama)}</b><br><small class="num" style="color:var(--muted)">${esc(r.hp)}</small></td><td>${fd(r.last)}</td><td><select data-chg="remInt" data-n="${esc(r.nama)}" aria-label="Siklus cuci ${esc(r.nama)}" style="width:auto;min-width:96px">${[1,2,3].map(n=>`<option value="${n}"${r.iv===n?' selected':''}>${n} bulan</option>`).join('')}${[1,2,3].includes(r.iv)?'':`<option value="${r.iv}" selected>${r.iv} bulan</option>`}</select></td><td>${fd(r.due)}<br><small style="color:var(--muted)">${r.left<0?Math.abs(r.left)+' hari lewat':r.left+' hari lagi'}</small></td>
   <td><span class="pill p-${r.st}">${r.pending?'Sudah dijadwalkan':r.st}</span></td><td>${r.sent?'<span class="pill p-Lunas">Ditandai terkirim '+fds(r.sent)+'</span>':'<small style="color:var(--muted)">Belum dikirim</small>'}</td>
-  <td class="r"><div class="row" style="justify-content:flex-end"><a class="btn sm pri" href="${waLink(r.hp,remMsg(r))}" target="_blank" rel="noopener">Buka WhatsApp</a><button class="btn sm" data-act="remCopy" data-n="${esc(r.nama)}">Salin</button><button class="btn sm" data-act="remMark" data-n="${esc(r.nama)}">Tandai terkirim</button></div></td></tr>`).join(''):'<tr><td colspan="7" class="empty">Tidak ada pelanggan yang perlu dihubungi hari ini.</td></tr>'}
+  <td class="r"><div class="row" style="justify-content:flex-end">${waNo(r.hp).length>=10?`<a class="btn sm pri" href="${waLink(r.hp,remMsg(r))}" target="_blank" rel="noopener">Buka WhatsApp</a>`:'<small style="color:var(--bad)">No. WA kosong / tidak valid</small>'}<button class="btn sm" data-act="remCopy" data-n="${esc(r.nama)}">Salin</button><button class="btn sm" data-act="remMark" data-n="${esc(r.nama)}">Tandai terkirim</button></div></td></tr>`).join(''):'<tr><td colspan="7" class="empty">Tidak ada pelanggan yang perlu dihubungi hari ini.</td></tr>'}
   </tbody></table></div>${P.html}</div>`;
 };
 A.wf=b=>{U.wf=b.dataset.v;render()};
@@ -2828,7 +2828,8 @@ A.akNo=b=>akSet(b,'inactive','Akun ditolak');
   let opened=false;const mark=()=>{opened=true};
   window.addEventListener('blur',mark,{once:true});document.addEventListener('visibilitychange',mark,{once:true});
   const a=document.createElement('a');a.href=app;a.style.display='none';document.body.appendChild(a);a.click();a.remove();
-  setTimeout(()=>{window.removeEventListener('blur',mark);document.removeEventListener('visibilitychange',mark);if(!opened&&!document.hidden)_wo(url,'_blank','noopener')},2500);
+  try{toast('Membuka WhatsApp...')}catch(_){}
+  setTimeout(()=>{window.removeEventListener('blur',mark);document.removeEventListener('visibilitychange',mark);if(!opened&&!document.hidden){try{toast('Aplikasi WhatsApp Desktop tidak terdeteksi, membuka WhatsApp Web')}catch(_){}_wo(url,'_blank','noopener')}},2500);
  }
  window.open=function(u){if(!mobile&&typeof u==='string'&&/^https:\/\/wa\.me\//.test(u)){openWA(u);return null}return _wo.apply(window,arguments)};
  document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('a[href^="https://wa.me/"]');if(!a||mobile||e.button||e.ctrlKey||e.metaKey||e.shiftKey)return;e.preventDefault();openWA(a.href)},true);
