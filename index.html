@@ -2843,8 +2843,15 @@ V.peg=()=>{
  akLoad();const E=[...S.emps].sort((a,b)=>String(a.nama).localeCompare(String(b.nama))),P=paginate('peg',E,E.length);
  return `<div class="head"><div><h1>Daftar Pegawai</h1><p>Hapus pegawai yang sudah tidak bekerja agar tidak muncul lagi di absensi, pembagian job, dan kinerja.</p></div><button class="btn pri" data-act="newEmp">+ Karyawan</button></div>
  <div class="card"><h3>Pegawai (${E.length})</h3><div class="tw"><table><thead><tr><th>Nama</th><th>Jabatan</th><th>Akun login</th><th class="r">Job aktif</th><th></th></tr></thead><tbody>${E.length?P.items.map(e=>{const ak=AK.items.find(u=>u.emp_id===e.id),n=S.orders.filter(o=>o.teknisi===e.id&&ACT_ST.includes(o.status)).length;
-  return `<tr><td><b>${esc(e.nama)}</b></td><td>${esc(e.jabatan)}${e.tingkat?' · '+esc(e.tingkat):''}</td><td>${ak?'<span class="num">'+esc(ak.username||'')+'</span>':'<small style="color:var(--muted)">belum ada akun</small>'}</td><td class="r num">${n}</td><td class="r"><button class="btn sm del" data-act="pegDel" data-id="${e.id}">Hapus</button></td></tr>`}).join(''):'<tr><td colspan="5" class="empty">Belum ada pegawai.</td></tr>'}</tbody></table></div>${P.html}
+  return `<tr><td><b>${esc(e.nama)}</b></td><td>${esc(e.jabatan)}${e.tingkat?' · '+esc(e.tingkat):''}</td><td>${ak?'<span class="num">'+esc(ak.username||'')+'</span>':'<small style="color:var(--muted)">belum ada akun</small>'}</td><td class="r num">${n}</td><td class="r"><button class="btn sm" data-act="pegEd" data-id="${e.id}">Edit</button> <button class="btn sm del" data-act="pegDel" data-id="${e.id}">Hapus</button></td></tr>`}).join(''):'<tr><td colspan="5" class="empty">Belum ada pegawai.</td></tr>'}</tbody></table></div>${P.html}
  <p style="color:var(--muted);margin:10px 0 0;font-size:12px">Riwayat order, absensi, dan kinerja lama tetap tersimpan. Akun login pegawai dihapus terpisah lewat menu Kelola Akun.</p></div>`};
+A.pegEd=(b,ev,pre)=>{if(!(isAp()||isSA()))return;const e=S.emps.find(x=>x.id===(pre?pre._id:b.dataset.id));if(!e)return;
+ const J=['Teknisi','Helper','Sales','Admin'];if(!J.includes(e.jabatan))J.push(e.jabatan);
+ form('Ubah pegawai',[{k:'nama',l:'Nama',req:1,wide:1},{k:'jabatan',l:'Jabatan',t:'select',o:J},{k:'tingkat',l:'Tingkat teknisi (wajib jika jabatan Teknisi)',t:'select',o:[['','Pilih tingkat...'],...Object.entries(TK)]},{k:'target',l:'Target order per bulan',t:'number',min:0}],pre||e,v=>{
+  const nm=String(v.nama).trim();if(!nm){toast('Nama wajib diisi');return}
+  if(v.jabatan==='Teknisi'&&!v.tingkat){toast('Teknisi wajib memilih tingkat (T1, T2 atau T3)');setTimeout(()=>A.pegEd(null,null,{...v,_id:e.id}),50);return}
+  e.nama=nm;e.jabatan=v.jabatan;e.target=v.target;if(v.jabatan==='Teknisi')e.tingkat=v.tingkat;else delete e.tingkat;
+  save();render();toast('Data '+nm+' diperbarui')})};
 function pegHapus(e,al){S.empsOld=S.empsOld||[];S.empsOld.push({...e,dihapus:TODAY});S.emps=S.emps.filter(x=>x.id!==e.id);
  logAksi('Hapus pegawai',e.nama+' ('+e.jabatan+')',al);save();render();toast('Pegawai '+e.nama+' dihapus')}
 A.pegDel=b=>{if(!(isAp()||isSA()))return;const e=S.emps.find(x=>x.id===b.dataset.id);if(!e)return;
