@@ -2612,7 +2612,7 @@ const AK={items:[],t:0,loading:false};
 async function akLoad(force){
  if(AK.loading)return;if(!force&&Date.now()-AK.t<20000)return;
  AK.loading=true;
- try{const {data,error}=await supabaseClient.from('profiles').select('id,username,nama,role,status').order('nama');
+ try{const {data,error}=await supabaseClient.from('profiles').select('id,username,nama,role,status,emp_id').order('nama');
   if(error)console.error('Gagal memuat akun:',error);else AK.items=data||[]}catch(e){console.error(e)}
  AK.t=Date.now();AK.loading=false;
  if(S&&SES&&S.tab==='akun'&&$('#modal').hidden)render();
@@ -2748,7 +2748,7 @@ ICON.hapusdata='<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/>';EMO.hapusdata='�
 {const _at=allowedTabs;allowedTabs=function(){const t=_at();
  if(SES&&SES.role==='admin'){if(!t.some(x=>x[0]==='kelola'))t.push(['kelola','Kelola Akun']);if(!t.some(x=>x[0]==='hapusdata'))t.push(['hapusdata','Hapus Semua Data'])}
  return t}}
-{const _al=akLoad;akLoad=async function(f){const t0=AK.t;await _al(f);if(AK.t!==t0&&S&&SES&&(S.tab==='kelola'||S.tab==='apr')&&$('#modal').hidden)render()}}
+{const _al=akLoad;akLoad=async function(f){const t0=AK.t;await _al(f);if(AK.t!==t0&&S&&SES&&(S.tab==='kelola'||S.tab==='apr'||S.tab==='peg')&&$('#modal').hidden)render()}}
 const KL={only:false};
 V.kelola=()=>{
  if(SES.role!=='admin')return '<div class="note">Menu ini hanya untuk Admin Super.</div>';
@@ -2840,18 +2840,24 @@ ICON.peg='<circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 
 {const _at=allowedTabs;allowedTabs=function(){const t=_at();return SES&&(SES.role==='direktur'||SES.role==='admin')&&!t.some(x=>x[0]==='peg')?t.concat([['peg','Daftar Pegawai']]):t}}
 V.peg=()=>{
  if(!(isAp()||isSA()))return '<div class="note">Menu ini hanya untuk Direktur dan Admin Super.</div>';
- const E=[...S.emps].sort((a,b)=>String(a.nama).localeCompare(String(b.nama))),P=paginate('peg',E,E.length);
+ akLoad();const E=[...S.emps].sort((a,b)=>String(a.nama).localeCompare(String(b.nama))),P=paginate('peg',E,E.length);
  return `<div class="head"><div><h1>Daftar Pegawai</h1><p>Hapus pegawai yang sudah tidak bekerja agar tidak muncul lagi di absensi, pembagian job, dan kinerja.</p></div><button class="btn pri" data-act="newEmp">+ Karyawan</button></div>
- <div class="card"><h3>Pegawai (${E.length})</h3><div class="tw"><table><thead><tr><th>Nama</th><th>Jabatan</th><th class="r">Job aktif</th><th></th></tr></thead><tbody>${E.length?P.items.map(e=>{const n=S.orders.filter(o=>o.teknisi===e.id&&ACT_ST.includes(o.status)).length;
-  return `<tr><td><b>${esc(e.nama)}</b></td><td>${esc(e.jabatan)}${e.tingkat?' · '+esc(e.tingkat):''}</td><td class="r num">${n}</td><td class="r"><button class="btn sm del" data-act="pegDel" data-id="${e.id}">Hapus</button></td></tr>`}).join(''):'<tr><td colspan="4" class="empty">Belum ada pegawai.</td></tr>'}</tbody></table></div>${P.html}
+ <div class="card"><h3>Pegawai (${E.length})</h3><div class="tw"><table><thead><tr><th>Nama</th><th>Jabatan</th><th>Akun login</th><th class="r">Job aktif</th><th></th></tr></thead><tbody>${E.length?P.items.map(e=>{const ak=AK.items.find(u=>u.emp_id===e.id),n=S.orders.filter(o=>o.teknisi===e.id&&ACT_ST.includes(o.status)).length;
+  return `<tr><td><b>${esc(e.nama)}</b></td><td>${esc(e.jabatan)}${e.tingkat?' · '+esc(e.tingkat):''}</td><td>${ak?'<span class="num">'+esc(ak.username||'')+'</span>':'<small style="color:var(--muted)">belum ada akun</small>'}</td><td class="r num">${n}</td><td class="r"><button class="btn sm del" data-act="pegDel" data-id="${e.id}">Hapus</button></td></tr>`}).join(''):'<tr><td colspan="5" class="empty">Belum ada pegawai.</td></tr>'}</tbody></table></div>${P.html}
  <p style="color:var(--muted);margin:10px 0 0;font-size:12px">Riwayat order, absensi, dan kinerja lama tetap tersimpan. Akun login pegawai dihapus terpisah lewat menu Kelola Akun.</p></div>`};
+function pegHapus(e,al){S.empsOld=S.empsOld||[];S.empsOld.push({...e,dihapus:TODAY});S.emps=S.emps.filter(x=>x.id!==e.id);
+ logAksi('Hapus pegawai',e.nama+' ('+e.jabatan+')',al);save();render();toast('Pegawai '+e.nama+' dihapus')}
 A.pegDel=b=>{if(!(isAp()||isSA()))return;const e=S.emps.find(x=>x.id===b.dataset.id);if(!e)return;
  if(SES.empId&&e.id===SES.empId){toast('Tidak bisa menghapus pegawai yang sedang login');return}
- const n=S.orders.filter(o=>o.teknisi===e.id&&ACT_ST.includes(o.status)).length;
- if(n){toast(e.nama+' masih punya '+n+' job aktif. Alihkan atau selesaikan dulu di Pembagian Job.');return}
- askReason('Hapus pegawai: '+e.nama,'Pegawai dihapus dari daftar absensi, pembagian job, dan kinerja. Riwayat lama tetap tersimpan. Alasan wajib diisi.',al=>{
-  S.empsOld=S.empsOld||[];S.empsOld.push({...e,dihapus:TODAY});S.emps=S.emps.filter(x=>x.id!==e.id);
-  logAksi('Hapus pegawai',e.nama+' ('+e.jabatan+')',al);save();render();toast('Pegawai '+e.nama+' dihapus')})};
+ const act=S.orders.filter(o=>o.teknisi===e.id&&ACT_ST.includes(o.status)),n=act.length;
+ if(!n){askReason('Hapus pegawai: '+e.nama,'Pegawai dihapus dari daftar absensi, pembagian job, dan kinerja. Riwayat lama tetap tersimpan. Alasan wajib diisi.',al=>pegHapus(e,al));return}
+ const O=S.emps.filter(x=>x.id!==e.id&&isTek(x)).sort((x,y)=>(x.nama===e.nama?0:1)-(y.nama===e.nama?0:1));
+ if(!O.length){toast(e.nama+' masih punya '+n+' job aktif dan tidak ada teknisi lain untuk menerimanya');return}
+ modal(`<h2 style="font-size:20px">Hapus pegawai: ${esc(e.nama)}</h2><div class="info">${esc(e.nama)} masih punya <b>${n} job aktif</b>. Pilih pegawai yang menerima job itu (pilih yang punya akun login jika ini data ganda), lalu isi alasan.</div><form id="mf" class="grid" style="gap:14px"><label class="f">Pindahkan ${n} job aktif ke<select id="pg_to">${O.map(x=>{const ak=AK.items.find(u=>u.emp_id===x.id);return `<option value="${x.id}">${esc(x.nama)}${tkTag(x)}${ak?' · akun '+esc(ak.username||''):' · belum ada akun'}</option>`}).join('')}</select></label><label class="f">Alasan penghapusan (wajib)<textarea id="pg_rs" rows="2" required placeholder="Mis. data ganda / resign"></textarea></label><div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-act="close">Batal</button><button class="btn pri" type="submit">Pindahkan job &amp; hapus</button></div></form>`,sh=>{
+  $('#mf',sh).addEventListener('submit',ev=>{ev.preventDefault();const to=$('#pg_to',sh).value,al=$('#pg_rs',sh).value.trim();
+   if(!okReason(al)){toast('Alasan wajib diisi (minimal 5 karakter)');return}
+   act.forEach(o=>{o.teknisi=to;o.ditugaskan={oleh:SES.nama,tgl:TODAY};notify(['teknisi'],'Job dialihkan ke Anda',o.id+' · '+o.nama+' · '+o.layanan+' ×'+o.unit+' · '+fds(o.tgl),{emp:to,tipe:'job',tab:'dash'})});
+   closeModal();pegHapus(e,al+' (job aktif dipindah ke '+empNm(to)+')')})})};
 </script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}</script>
 </body>
