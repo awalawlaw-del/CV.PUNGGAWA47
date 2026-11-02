@@ -771,7 +771,7 @@ function render(){
   if(!SES){showLogin();return}
   hideLogin();ensureTab();
   const ae=document.activeElement,id=ae&&ae.id,ss=ae&&ae.selectionStart;
-  $('#view').innerHTML=((SES.role==='teknisi'||(SES.role==='sales'&&S.tab==='abs'))?V[S.tab+'T']:V[S.tab])();
+  $('#view').innerHTML=((SES.role==='teknisi'||SES.role==='driver'||(SES.role==='sales'&&S.tab==='abs'))?V[S.tab+'T']:V[S.tab])();
   $('#nav').innerHTML=allowedTabs().map(t=>`<button data-act="tab" data-t="${t[0]}"${S.tab===t[0]?' aria-current="page"':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON[t[0]]}</svg>${t[1]}</button>`).join('');
   $('#coName').textContent=S.set.nama;
   $('#sidefoot').innerHTML=`${S.demo?'<div class="note">Data contoh. Hapus sebelum dipakai sungguhan.</div><button class="btn sm" data-act="clearDemo">Hapus data contoh</button>':''}<div class="row"><button class="btn sm" data-act="backup">Simpan cadangan</button><button class="btn sm" data-act="restore">Pulihkan</button></div>`;
@@ -1011,7 +1011,7 @@ async function saveFile(name,data){try{if(typeof claude==='undefined'){const u=U
 A.dlInv=b=>{const i=S.inv.find(x=>x.id===b.dataset.id);saveFile(i.no+'.html','<!doctype html><meta charset="utf-8"><title>'+i.no+'</title><body style="font-family:sans-serif;margin:24px">'+invHTML(i).replace(/<style[\s\S]*?<\/style>/g,'')+'</body>')};
 </script>
 <script>
-const ROLE_L={admin:'Admin Super',direktur:'Direktur',adminjual:'Admin Penjualan',adminops:'Admin Operasional',sales:'Sales',teknisi:'Teknisi'};
+const ROLE_L={admin:'Admin Super',direktur:'Direktur',adminjual:'Admin Penjualan',adminops:'Admin Operasional',sales:'Sales',teknisi:'Teknisi',driver:'Driver'};
 const LOGO='<div class="logo lg"><img src="'+LOGO_URI+'" alt="Logo"></div>';
 const SKEY='awaljaya.ses',PAGE=15;
 const DEMO_OPEN=false; /* true = tombol masuk 1 klik tanpa kata sandi. Ubah ke false untuk pemakaian sungguhan. */
@@ -1037,6 +1037,7 @@ const LGX_ICO={
  adminjual:'<circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.7 11.5a2 2 0 0 0 2 1.5h7.6a2 2 0 0 0 2-1.5L21 7H6"/>',
  adminops:'<path d="M9 4h6v3H9z"/><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 12h6M9 16h4"/>',
  sales:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+ driver:'<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="1.5"/><circle cx="17" cy="18" r="1.5"/>',
  teknisi:'<path d="M14.7 6.3a4 4 0 0 0-5.4 5.2L3 17.8 6.2 21l6.3-6.3a4 4 0 0 0 5.2-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/>'};
 const lgxSvg=(k,c)=>`<svg${c?` class="${c}"`:''} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${LGX_ICO[k]}</svg>`;
 function showLogin(){
@@ -1052,7 +1053,7 @@ function showLogin(){
    <h1>Pekerjaan tertata, <em>hari lebih tenang.</em></h1><p>Order, absensi, invoice, dan keuangan tercatat rapi di satu tempat.</p></div>
   <div class="lgx-feat"><div>${lgxSvg('job')}<b>Order &amp; job</b><span>Pembagian teknisi yang jelas</span></div><div>${lgxSvg('keu')}<b>Invoice &amp; keuangan</b><span>Tagihan dan jurnal rapi</span></div><div>${lgxSvg('pin')}<b>Absensi &amp; kinerja</b><span>Absen berbasis lokasi</span></div></div></div>
   <div class="lg-form lgx-side"><form class="lg-box lgx-card" id="lf"><div><h2>${DEMO_OPEN?'Coba demo':'Selamat datang'}</h2><p class="lgx-sub">${DEMO_OPEN?'Pilih peran untuk langsung mencoba.':'Masuk ke '+esc(S.set.nama)+' untuk melanjutkan.'}</p></div>${DEMO_OPEN?demoBox():''}
-  <div><span class="lgx-lab">Masuk sebagai <b>${ROLE_L[L.role]}</b></span><div class="seg lgx-roles" role="group" aria-label="Masuk sebagai">${['admin','direktur','adminjual','adminops','sales','teknisi'].map(r=>`<button type="button" data-act="lrole" data-r="${r}" aria-pressed="${L.role===r}">${lgxSvg(r)}<span>${ROLE_L[r]}</span></button>`).join('')}</div></div>
+  <div><span class="lgx-lab">Masuk sebagai <b>${ROLE_L[L.role]}</b></span><div class="seg lgx-roles" role="group" aria-label="Masuk sebagai">${['admin','direktur','adminjual','adminops','sales','teknisi','driver'].map(r=>`<button type="button" data-act="lrole" data-r="${r}" aria-pressed="${L.role===r}">${lgxSvg(r)}<span>${ROLE_L[r]}</span></button>`).join('')}</div></div>
   <label class="f lgx-f"><span class="lgx-lab" style="margin-bottom:6px">Nama pengguna</span><span class="lgx-fld">${lgxSvg('user')}<input id="lu" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Masukkan nama pengguna" value="${esc(L.u||'')}" required></span></label>
   <label class="f lgx-f"><span class="lgx-lab" style="margin-bottom:6px">Kata sandi</span><span class="lgx-fld">${lgxSvg('lock')}<input id="lp" type="password" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="current-password" placeholder="Masukkan kata sandi" required><button type="button" class="lgx-eye" data-act="lpw" aria-pressed="false" aria-label="Tampilkan kata sandi">${lgxSvg('eye','on')}${lgxSvg('eyeoff','off')}</button></span></label>
   <div class="lerr lgx-err" role="alert">${esc(L.err)}</div>
@@ -1164,7 +1165,7 @@ V.absT=()=>{
   const cls=l=>l==='Belum absen'?'Belum':l==='Hadir, telat'?'Telat':l;
   const hist=ds.slice().reverse().map(t=>{const x=(S.att[t]||{})[id];return{t,x,l:lbl(x,t)}});
   const c=l=>hist.filter(h=>h.l===l).length,P=paginate('ab',hist,mo),tl=a?lbl(a,TODAY):'Belum absen';
-  return `<div class="head"><div><h1>Absensi</h1><p>${fd(TODAY)}, jam masuk ${S.set.jamMasuk}</p></div></div>
+  return `<div class="head"><div><h1>Absensi</h1><p>${fd(TODAY)}, jam kerja ${S.set.jamMasuk} - ${S.set.jamKeluar||'18:00'}</p></div></div>
   <div class="card"><h3>Absen hari ini</h3><div class="row" style="gap:20px;margin-bottom:12px"><span class="pill p-${cls(tl)}">${tl}</span><span>Masuk <b class="num">${a&&a.in||'-'}</b></span><span>Pulang <b class="num">${a&&a.out||'-'}</b></span></div>
   <div class="row">${!a?`<button class="btn pri" data-act="clockIn" data-id="${id}">Absen masuk</button><select data-chg="absS" data-id="${id}" style="width:auto"><option value="">Izin / sakit...</option><option>Izin</option><option>Sakit</option></select>`:a.s==='Hadir'&&!a.out?`<button class="btn pri" data-act="clockOut" data-id="${id}">Absen pulang</button>`:'<span style="color:var(--muted)">Absensi hari ini sudah tercatat.</span>'}</div></div>
   <div class="card"><div class="row" style="justify-content:space-between"><h3>Riwayat kehadiran</h3><input id="absm" type="month" value="${mo}" data-inp="absM" style="width:auto"></div>
@@ -1187,7 +1188,7 @@ V.abs=()=>{
   const rec=E.map(e=>{let h=0,tl=0,iz=0,sk=0,al=0;ds.forEach(t=>{const a=(S.att[t]||{})[e.id];if(!a){if(t<TODAY)al++;return}
     if(a.s==='Hadir'){h++;if(isLate(a.in))tl++}else if(a.s==='Izin')iz++;else if(a.s==='Sakit')sk++;else al++});
     return{e,h,tl,iz,sk,al,pct:ds.length?Math.round(h/ds.length*100):0}});
-  return `<div class="head"><div><h1>Absensi Karyawan</h1><p>${fd(TODAY)}, jam masuk ${S.set.jamMasuk}</p></div><button class="btn" data-act="newEmp">+ Karyawan</button></div>
+  return `<div class="head"><div><h1>Absensi Karyawan</h1><p>${fd(TODAY)}, jam kerja ${S.set.jamMasuk} - ${S.set.jamKeluar||'18:00'}</p></div><button class="btn" data-act="newEmp">+ Karyawan</button></div>
   <div class="grid g4"><div class="card kpi"><small>Hadir hari ini</small><span class="v">${hadir}/${E.length}</span><span class="s">karyawan sudah absen masuk</span></div>
   <div class="card kpi"><small>Terlambat hari ini</small><span class="v" style="color:var(--bad)">${E.filter(e=>day[e.id]&&isLate(day[e.id].in)).length}</span><span class="s">lewat ${S.set.jamMasuk}</span></div></div>
   <div class="card"><h3>Absen hari ini</h3><div class="tw"><table><thead><tr><th>Karyawan</th><th>Status</th><th>Masuk</th><th>Pulang</th><th></th></tr></thead><tbody>
@@ -1204,7 +1205,7 @@ A.clockIn=b=>{(S.att[TODAY]=S.att[TODAY]||{})[b.dataset.id]={s:'Hadir',in:nowHM(
 A.clockOut=b=>{S.att[TODAY][b.dataset.id].out=nowHM();save();render();toast('Absen pulang '+nowHM())};
 A.resetAbs=b=>{delete S.att[TODAY][b.dataset.id];save();render()};
 CH.absS=el=>{if(!el.value)return;(S.att[TODAY]=S.att[TODAY]||{})[el.dataset.id]={s:el.value};save();render()};
-A.newEmp=(b,e,pre)=>form('Karyawan baru',[{k:'nama',l:'Nama',req:1},{k:'jabatan',l:'Jabatan',t:'select',o:['Teknisi','Helper','Sales','Admin']},{k:'tingkat',l:'Tingkat teknisi (wajib diisi jika jabatan Teknisi)',t:'select',o:[['','Pilih tingkat...'],...Object.entries(TK)],wide:1},{k:'target',l:'Target order per bulan',t:'number',min:0,def:20},{k:'pw',l:'Kata sandi login',def:'teknisi123'}],pre||null,v=>{
+A.newEmp=(b,e,pre)=>form('Karyawan baru',[{k:'nama',l:'Nama',req:1},{k:'jabatan',l:'Jabatan',t:'select',o:['Teknisi','Helper','Sales','Driver','Admin']},{k:'tingkat',l:'Tingkat teknisi (wajib diisi jika jabatan Teknisi)',t:'select',o:[['','Pilih tingkat...'],...Object.entries(TK)],wide:1},{k:'target',l:'Target order per bulan',t:'number',min:0,def:20},{k:'pw',l:'Kata sandi login',def:'teknisi123'}],pre||null,v=>{
   if(v.jabatan==='Teknisi'&&!v.tingkat){toast('Teknisi wajib memilih tingkat (T1, T2 atau T3)');setTimeout(()=>A.newEmp(null,null,v),50);return}
   if(v.jabatan!=='Teknisi')delete v.tingkat;
   S.emps.push({id:uid('e'),...v});save();render()});
@@ -1271,9 +1272,9 @@ const NI={
  job:{c:'brand',p:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9zM9 12h6M9 16h4"/>'},
  stok:{c:'heat',p:'<path d="M3 8l9-5 9 5v8l-9 5-9-5zM3 8l9 5 9-5M12 13v8"/>'},
  info:{c:'brand',p:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>'}};
-const nKey=()=>SES.role==='teknisi'?'t'+SES.empId:SES.role;
+const nKey=()=>SES.role==='teknisi'||SES.role==='driver'?'t'+SES.empId:SES.role;
 const rdOf=n=>n.rd||(n.rd={});
-const nVis=n=>{if(!SES)return false;if(SES.role==='admin')return true;if(!(n.roles||[]).includes(SES.role))return false;return (SES.role!=='teknisi'&&SES.role!=='sales')||n.emp===SES.empId};
+const nVis=n=>{if(!SES)return false;if(SES.role==='admin')return true;if(!(n.roles||[]).includes(SES.role))return false;return (SES.role!=='teknisi'&&SES.role!=='sales'&&SES.role!=='driver')||n.emp===SES.empId};
 const nList=()=>(S&&S.notif||[]).filter(nVis);
 const nUnread=()=>{const k=nKey();return nList().filter(n=>!rdOf(n)[k])};
 function notify(roles,judul,teks,o){o=o||{};S.notif=S.notif||[];
@@ -1337,8 +1338,8 @@ const ci='<circle cx="7" cy="7" r="2"/><circle cx="17" cy="17" r="2"/>';
 Object.assign(ICON,{job:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9zM9 12h6M9 16h4"/>',sewa:'<path d="M3 7h18v8H3zM7 19v-4M17 19v-4M7 11h4M15 11h2"/>',kas:'<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18M7 15h3"/>',ana:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',apr:'<path d="M5 12l4 4L19 7"/>',stk:'<path d="M3 8l9-5 9 5v8l-9 5-9-5zM3 8l9 5 9-5M12 13v8"/>',sup:'<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7z"/>',srt:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>'});
 const EMO={dash:'📋',kas:'🛒',keu:'💸',ana:'📈',wa:'💬',inv:'🧾',apr:'✅',abs:'📍',kin:'🏆',stk:'📦',sup:'🚚',srt:'✉️',jur:'📒'};
 const nPend=()=>S.req.filter(r=>r.st==='Menunggu').length+(S.reg||[]).filter(r=>r.st==='Menunggu').length;
-function allowedTabs(){const r=SES.role;if(r==='teknisi')return[['dash','Order Saya'],['abs','Absensi']];
-  const ok={admin:TABS2.map(t=>t[0]).filter(x=>x!=='apr'),direktur:['ana','keu','inv','apr','kin','stk','sup','dbk','lap'],adminjual:['dash','job','kas','wa','inv','stk','abs'],adminops:['dash','job','kas','wa','inv','stk','abs','sup','srt','sewa','jur'],sales:['kjg','pnw','dbk','lap','kin','abs']}[r]||['dash'];
+function allowedTabs(){const r=SES.role;if(r==='teknisi')return[['dash','Order Saya'],['abs','Absensi']];if(r==='driver')return[['abs','Absensi']];
+  const ok={admin:TABS2.map(t=>t[0]).filter(x=>x!=='apr'),direktur:['ana','keu','inv','apr','kin','stk','sup','dbk','lap'],adminjual:['dash','job','kas','wa','inv','stk','sup','abs'],adminops:['dash','job','kas','wa','inv','stk','abs','sup','srt','sewa','jur'],sales:['kjg','pnw','dbk','lap','kin','abs']}[r]||['dash'];
   return (r==='sales'?ok.map(k=>TABS2.find(t=>t[0]===k)):TABS2.filter(t=>ok.includes(t[0]))).map(t=>t[0]==='apr'&&nPend()?[t[0],t[1]+' ('+nPend()+')']:t[0]==='lap'&&nLate()?[t[0],t[1]+' ⚠'+nLate()]:t)}
 function ensureTab(){const t=allowedTabs();if(!t.some(x=>x[0]===S.tab))S.tab=SES.role==='direktur'?'ana':t[0][0]}
 function fixCust(){let n=Math.max(0,...S.cust.map(c=>parseInt(String(c.no||'').slice(4))||0));S.cust.forEach(c=>{if(!c.no)c.no='CUS-'+String(++n).padStart(3,'0')})}
@@ -1728,7 +1729,7 @@ A.lapWA=()=>{const d=U.lapD||TODAY,kv=KJS().filter(k=>k.tgl===d),pn=PNS().filter
  window.open(waLink('',t),'_blank','noopener')};
 
 /* ================= KINERJA SALES, TARGET HARIAN & KARTU INTERAKTIF ================= */
-const isTek=e=>!['Admin','Sales'].includes(e.jabatan);
+const isTek=e=>!['Admin','Sales','Driver'].includes(e.jabatan);
 const salesL=()=>S.emps.filter(e=>e.jabatan==='Sales');
 const empNm=id=>(S.emps.find(e=>e.id===id)||(S.empsOld||[]).find(e=>e.id===id)||{nama:'-'}).nama;
 const mySid=()=>SES&&SES.role==='sales'?SES.empId:'';
@@ -2880,7 +2881,7 @@ V.peg=()=>{
   return `<tr><td><b>${esc(e.nama)}</b></td><td>${esc(e.jabatan)}${e.tingkat?' · '+esc(e.tingkat):''}</td><td>${ak?'<span class="num">'+esc(ak.username||'')+'</span>':'<small style="color:var(--muted)">belum ada akun</small>'}</td><td class="r num">${n}</td><td class="r"><button class="btn sm" data-act="pegEd" data-id="${e.id}">Edit</button> <button class="btn sm del" data-act="pegDel" data-id="${e.id}">Hapus</button></td></tr>`}).join(''):'<tr><td colspan="5" class="empty">Belum ada pegawai.</td></tr>'}</tbody></table></div>${P.html}
  <p style="color:var(--muted);margin:10px 0 0;font-size:12px">Riwayat order, absensi, dan kinerja lama tetap tersimpan. Akun login pegawai dihapus terpisah lewat menu Kelola Akun.</p></div>`};
 A.pegEd=(b,ev,pre)=>{if(!(isAp()||isSA()))return;const e=S.emps.find(x=>x.id===(pre?pre._id:b.dataset.id));if(!e)return;
- const J=['Teknisi','Helper','Sales','Admin'];if(!J.includes(e.jabatan))J.push(e.jabatan);
+ const J=['Teknisi','Helper','Sales','Driver','Admin'];if(!J.includes(e.jabatan))J.push(e.jabatan);
  form('Ubah pegawai',[{k:'nama',l:'Nama',req:1,wide:1},{k:'jabatan',l:'Jabatan',t:'select',o:J},{k:'tingkat',l:'Tingkat teknisi (wajib jika jabatan Teknisi)',t:'select',o:[['','Pilih tingkat...'],...Object.entries(TK)]},{k:'target',l:'Target order per bulan',t:'number',min:0}],pre||e,v=>{
   const nm=String(v.nama).trim();if(!nm){toast('Nama wajib diisi');return}
   if(v.jabatan==='Teknisi'&&!v.tingkat){toast('Teknisi wajib memilih tingkat (T1, T2 atau T3)');setTimeout(()=>A.pegEd(null,null,{...v,_id:e.id}),50);return}
@@ -2899,6 +2900,20 @@ A.pegDel=b=>{if(!(isAp()||isSA()))return;const e=S.emps.find(x=>x.id===b.dataset
    if(!okReason(al)){toast('Alasan wajib diisi (minimal 5 karakter)');return}
    act.forEach(o=>{o.teknisi=to;o.ditugaskan={oleh:SES.nama,tgl:TODAY};notify(['teknisi'],'Job dialihkan ke Anda',o.id+' · '+o.nama+' · '+o.layanan+' ×'+o.unit+' · '+fds(o.tgl),{emp:to,tipe:'job',tab:'dash'})});
    closeModal();pegHapus(e,al+' (job aktif dipindah ke '+empNm(to)+')')})})};
+</script>
+<script>
+/* ---------- Jam kerja kantor: default 08:45 - 18:00, hanya Admin Super yang bisa mengubah (menu Daftar Pegawai) ---------- */
+{const _m=mig;mig=function(){_m();
+ if(!S.set.jamKerjaV){S.set.jamMasuk='08:45';S.set.jamKeluar='18:00';S.set.jamKerjaV=1}
+ if(!S.set.jamKeluar)S.set.jamKeluar='18:00'}}
+A.jamEdit=()=>{if(!isSA()){toast('Jam kerja hanya bisa diubah oleh Admin Super');return}
+ form('Jam masuk & jam keluar kantor',[{k:'jamMasuk',l:'Jam masuk kantor',t:'time',req:1,def:S.set.jamMasuk},{k:'jamKeluar',l:'Jam keluar kantor',t:'time',req:1,def:S.set.jamKeluar||'18:00'}],S.set,v=>{
+  if(!v.jamMasuk||!v.jamKeluar){toast('Isi jam masuk dan jam keluar');return}
+  if(v.jamKeluar<=v.jamMasuk){toast('Jam keluar harus setelah jam masuk');setTimeout(A.jamEdit,50);return}
+  S.set.jamMasuk=v.jamMasuk;S.set.jamKeluar=v.jamKeluar;S.set.jamKerjaV=1;save();render();toast('Jam kerja diperbarui: '+v.jamMasuk+' - '+v.jamKeluar)})};
+{const _p=V.peg;V.peg=()=>{const h=_p();if(!(isAp()||isSA()))return h;
+ const card=`<div class="card"><div class="row" style="justify-content:space-between;gap:12px"><div><h3 style="margin:0 0 4px">Jam kerja kantor</h3><div>Masuk <b class="num">${esc(S.set.jamMasuk)}</b> · Keluar <b class="num">${esc(S.set.jamKeluar||'18:00')}</b></div><small style="color:var(--muted)">Absen masuk setelah jam masuk dihitung terlambat.${isSA()?'':' Hanya Admin Super yang bisa mengubah.'}</small></div>${isSA()?'<button class="btn pri" data-act="jamEdit">Edit jam kerja</button>':''}</div></div>`;
+ const k=h.indexOf('<div class="card"><h3>Pegawai');return k>=0?h.slice(0,k)+card+h.slice(k):h+card}}
 </script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}</script>
 </body>
