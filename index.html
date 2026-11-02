@@ -952,6 +952,8 @@ const ppnOf=(mat,sub,dsk,mode,rate)=>{const mn=sub?Math.round(mat*(sub-dsk)/sub)
 const invTot=i=>{const s=sum(i.items,x=>x.qty*x.harga),net=Math.max(0,s-(i.diskon||0)),r={sub:s,tot:net};
  if(i.ppn&&i.ppn.rate){const m=sum(i.items,x=>(x.jenis==='barang'||x.sid)?x.qty*x.harga:0),o=ppnOf(m,s,Math.min(s,i.diskon||0),i.ppn.mode,i.ppn.rate);r.ppn=o.v;r.mat=o.mn;r.tot=net+o.add}
  return r};
+const payOf=i=>i.bayar==='transfer'?'transfer':(i.bayar==='termin'||(!i.bayar&&i.tempo&&i.tgl&&i.tempo!==i.tgl))?'termin':'cash';
+const payLbl=i=>{const m=payOf(i);return m==='termin'?'Termin '+(i.top||Math.max(1,diffD(i.tempo,i.tgl)))+' hari (TOP)':m==='transfer'?'Transfer':'Cash'};
 const invStat=i=>i.appr==='Menunggu'&&i.dicetak?'Dicetak':i.appr==='Menunggu'?'Menunggu':i.appr==='Ditolak'?'Ditolak':i.status==='Lunas'?'Lunas':i.tempo<TODAY?'Telat':'Belum';
 V.inv=()=>{
   const q=U.invq.toLowerCase(),L=[...S.inv].sort((a,b)=>a.tgl<b.tgl?1:-1).filter(i=>!q||(i.no+i.nama).toLowerCase().includes(q));
@@ -1000,7 +1002,7 @@ function invHTML(i){const t=invTot(i);
   <table style="margin:16px 0"><thead><tr><th>Deskripsi</th><th class="r">Qty</th><th class="r">Harga</th><th class="r">Jumlah</th></tr></thead><tbody>${i.items.map(x=>`<tr><td>${esc(x.desc)}</td><td class="r num">${x.qty}</td><td class="r num">${rp(x.harga)}</td><td class="r num">${rp(x.qty*x.harga)}</td></tr>`).join('')}</tbody></table>
   <div style="text-align:right">${(i.diskon||(i.ppn&&i.ppn.mode==='excl'))?`<div>Subtotal <span class="num">${rp(t.sub)}</span></div>`:''}${i.diskon?`<div>Diskon <span class="num">-${rp(i.diskon)}</span></div>`:''}${i.ppn&&i.ppn.mode==='excl'?`<div>PPN ${i.ppn.rate}% (material) <span class="num">${rp(t.ppn)}</span></div>`:''}<div style="font-size:20px"><b>Total <span class="num">${rp(t.tot)}</span></b></div></div>
   ${i.ppn&&i.ppn.mode==='incl'?`<div style="text-align:right;font-size:12px;color:#4b6068">Harga material sudah termasuk PPN ${i.ppn.rate}%: <span class="num">${rp(t.ppn)}</span></div>`:''}${typeof bankHTML==='function'?bankHTML():(S.set.bank?'<p style="margin:16px 0 0;color:#4b6068"><b>Pembayaran transfer ke:</b> '+esc(S.set.bank)+'</p>':'')}${sigHTML(i)}</div>`}
-function invText(i){const t=invTot(i);return `INVOICE ${i.no}\n${i.ref&&S.orders.some(q=>q.id===i.ref)?'Ref. Order: '+i.ref+'\n':''}${(i.pnwNo||(S.pnw.find(q=>q.id===i.pnwId)||{}).no)?'Ref. Penawaran: '+(i.pnwNo||S.pnw.find(q=>q.id===i.pnwId).no)+'\n':''}${S.set.nama}\n\nKepada: ${i.nama}\nTanggal: ${fd(i.tgl)}  Jatuh tempo: ${fd(i.tempo)}\n\n${i.items.map(x=>`- ${x.desc} ${x.qty} x ${rp(x.harga)} = ${rp(x.qty*x.harga)}`).join('\n')}\n${i.diskon?'Diskon: -'+rp(i.diskon)+'\n':''}${i.ppn?(i.ppn.mode==='excl'?'PPN '+i.ppn.rate+'% (material): '+rp(t.ppn)+'\n':'(Sudah termasuk PPN '+i.ppn.rate+'% material: '+rp(t.ppn)+')\n'):''}\nTOTAL: ${rp(t.tot)}\nBayar ke: ${S.set.bank}`}
+function invText(i){const t=invTot(i);return `INVOICE ${i.no}\n${i.ref&&S.orders.some(q=>q.id===i.ref)?'Ref. Order: '+i.ref+'\n':''}${(i.pnwNo||(S.pnw.find(q=>q.id===i.pnwId)||{}).no)?'Ref. Penawaran: '+(i.pnwNo||S.pnw.find(q=>q.id===i.pnwId).no)+'\n':''}${S.set.nama}\n\nKepada: ${i.nama}\nTanggal: ${fd(i.tgl)}  Jatuh tempo: ${fd(i.tempo)}\n\n${i.items.map(x=>`- ${x.desc} ${x.qty} x ${rp(x.harga)} = ${rp(x.qty*x.harga)}`).join('\n')}\n${i.diskon?'Diskon: -'+rp(i.diskon)+'\n':''}${i.ppn?(i.ppn.mode==='excl'?'PPN '+i.ppn.rate+'% (material): '+rp(t.ppn)+'\n':'(Sudah termasuk PPN '+i.ppn.rate+'% material: '+rp(t.ppn)+')\n'):''}\nTOTAL: ${rp(t.tot)}${payOf(i)==='transfer'&&S.set.bank?'\nBayar ke: '+S.set.bank:''}`}
 A.viewInv=b=>{const i=S.inv.find(x=>x.id===b.dataset.id);
   modal(`${invHTML(i)}<div class="row" style="justify-content:flex-end">${i.status!=='Lunas'?`<button class="btn pri" data-act="payInv" data-id="${i.id}">Tandai lunas</button>`:''}<a class="btn" href="${waLink(i.hp,invText(i))}" target="_blank" rel="noopener">Buka WhatsApp</a><button class="btn" data-act="cpInv" data-id="${i.id}">Salin teks</button><button class="btn" data-act="prtInv" data-id="${i.id}">Cetak</button><button class="btn" data-act="dlInv" data-id="${i.id}">Unduh PDF</button><button class="btn" data-act="close">Tutup</button></div>`)};
 A.cpInv=b=>copyText(invText(S.inv.find(x=>x.id===b.dataset.id)));
@@ -2200,7 +2202,7 @@ function invSplit(i){const t=invTot(i),m=sum(i.items||[],x=>(x.jenis==='barang'|
  const mat=t.sub?Math.round(t.tot*m/t.sub):0;return{jasa:t.tot-mat,mat,ppn:0}}
 A.payInv=b=>{const i=S.inv.find(x=>x.id===b.dataset.id);i.status='Lunas';
  notify(['direktur','adminjual','adminops'],'Invoice lunas',i.no+' · '+i.nama+' · '+rp(invTot(i).tot),{tipe:'ok',tab:'inv'});
- if(!S.tx.some(t=>t.ref===i.no)){const sp=invSplit(i),mk=(kat,jml,lb)=>({id:uid('t'),tgl:TODAY,jenis:'Pemasukan',kat,ket:'Pembayaran '+i.no+' - '+i.nama+lb,akun:'Bank',jml,ref:i.no,sp:true});
+ if(!S.tx.some(t=>t.ref===i.no)){const sp=invSplit(i),mk=(kat,jml,lb)=>({id:uid('t'),tgl:TODAY,jenis:'Pemasukan',kat,ket:'Pembayaran '+i.no+' - '+i.nama+lb,akun:payOf(i)==='cash'?'Kas':'Bank',jml,ref:i.no,sp:true});
   if(sp.jasa>0||sp.mat===0)S.tx.push(mk('Jasa servis',sp.jasa,sp.mat?' (jasa)':''));
   if(sp.mat>0)S.tx.push(mk('Penjualan material',sp.mat,' (material)'));if(sp.ppn>0)S.tx.push(mk('PPN Keluaran',sp.ppn,' (PPN)'))}
  save();closeModal();render();toast('Lunas, tercatat di Keuangan: jasa dan material dipisah')};
@@ -2577,7 +2579,7 @@ CH.remInt=el=>{S.remInt=S.remInt||{};S.remInt[el.dataset.n]=Math.max(1,Number(el
  }
  let h=_vk.apply(this,arguments);
  h=h.replace('Invoice menunggu persetujuan Direktur sebelum terbit.','Invoice menunggu persetujuan Direktur. Jika dicetak untuk ditandatangani manual, invoice keluar dari daftar persetujuan dan langsung berlaku (omzet, stok, tandai lunas), dengan tanda tangan manual.');
- const pay=`<div class="fgrid" style="margin-top:12px"><label class="f">Cara pembayaran<select data-chg="kBayar"><option value="cash"${K.bayar==='cash'?' selected':''}>Cash (lunas saat itu)</option><option value="termin"${K.bayar==='termin'?' selected':''}>Termin (TOP)</option></select></label>${K.bayar==='termin'?`<label class="f">TOP (jumlah hari)<input type="number" min="1" max="365" step="1" value="${K.top}" data-chg="kTop"><small style="color:var(--muted)">Jatuh tempo: ${fd(addD(TODAY,K.top))}</small></label>`:''}</div>`;
+ const pay=`<div class="fgrid" style="margin-top:12px"><label class="f">Cara pembayaran<select data-chg="kBayar"><option value="cash"${K.bayar==='cash'?' selected':''}>Cash (lunas saat itu, tanpa no. rekening)</option><option value="transfer"${K.bayar==='transfer'?' selected':''}>Transfer (tampil no. rekening)</option><option value="termin"${K.bayar==='termin'?' selected':''}>Termin (TOP)</option></select></label>${K.bayar==='transfer'?`<div class="info" style="align-self:end">${S.set.bank?'No. rekening di invoice: '+esc(S.set.bank):'No. rekening belum diisi. Isi di Persetujuan, Kop dokumen, Isi alamat &amp; kontak.'}</div>`:''}${K.bayar==='termin'?`<label class="f">TOP (jumlah hari)<input type="number" min="1" max="365" step="1" value="${K.top}" data-chg="kTop"><small style="color:var(--muted)">Jatuh tempo: ${fd(addD(TODAY,K.top))}</small></label>`:''}</div>`;
  return h.replace('<div id="ksum"',pay+'<div id="ksum"')}}
 CH.kBayar=el=>{K.bayar=el.value;if(K.bayar==='termin'&&!(K.top>0))K.top=7;render()};
 CH.kTop=el=>{K.top=Math.max(1,Math.min(365,Math.round(Number(el.value)||1)));render()};
@@ -2604,8 +2606,8 @@ function invCetakApprove(i){
 const MAN_DIR=()=>S.set.ttdNama||'WAHYU';
 function manualTtd(){return `<div style="display:flex;justify-content:flex-end;margin-top:28px"><div style="text-align:center;min-width:210px;color:#14232a"><div>Menyetujui,</div><div style="height:74px"></div><div style="font-weight:800;text-decoration:underline">${esc(MAN_DIR())}</div><div style="font-size:12px;font-weight:600">DIREKTUR CV. PUNGGAWA</div></div></div>`}
 {const _ih=invHTML;invHTML=function(i){let h=_ih(i);
- const termin=i.bayar==='termin'||(!i.bayar&&i.tempo&&i.tgl&&i.tempo!==i.tgl);
- const lbl=termin?'Termin '+(i.top||Math.max(1,diffD(i.tempo,i.tgl)))+' hari (TOP)':'Cash';
+ if(payOf(i)!=='transfer')h=h.replace(/<p style="margin:16px 0 0;color:#4b6068"><b>Pembayaran transfer ke:<\/b>[\s\S]*?<\/p>/,'');
+ const lbl=payLbl(i);
  const a='Jatuh tempo</small> '+fd(i.tempo)+'<br>';
  if(h.includes(a))h=h.replace(a,a+'<small style="color:#4b6068">Pembayaran</small> '+lbl+'<br>');
  if(!i.ttd)h=h.replace(/<\/div>\s*$/,manualTtd()+'</div>');
@@ -2698,8 +2700,7 @@ A.akCopy=b=>{copyText(b.dataset.p)};
    ===================================================================== */
 function invFix(h,i){
  if(!h.includes('Pembayaran</small>')){
-  const termin=i.bayar==='termin'||(!i.bayar&&i.tempo&&i.tgl&&i.tempo!==i.tgl);
-  const lbl=termin?'Termin '+(i.top||Math.max(1,diffD(i.tempo,i.tgl)))+' hari (TOP)':'Cash';
+  const lbl=payLbl(i);
   const a='Jatuh tempo</small> '+fd(i.tempo)+'<br>';
   if(h.includes(a))h=h.replace(a,a+'<small style="color:#4b6068">Pembayaran</small> '+lbl+'<br>');
  }
@@ -2745,7 +2746,7 @@ A.prtInv=function(b){
 /* Popup nomor invoice / penawaran / jurnal setelah disimpan, dengan tombol Salin nomor */
 function noPopup(jenis,no,sub){
  modal(`<h2 style="font-size:20px">${jenis} tersimpan</h2><div class="info">${sub}</div><div class="card" style="text-align:center;margin:14px 0"><small style="color:var(--muted)">Nomor ${jenis}</small><div class="num" style="font-size:26px;font-weight:800;margin-top:6px;user-select:all;-webkit-user-select:all;word-break:break-all">${esc(no)}</div></div><div class="row" style="justify-content:flex-end"><button class="btn pri" data-act="npCopy" data-no="${esc(no)}">Salin nomor</button><button class="btn" data-act="close">Tutup</button></div>`)}
-{const _it=invText;invText=function(i){const t=_it(i);return S.set.bank&&!t.includes(S.set.bank)?t+'\n\nPembayaran transfer ke:\n'+S.set.bank:t}}
+{const _it=invText;invText=function(i){const t=_it(i);return payOf(i)==='transfer'&&S.set.bank&&!t.includes(S.set.bank)?t+'\n\nPembayaran transfer ke:\n'+S.set.bank:t}}
 A.npCopy=async b=>{const ok=await copyTxt(b.dataset.no);toast(ok?'Nomor tersalin':'Gagal menyalin, tekan lama pada nomor')};
 {const _k=A.kSave;A.kSave=function(b,e){const eid=K.editId,n=S.inv.length,r=_k.apply(this,arguments);
  let i=null;if(eid){if(K.editId!==eid)i=S.inv.find(x=>x.id===eid)}else if(S.inv.length>n)i=S.inv[S.inv.length-1];
