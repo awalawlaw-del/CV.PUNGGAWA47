@@ -6,8 +6,8 @@
    Dimuat setelah script utama.
    ===================================================================== */
 "use strict";
-const REG_ROLES=[['adminjual','Admin Penjualan'],['adminops','Admin Operasional'],['sales','Sales'],['teknisi','Teknisi']];
-const REG_JAB={adminjual:'Admin',adminops:'Admin',sales:'Sales',teknisi:'Teknisi'};
+const REG_ROLES=[['adminjual','Admin Penjualan'],['adminops','Admin Operasional'],['sales','Sales'],['teknisi','Teknisi'],['helper','Helper'],['driver','Driver']];
+const REG_JAB={adminjual:'Admin',adminops:'Admin',sales:'Sales',teknisi:'Teknisi',helper:'Helper',driver:'Driver'};
 const REG_RESV=['admin','direktur','adminjual','adminops','sales','teknisi'];
 
 /* ---------- Halaman login: tautan daftar + form daftar ---------- */
@@ -72,7 +72,7 @@ function regCard(){if(!isAp())return '';regLoad();
 A.regOk=async b=>{if(!isAp()){toast('Hanya Direktur yang dapat menyetujui');return}
  const r=REGP.items.find(x=>x.id===b.dataset.id);if(!r||r.status!=='pending')return;
  const E={id:uid('e'),nama:r.nama,jabatan:REG_JAB[r.role]||'Teknisi',target:r.role==='teknisi'?20:0,user:r.username,hp:r.hp||''};
- if(r.role==='teknisi')E.tingkat='T3';else if(r.role!=='sales')E.role=r.role;
+ if(r.role==='teknisi')E.tingkat='T3';else if(r.role==='adminjual'||r.role==='adminops')E.role=r.role;
  const {error}=await supabaseClient.from('profiles').update({status:'active',emp_id:E.id}).eq('id',r.id);
  if(error){toast('Gagal menyetujui: '+error.message);return}
  S.emps.push(E);save();await regLoad(true);render();
