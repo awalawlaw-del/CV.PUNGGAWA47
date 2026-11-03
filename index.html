@@ -955,7 +955,8 @@ const invTot=i=>{const s=sum(i.items,x=>x.qty*x.harga),net=Math.max(0,s-(i.disko
  if(i.ppn&&i.ppn.rate){const m=sum(i.items,x=>(x.jenis==='barang'||x.sid)?x.qty*x.harga:0),o=ppnOf(m,s,Math.min(s,i.diskon||0),i.ppn.mode,i.ppn.rate);r.ppn=o.v;r.mat=o.mn;r.tot=net+o.add}
  return r};
 const payOf=i=>i.bayar==='transfer'?'transfer':(i.bayar==='termin'||(!i.bayar&&i.tempo&&i.tgl&&i.tempo!==i.tgl))?'termin':'cash';
-const payLbl=i=>{const m=payOf(i);return m==='termin'?'Termin '+(i.top||Math.max(1,diffD(i.tempo,i.tgl)))+' hari (TOP)':m==='transfer'?'Transfer':'Cash'};
+const invShowBank=i=>payOf(i)==='transfer'||(payOf(i)==='termin'&&i.tagihAkun==='Bank'&&!!i.bankId);
+const payLbl=i=>{const m=payOf(i);return m==='termin'?'Termin '+(i.top||Math.max(1,diffD(i.tempo,i.tgl)))+' hari (TOP)'+(i.tagihAkun==='Bank'?' · Bank':i.tagihAkun==='Kas'?' · Cash':''):m==='transfer'?'Transfer':'Cash'};
 const invStat=i=>i.appr==='Menunggu'&&i.dicetak?'Dicetak':i.appr==='Menunggu'?'Menunggu':i.appr==='Ditolak'?'Ditolak':i.status==='Lunas'?'Lunas':i.tempo<TODAY?'Telat':'Belum';
 V.inv=()=>{
   const q=U.invq.toLowerCase(),L=[...S.inv].sort((a,b)=>a.tgl<b.tgl?1:-1).filter(i=>!q||(i.no+i.nama).toLowerCase().includes(q));
@@ -1004,7 +1005,7 @@ function invHTML(i){const t=invTot(i);
   <table style="margin:16px 0"><thead><tr><th>Deskripsi</th><th class="r">Qty</th><th class="r">Harga</th><th class="r">Jumlah</th></tr></thead><tbody>${i.items.map(x=>`<tr><td>${esc(x.desc)}</td><td class="r num">${x.qty}</td><td class="r num">${rp(x.harga)}</td><td class="r num">${rp(x.qty*x.harga)}</td></tr>`).join('')}</tbody></table>
   <div style="text-align:right">${(i.diskon||(i.ppn&&i.ppn.mode==='excl'))?`<div>Subtotal <span class="num">${rp(t.sub)}</span></div>`:''}${i.diskon?`<div>Diskon <span class="num">-${rp(i.diskon)}</span></div>`:''}${i.ppn&&i.ppn.mode==='excl'?`<div>PPN ${i.ppn.rate}% (material) <span class="num">${rp(t.ppn)}</span></div>`:''}<div style="font-size:20px"><b>Total <span class="num">${rp(t.tot)}</span></b></div></div>
   ${i.ppn&&i.ppn.mode==='incl'?`<div style="text-align:right;font-size:12px;color:#4b6068">Harga material sudah termasuk PPN ${i.ppn.rate}%: <span class="num">${rp(t.ppn)}</span></div>`:''}${((invBankTxt(i)||S.set.bank)?'<p style="margin:16px 0 0;color:#4b6068"><b>Pembayaran transfer ke:</b> '+esc(invBankTxt(i)||S.set.bank)+'</p>':'')}${sigHTML(i)}</div>`}
-function invText(i){const t=invTot(i);return `INVOICE ${i.no}\n${i.ref&&S.orders.some(q=>q.id===i.ref)?'Ref. Order: '+i.ref+'\n':''}${(i.pnwNo||(S.pnw.find(q=>q.id===i.pnwId)||{}).no)?'Ref. Penawaran: '+(i.pnwNo||S.pnw.find(q=>q.id===i.pnwId).no)+'\n':''}${S.set.nama}\n\nKepada: ${i.nama}\nTanggal: ${fd(i.tgl)}  Jatuh tempo: ${fd(i.tempo)}\n\n${i.items.map(x=>`- ${x.desc} ${x.qty} x ${rp(x.harga)} = ${rp(x.qty*x.harga)}`).join('\n')}\n${i.diskon?'Diskon: -'+rp(i.diskon)+'\n':''}${i.ppn?(i.ppn.mode==='excl'?'PPN '+i.ppn.rate+'% (material): '+rp(t.ppn)+'\n':'(Sudah termasuk PPN '+i.ppn.rate+'% material: '+rp(t.ppn)+')\n'):''}\nTOTAL: ${rp(t.tot)}${payOf(i)==='transfer'&&(invBankTxt(i)||S.set.bank)?'\nBayar ke: '+(invBankTxt(i)||S.set.bank):''}`}
+function invText(i){const t=invTot(i);return `INVOICE ${i.no}\n${i.ref&&S.orders.some(q=>q.id===i.ref)?'Ref. Order: '+i.ref+'\n':''}${(i.pnwNo||(S.pnw.find(q=>q.id===i.pnwId)||{}).no)?'Ref. Penawaran: '+(i.pnwNo||S.pnw.find(q=>q.id===i.pnwId).no)+'\n':''}${S.set.nama}\n\nKepada: ${i.nama}\nTanggal: ${fd(i.tgl)}  Jatuh tempo: ${fd(i.tempo)}\n\n${i.items.map(x=>`- ${x.desc} ${x.qty} x ${rp(x.harga)} = ${rp(x.qty*x.harga)}`).join('\n')}\n${i.diskon?'Diskon: -'+rp(i.diskon)+'\n':''}${i.ppn?(i.ppn.mode==='excl'?'PPN '+i.ppn.rate+'% (material): '+rp(t.ppn)+'\n':'(Sudah termasuk PPN '+i.ppn.rate+'% material: '+rp(t.ppn)+')\n'):''}\nTOTAL: ${rp(t.tot)}${invShowBank(i)&&(invBankTxt(i)||S.set.bank)?'\nBayar ke: '+(invBankTxt(i)||S.set.bank):''}`}
 A.viewInv=b=>{const i=S.inv.find(x=>x.id===b.dataset.id);
   modal(`${invHTML(i)}<div class="row" style="justify-content:flex-end">${i.status!=='Lunas'?`<button class="btn pri" data-act="payInv" data-id="${i.id}">Tandai lunas</button>`:''}<a class="btn" href="${waLink(i.hp,invText(i))}" target="_blank" rel="noopener">Buka WhatsApp</a><button class="btn" data-act="cpInv" data-id="${i.id}">Salin teks</button><button class="btn" data-act="prtInv" data-id="${i.id}">Cetak</button><button class="btn" data-act="dlInv" data-id="${i.id}">Unduh PDF</button><button class="btn" data-act="close">Tutup</button></div>`)};
 A.cpInv=b=>copyText(invText(S.inv.find(x=>x.id===b.dataset.id)));
@@ -2577,22 +2578,24 @@ CH.remInt=el=>{S.remInt=S.remInt||{};S.remInt[el.dataset.n]=Math.max(1,Number(el
  if(K.bayar===undefined){
   if(K.editId){const i0=S.inv.find(x=>x.id===K.editId);
    K.bayar=(i0&&(i0.bayar||(i0.tempo&&i0.tempo!==i0.tgl?'termin':'cash')))||'cash';
-   K.top=(i0&&(i0.top||(i0.tempo&&i0.tgl?Math.max(1,diffD(i0.tempo,i0.tgl)):7)))||7;K.bankId=(i0&&i0.bankId)||'';
-  }else{K.bayar='cash';K.top=7;K.bankId=''}
+   K.top=(i0&&(i0.top||(i0.tempo&&i0.tgl?Math.max(1,diffD(i0.tempo,i0.tgl)):7)))||7;K.bankId=(i0&&i0.bankId)||'';K.tAkun=(i0&&i0.tagihAkun)||'Bank';
+  }else{K.bayar='cash';K.top=7;K.bankId='';K.tAkun='Bank'}
  }
  let h=_vk.apply(this,arguments);
  h=h.replace('Invoice menunggu persetujuan Direktur sebelum terbit.','Invoice menunggu persetujuan Direktur. Jika dicetak untuk ditandatangani manual, invoice keluar dari daftar persetujuan dan langsung berlaku (omzet, stok, tandai lunas), dengan tanda tangan manual.');
- const pay=`<div class="fgrid" style="margin-top:12px"><label class="f">Cara pembayaran<select data-chg="kBayar"><option value="cash"${K.bayar==='cash'?' selected':''}>Cash (lunas saat itu, masuk Kas Kecil)</option><option value="transfer"${K.bayar==='transfer'?' selected':''}>Bank / Transfer (pilih rekening)</option><option value="termin"${K.bayar==='termin'?' selected':''}>Termin (TOP)</option></select></label>${K.bayar==='transfer'?`<label class="f">Rekening bank tujuan (tampil di invoice)<select data-chg="kBank">${kBankOpts()}</select>${(S.set.banks||[]).length?'':'<small style="color:var(--bad)">Belum ada rekening bank. Tambahkan di menu Keuangan, kartu Kas Kecil &amp; Rekening Bank.</small>'}</label>`:K.bayar==='cash'?'<div class="info" style="align-self:end">Pembayaran cash: saat ditandai lunas, uang otomatis masuk Kas Kecil.</div>':''}${K.bayar==='termin'?`<label class="f">TOP (jumlah hari)<input type="number" min="1" max="365" step="1" value="${K.top}" data-chg="kTop"><small style="color:var(--muted)">Jatuh tempo: ${fd(addD(TODAY,K.top))}</small></label>`:''}</div>`;
+ const pay=`<div class="fgrid" style="margin-top:12px"><label class="f">Cara pembayaran<select data-chg="kBayar"><option value="cash"${K.bayar==='cash'?' selected':''}>Cash (lunas saat itu, masuk Kas Kecil)</option><option value="transfer"${K.bayar==='transfer'?' selected':''}>Bank / Transfer (pilih rekening)</option><option value="termin"${K.bayar==='termin'?' selected':''}>Termin (TOP)</option></select></label>${K.bayar==='transfer'?`<label class="f">Rekening bank tujuan (tampil di invoice)<select data-chg="kBank">${kBankOpts()}</select>${(S.set.banks||[]).length?'':'<small style="color:var(--bad)">Belum ada rekening bank. Tambahkan di menu Keuangan, kartu Kas Kecil &amp; Rekening Bank.</small>'}</label>`:K.bayar==='cash'?'<div class="info" style="align-self:end">Pembayaran cash: saat ditandai lunas, uang otomatis masuk Kas Kecil.</div>':''}${K.bayar==='termin'?`<label class="f">TOP (jumlah hari)<input type="number" min="1" max="365" step="1" value="${K.top}" data-chg="kTop"><small style="color:var(--muted)">Jatuh tempo: ${fd(addD(TODAY,K.top))}</small></label><label class="f">Pembayaran termin lewat<select data-chg="kTAkun"><option value="Bank"${(K.tAkun||'Bank')==='Bank'?' selected':''}>Bank / Transfer (pilih rekening)</option><option value="Kas"${K.tAkun==='Kas'?' selected':''}>Cash (masuk Kas Kecil)</option></select></label>${(K.tAkun||'Bank')==='Bank'?`<label class="f">Rekening bank tujuan (tampil di invoice)<select data-chg="kBank">${kBankOpts()}</select>${(S.set.banks||[]).length?'':'<small style="color:var(--bad)">Belum ada rekening bank. Tambahkan di menu Keuangan, kartu Kas Kecil &amp; Rekening Bank.</small>'}</label>`:'<div class="info" style="align-self:end">Pembayaran cash: saat ditandai lunas, uang masuk Kas Kecil.</div>'}`:''}</div>`;
  return h.replace('<div id="ksum"',pay+'<div id="ksum"')}}
-CH.kBayar=el=>{K.bayar=el.value;if(K.bayar==='termin'&&!(K.top>0))K.top=7;if(K.bayar==='transfer'&&!K.bankId)K.bankId=((S.set.banks||[])[0]||{}).id||'';render()};
+CH.kBayar=el=>{K.bayar=el.value;if(K.bayar==='termin'&&!(K.top>0))K.top=7;if((K.bayar==='transfer'||(K.bayar==='termin'&&(K.tAkun||'Bank')==='Bank'))&&!K.bankId)K.bankId=((S.set.banks||[])[0]||{}).id||'';render()};
 CH.kBank=el=>{K.bankId=el.value};
+CH.kTAkun=el=>{K.tAkun=el.value==='Kas'?'Kas':'Bank';if(K.tAkun==='Bank'&&!K.bankId)K.bankId=((S.set.banks||[])[0]||{}).id||'';render()};
 CH.kTop=el=>{K.top=Math.max(1,Math.min(365,Math.round(Number(el.value)||1)));render()};
 {const _k=A.kSave;A.kSave=function(b,e){
- const by=K.bayar||'cash',top=Math.max(1,Math.round(Number(K.top)||7)),eid=K.editId,n=S.inv.length,bk=by==='transfer'?(K.bankId||((S.set.banks||[])[0]||{}).id||''):'';
+ const by=K.bayar||'cash',top=Math.max(1,Math.round(Number(K.top)||7)),eid=K.editId,n=S.inv.length,tA=(K.tAkun||'Bank')==='Kas'?'Kas':'Bank',bk=(by==='transfer'||(by==='termin'&&tA==='Bank'))?(K.bankId||((S.set.banks||[])[0]||{}).id||''):'';
  const r=_k.apply(this,arguments);
  let i=null;
  if(eid){if(K.editId!==eid)i=S.inv.find(x=>x.id===eid)}else if(S.inv.length>n)i=S.inv[S.inv.length-1];
  if(i){i.bayar=by;i.top=by==='termin'?top:0;i.tempo=by==='termin'?addD(i.tgl,top):i.tgl;i.bankId=bk;i.bankLbl=bk?bankNmLbl(bk):'';
+  if(by==='termin')i.tagihAkun=tA;else delete i.tagihAkun;
   save();render()}
  return r}}
 
@@ -2610,7 +2613,7 @@ function invCetakApprove(i){
 const MAN_DIR=()=>S.set.ttdNama||'WAHYU';
 function manualTtd(){return `<div style="display:flex;justify-content:flex-end;margin-top:28px"><div style="text-align:center;min-width:210px;color:#14232a"><div>Menyetujui,</div><div style="height:74px"></div><div style="font-weight:800;text-decoration:underline">${esc(MAN_DIR())}</div><div style="font-size:12px;font-weight:600">DIREKTUR CV. PUNGGAWA</div></div></div>`}
 {const _ih=invHTML;invHTML=function(i){let h=_ih(i);
- if(payOf(i)!=='transfer')h=h.replace(/<p style="margin:16px 0 0;color:#4b6068"><b>Pembayaran transfer ke:<\/b>[\s\S]*?<\/p>/,'');
+ if(!invShowBank(i))h=h.replace(/<p style="margin:16px 0 0;color:#4b6068"><b>Pembayaran transfer ke:<\/b>[\s\S]*?<\/p>/,'');
  const lbl=payLbl(i);
  const a='Jatuh tempo</small> '+fd(i.tempo)+'<br>';
  if(h.includes(a))h=h.replace(a,a+'<small style="color:#4b6068">Pembayaran</small> '+lbl+'<br>');
@@ -2750,7 +2753,7 @@ A.prtInv=function(b){
 /* Popup nomor invoice / penawaran / jurnal setelah disimpan, dengan tombol Salin nomor */
 function noPopup(jenis,no,sub){
  modal(`<h2 style="font-size:20px">${jenis} tersimpan</h2><div class="info">${sub}</div><div class="card" style="text-align:center;margin:14px 0"><small style="color:var(--muted)">Nomor ${jenis}</small><div class="num" style="font-size:26px;font-weight:800;margin-top:6px;user-select:all;-webkit-user-select:all;word-break:break-all">${esc(no)}</div></div><div class="row" style="justify-content:flex-end"><button class="btn pri" data-act="npCopy" data-no="${esc(no)}">Salin nomor</button><button class="btn" data-act="close">Tutup</button></div>`)}
-{const _it=invText;invText=function(i){const t=_it(i),bk=invBankTxt(i)||S.set.bank;return payOf(i)==='transfer'&&bk&&!t.includes(bk)?t+'\n\nPembayaran transfer ke:\n'+bk:t}}
+{const _it=invText;invText=function(i){const t=_it(i),bk=invBankTxt(i)||S.set.bank;return invShowBank(i)&&bk&&!t.includes(bk)?t+'\n\nPembayaran transfer ke:\n'+bk:t}}
 A.npCopy=async b=>{const ok=await copyTxt(b.dataset.no);toast(ok?'Nomor tersalin':'Gagal menyalin, tekan lama pada nomor')};
 {const _k=A.kSave;A.kSave=function(b,e){const eid=K.editId,n=S.inv.length,r=_k.apply(this,arguments);
  let i=null;if(eid){if(K.editId!==eid)i=S.inv.find(x=>x.id===eid)}else if(S.inv.length>n)i=S.inv[S.inv.length-1];
