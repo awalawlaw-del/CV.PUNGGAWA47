@@ -2922,10 +2922,11 @@ A.jamEdit=()=>{if(!isSA()){toast('Jam kerja hanya bisa diubah oleh Admin Super')
 </script>
 <script>
 /* ================= Kas Kecil & Rekening Bank ================= */
-const bankLbl=b=>b.nama+(b.rek?' · '+b.rek:'')+(b.an?' a.n. '+b.an:'');
+const _bv=v=>{v=(v==null?'':String(v)).trim();return v==='undefined'||v==='null'?'':v};
+const bankLbl=b=>{b=b||{};const n=_bv(b.nama)||'Bank',r=_bv(b.rek),a=_bv(b.an);return n+(r?' · '+r:'')+(a?' a.n. '+a:'')};
 const bankOpts=()=>{const B=S.set.banks||[];return B.length?B.map(b=>`<option value="${esc(b.id)}">${esc(bankLbl(b))}</option>`).join(''):'<option value="">Belum ada rekening bank</option>'};
-const bankNmById=id=>{const b=(S.set.banks||[]).find(x=>x.id===id);return b?b.nama+(b.rek?' '+b.rek:''):''};
-const bankNm=t=>bankNmById(t.bankId)||t.bankNm||'';
+const bankNmById=id=>{const b=(S.set.banks||[]).find(x=>x.id===id);return b?((_bv(b.nama)||'Bank')+(_bv(b.rek)?' '+_bv(b.rek):'')):''};
+const bankNm=t=>bankNmById(t.bankId)||(/undefined/.test(t.bankNm||'')?'':t.bankNm)||'';
 const saldoOf=f=>OKTX().filter(f).reduce((a,t)=>a+(t.jenis==='Pemasukan'?t.jml:-t.jml),0);
 const saldoKas=()=>saldoOf(t=>t.akun!=='Bank');
 const saldoBank=id=>saldoOf(t=>t.akun==='Bank'&&(t.bankId||'')===(id||''));
@@ -2935,7 +2936,13 @@ function saldoPreview(dl){const ks=Object.keys(dl).filter(k=>dl[k]!==0);if(!ks.l
 function initBanks(){if(Array.isArray(S.set.banks))return;const str=(S.set.bank||'').trim();let b=[];
  if(str){const m=str.match(/^(\S+)\s+([\d\-\s.]+?)\s+a\.?\s?n\.?\s+(.+)$/i);b=[m?{id:uid('b'),nama:m[1],rek:m[2].trim(),an:m[3].trim()}:{id:uid('b'),nama:str,rek:'',an:''}]}
  S.set.banks=b}
-{const _rb=render;render=function(){if(S&&S.set&&!Array.isArray(S.set.banks)){initBanks();save()}return _rb.apply(this,arguments)}}
+function repairBanks(){if(!S||!S.set||!Array.isArray(S.set.banks))return false;let ch=false;
+ const g=(o,ks)=>{for(const k of ks){const v=_bv(o[k]);if(v)return v}return ''};
+ S.set.banks.forEach(b=>{const nama=g(b,['nama','bank','namaBank','nm','name']),rek=g(b,['rek','norek','noRek','no_rek','nomor','noRekening','account']),an=g(b,['an','atasNama','a_n','pemilik','holder']);
+  if(b.nama!==nama){b.nama=nama;ch=true}if(b.rek!==rek){b.rek=rek;ch=true}if(b.an!==an){b.an=an;ch=true}
+  if(!b.nama){const m=(S.set.bank||'').trim().match(/^(\S+)\s+([\d\-\s.]+?)\s+a\.?\s?n\.?\s+(.+)$/i);if(m&&(!b.an||b.an===m[3].trim())){b.nama=m[1];if(!b.rek)b.rek=m[2].trim();if(!b.an)b.an=m[3].trim()}else b.nama='Bank';ch=true}});
+ return ch}
+{const _rb=render;render=function(){if(S&&S.set&&!Array.isArray(S.set.banks)){initBanks();save()}else if(repairBanks())save();return _rb.apply(this,arguments)}}
 const canBank=()=>!!SES&&(isAp()||isSA()||canJur());
 function bankCard(){if(!SES||!S.set)return '';const B=S.set.banks||[],mg=canBank(),kas=saldoKas(),unk=S.tx.some(t=>t.akun==='Bank'&&!bankNmById(t.bankId)&&!t.bankNm)?saldoBank(''):null;
  const tot=kas+sum(B,b=>saldoBank(b.id))+(unk||0);
@@ -3024,7 +3031,7 @@ A.dkCabut=b=>{if(!isAp())return;const g=(S.bkAkses||[]).find(x=>x.id===b.dataset
 <script>
 /* ================= Invoice: pilih Cash (Kas Kecil) atau Bank + rekening ================= */
 const bankNmLbl=id=>{const b=(S.set.banks||[]).find(x=>x.id===id);return b?bankLbl(b):''};
-const invBankTxt=i=>i.bankLbl||(i.bankId?bankNmLbl(i.bankId):'');
+const invBankTxt=i=>(i.bankId?bankNmLbl(i.bankId):'')||(/undefined/.test(i.bankLbl||'')?'':i.bankLbl)||'';
 const kBankOpts=()=>{const B=S.set.banks||[],cur=K.bankId||(B[0]||{}).id||'';return B.length?B.map(b=>`<option value="${esc(b.id)}"${b.id===cur?' selected':''}>${esc(bankLbl(b))}</option>`).join(''):'<option value="">Belum ada rekening bank</option>'};
 const payAkunOf=i=>(payOf(i)==='cash'||i.tagihAkun==='Kas')?'Kas':'Bank';
 /* Invoice termin: saat ditandai lunas, admin memilih uang masuk ke Kas Kecil atau rekening bank */
