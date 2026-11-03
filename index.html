@@ -3124,13 +3124,18 @@ function absDir(){const day=S.att[TODAY]||{},E=S.emps,o=S.set.lok||{},nW=S.req.f
  <div class="row">${!day[DIR_ID]?'<button class="btn pri" data-act="dirIn">Absen masuk</button><select data-chg="absS" data-id="dir" style="width:auto"><option value="">Izin / sakit...</option><option>Izin</option><option>Sakit</option></select>':day[DIR_ID].s==='Hadir'&&!day[DIR_ID].out?'<button class="btn pri" data-act="dirOut">Absen pulang</button>':'<span style="color:var(--muted)">Absensi hari ini sudah tercatat.</span>'}</div>${day[DIR_ID]&&day[DIR_ID].loc?'<div style="margin-top:10px;font-size:12px">'+locBadge(day[DIR_ID].loc)+'</div>':''}</div>
  <div class="card"><h3>Absen karyawan hari ini</h3><div class="tw"><table><thead><tr><th>Karyawan</th><th>Status</th><th>Masuk</th><th>Pulang</th><th>Lokasi masuk</th></tr></thead><tbody>
  ${E.length?E.map(e=>{const a=day[e.id];return `<tr><td><b>${esc(e.nama)}</b><br><small style="color:var(--muted)">${esc(e.jabatan||'')}</small></td><td>${absPill(a,TODAY)}</td><td class="num">${a&&(a.in||a.inP)||'-'}</td><td class="num">${a&&a.out||'-'}</td><td>${locBadge(a&&a.loc)}</td></tr>`}).join(''):'<tr><td colspan="5" class="empty">Belum ada karyawan.</td></tr>'}</tbody></table></div>
- <p style="color:var(--muted);margin:8px 0 0;font-size:12px">${o.lat!=null?'Titik kantor '+o.lat+', '+o.lng+', radius '+o.rad+' m.':'Titik kantor belum diatur oleh Admin Super.'}</p></div>`+absRekapCard('Rekap absensi bulanan')}
+ <p style="color:var(--muted);margin:8px 0 0;font-size:12px">${o.lat!=null?'Titik kantor '+o.lat+', '+o.lng+', radius '+o.rad+' m.':'Titik kantor belum diatur oleh Admin Super.'}</p></div>`}
 
+U.abssub=U.abssub||'abs';
+const absRekapHead=()=>`<div class="head"><div><h1>Rekap Absensi</h1><p>Rekap kehadiran seluruh karyawan per bulan, bisa diunduh ke Excel</p></div></div>`;
 {const _a=V.abs;V.abs=()=>{
- if(isAp())return absDir();
- const h=_a();
- if(isSA()){const inp=`<input id="absm" type="month" value="${U.absM}" data-inp="absM" style="width:auto">`;return h.includes(inp)?h.replace(inp,absMonthBtn()):h+absRekapCard()}
- if(isAdm())return h+absRekapCard('Rekap absensi seluruh karyawan');
+ const bar=subBar('abssub',[['abs','Absensi'],['rekap','Rekap Absensi']]),rk=U.abssub==='rekap';
+ if(isAp())return bar+(rk?absRekapHead()+absRekapCard('Rekap absensi bulanan'):absDir());
+ let h=_a();
+ if(isSA()){if(rk)return bar+absRekapHead()+absRekapCard('Rekap absensi bulanan');
+  const a=h.indexOf('<div class="card"><div class="row" style="justify-content:space-between"><h3>Rekap bulanan</h3>'),m='Hari yang belum diisi dianggap alpa.</p></div>',b=h.indexOf(m,a);
+  if(a>=0&&b>a)h=h.slice(0,a)+h.slice(b+m.length);return bar+h}
+ if(isAdm())return bar+(rk?absRekapHead()+absRekapCard('Rekap absensi seluruh karyawan'):h);
  return h}}
 
 </script>
