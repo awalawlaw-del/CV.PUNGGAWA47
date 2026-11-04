@@ -1654,7 +1654,7 @@ V.kjg=()=>{KJ=KJ||newKJ();
  <div class="card"><h3>Kebutuhan kantor</h3><div class="tw"><table><thead><tr><th>Barang</th><th>Spesifikasi (mis. 2 PK, 3/8")</th><th>Jumlah</th><th></th></tr></thead><tbody>${KJ.keb.map((x,i)=>`<tr><td><select data-inp="kjKeb" data-i="${i}" data-f="j">${KJN.map(n=>`<option${n===x.j?' selected':''}>${n}</option>`).join('')}</select></td><td><input data-inp="kjKeb" data-i="${i}" data-f="s" value="${esc(x.s)}"></td><td style="width:90px"><input type="number" min="0" step="any" data-inp="kjKeb" data-i="${i}" data-f="q" value="${x.q}"></td><td style="width:44px"><button type="button" class="btn sm del" data-act="kjKebDel" data-i="${i}" aria-label="Hapus baris">×</button></td></tr>`).join('')}</tbody></table></div>
  <div class="row" style="margin:10px 0"><button type="button" class="btn sm" data-act="kjKebAdd">+ Tambah kebutuhan</button></div>${kjI('Kebutuhan lain / catatan','kebLain',{ta:1,ph:'Mis. kabel NYM, braket, freon R32'})}</div>
  <div class="card"><h3>Kendala &amp; status</h3><div class="fgrid">${kjI('Kendala yang dihadapi','kendala',{ta:1,ph:'Mis. anggaran belum turun, menunggu keputusan pimpinan'})}<label class="f">Status kunjungan<select data-inp="kjF" data-f="status">${KST.map(s=>`<option${s===KJ.status?' selected':''}>${s}</option>`).join('')}</select></label></div></div>
- <div class="card"><h3>Foto</h3><div class="fgrid"><div><label class="f">Foto kunjungan<input type="file" accept="image/*" capture="environment" data-chg="kjFile" data-f="foto"></label>${thumbs(KJ.foto,'foto')}</div><div><label class="f">Gambar proyek (jika ada)<input type="file" accept="image/*" multiple data-chg="kjFile" data-f="proy"></label>${thumbs(KJ.proy,'proy')}</div></div><small style="color:var(--muted)">Maksimal 3 foto per kolom, otomatis dikecilkan agar hemat memori.</small></div>
+ <div class="card"><h3>Foto</h3><div class="fgrid"><div><div class="f"><span>Foto kunjungan</span><button type="button" class="btn" data-act="kjPick" data-f="foto"${KJ.foto.length>=3?' disabled':''}>📷 Tambah foto (${KJ.foto.length}/3)</button></div>${thumbs(KJ.foto,'foto')}</div><div><div class="f"><span>Gambar proyek (jika ada)</span><button type="button" class="btn" data-act="kjPick" data-f="proy"${KJ.proy.length>=3?' disabled':''}>🖼️ Tambah gambar (${KJ.proy.length}/3)</button></div>${thumbs(KJ.proy,'proy')}</div></div><small style="color:var(--muted)">Maksimal 3 foto per kolom, otomatis dikecilkan agar hemat memori.</small></div>
  <div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-act="kjReset">Kosongkan</button><button type="button" class="btn pri" data-act="kjSave">Simpan kunjungan</button></div>`};
 CH.kjF=el=>{KJ[el.dataset.f]=el.value};
 CH.kjKeb=el=>{const x=KJ.keb[el.dataset.i],f=el.dataset.f;if(x)x[f]=f==='q'?Number(el.value)||0:el.value};
@@ -3141,6 +3141,47 @@ const absRekapHead=()=>`<div class="head"><div><h1>Rekap Absensi</h1><p>Rekap ke
  if(isAdm())return bar+(rk?absRekapHead()+absRekapCard('Rekap absensi seluruh karyawan'):h);
  return h}}
 
+</script>
+<script>
+/* Foto kunjungan: ketuk tombol -> pilih Kamera langsung atau Galeri */
+A.kjPick=b=>{const f=b.dataset.f;if(!KJ||KJ[f].length>=3){toast('Maksimal 3 foto');return}
+ modal(`<h2 style="font-size:20px">${f==='foto'?'Foto kunjungan':'Gambar proyek'}</h2><p style="color:var(--muted);margin:0 0 14px">Pilih sumber foto</p><div class="grid" style="gap:10px"><button type="button" class="btn pri" data-act="kjSrc" data-f="${f}" data-src="cam">📷 Foto langsung (kamera)</button><button type="button" class="btn" data-act="kjSrc" data-f="${f}" data-src="gal">🖼️ Ambil dari galeri</button><button type="button" class="btn" data-act="close">Batal</button></div>`)};
+A.kjSrc=b=>{const f=b.dataset.f,cam=b.dataset.src==='cam';closeModal();
+ const i=document.createElement('input');i.type='file';i.accept='image/*';if(cam)i.setAttribute('capture','environment');else i.multiple=true;i.style.display='none';document.body.appendChild(i);
+ i.onchange=()=>{const fs=[...i.files].slice(0,3-KJ[f].length);let n=fs.length;if(!n){i.remove();return}fs.forEach(x=>kjShrink(x,u=>{KJ[f].push(u);if(--n===0){i.remove();render()}}))};
+ i.click()};
+</script>
+<script>
+/* ---------- Dashboard pencapaian untuk akun teknisi ---------- */
+U.pcpM=U.pcpM||TODAY.slice(0,7);
+Object.assign(ICON,{pcp:'<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM5 5H3v2a3 3 0 0 0 3 3M19 5h2v2a3 3 0 0 1-3 3"/>'});
+Object.assign(EMO,{pcp:'🏆'});
+{const _at=allowedTabs;allowedTabs=function(){const t=_at();if(SES&&SES.role==='teknisi'&&!t.some(x=>x[0]==='pcp')){const i=t.findIndex(x=>x[0]==='dash');t.splice(i<0?0:i+1,0,['pcp','Pencapaian'])}return t}}
+const pcpBars=g=>{const W=720,H=220,L=34,R=8,T=18,B=28,pw=W-L-R,ph=H-T-B,mx=Math.max(4,Math.ceil(Math.max(...g.map(x=>x.n))/4)*4),n=g.length,bw=pw/n,bar=Math.min(34,bw*.5);
+ let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Grafik order selesai per bulan">`;
+ for(let i=0;i<=4;i++){const y=T+ph-ph*i/4;s+=`<line class="grid" x1="${L}" x2="${W-R}" y1="${y}" y2="${y}"/><text x="${L-6}" y="${y+4}" text-anchor="end">${Math.round(mx*i/4)}</text>`}
+ g.forEach((x,i)=>{const cx=L+bw*i+bw/2,h=ph*x.n/mx;s+=`<rect x="${cx-bar/2}" y="${T+ph-h}" width="${bar}" height="${h}" rx="7" fill="var(--brand)"><title>${x.l}: ${x.n} order selesai</title></rect>${x.n?`<text x="${cx}" y="${T+ph-h-5}" text-anchor="middle">${x.n}</text>`:''}<text x="${cx}" y="${H-8}" text-anchor="middle">${x.l}</text>`});
+ return s+'</svg>'};
+V.pcpT=()=>{const e=S.emps.find(x=>x.id===SES.empId);
+ if(!e)return '<div class="card"><h3>Pencapaian</h3><p class="empty">Data karyawan tidak ditemukan. Hubungi admin.</p></div>';
+ const mo=U.pcpM,mine=S.orders.filter(o=>o.teknisi===e.id),mon=mine.filter(o=>o.tgl.startsWith(mo)),sel=mon.filter(o=>o.status==='Selesai'),
+  tot=mine.filter(o=>o.status==='Selesai').length,akt=mine.filter(o=>!doneS(o)).length,nb=mon.filter(o=>o.status!=='Batal').length,tg=+e.target||0,pc=pct(sel.length,tg);
+ const [y,m]=mo.split('-').map(Number),ds=[];for(let d=1;d<=new Date(y,m,0).getDate();d++){const t=mo+'-'+pad(d);if(pd(t).getDay()!==0&&t<=TODAY)ds.push(t)}
+ const hd=ds.filter(t=>((S.att[t]||{})[e.id]||{}).s==='Hadir').length,
+  tr=ar(6,i=>{const k=addM(mo+'-01',i-5).slice(0,7);return{l:BLN[+k.slice(5)-1]+' '+k.slice(2,4),n:mine.filter(o=>o.status==='Selesai'&&o.tgl.startsWith(k)).length}}),
+  by={};sel.forEach(o=>{const k=o.layanan||'Lainnya';by[k]=(by[k]||0)+1});const lay=Object.entries(by).sort((a,b)=>b[1]-a[1]),
+  last=mine.filter(o=>o.status==='Selesai').sort((a,b)=>b.tgl.localeCompare(a.tgl)).slice(0,5);
+ return `<div class="head"><div><h1>Pencapaian Saya</h1><p>${esc(e.nama)} · ${absBulanTxt(mo)}</p></div><input type="month" value="${mo}" data-inp="pcpM" style="width:auto" aria-label="Pilih bulan"></div>
+ <div class="grid g4">
+  <div class="card kpi"><small>Order selesai bulan ini</small><span class="v">${sel.length}</span>${tg?`<div class="bar"><i class="${barCls(pc)}" style="width:${Math.min(100,pc)}%"></i></div><span class="s">${pc>=100?'🎉 Target tercapai! ':''}${sel.length} dari target ${tg} order (${pc}%)</span>`:'<span class="s">order selesai</span>'}</div>
+  <div class="card kpi"><small>Total order selesai</small><span class="v">${tot}</span><span class="s">sepanjang waktu</span></div>
+  <div class="card kpi"><small>Order aktif sekarang</small><span class="v">${akt}</span><span class="s">belum selesai</span></div>
+  <div class="card kpi"><small>Kehadiran bulan ini</small><span class="v">${pct(hd,ds.length)}%</span><span class="s">${hd} hadir dari ${ds.length} hari kerja</span></div>
+ </div>
+ <div class="card"><h3>Order selesai 6 bulan terakhir</h3>${pcpBars(tr)}</div>
+ <div class="card"><h3>Rincian per layanan</h3>${lay.length?`<div class="tw"><table><thead><tr><th>Layanan</th><th class="r">Selesai</th><th style="min-width:140px">Porsi</th></tr></thead><tbody>${lay.map(([k,n])=>`<tr><td>${esc(k)}</td><td class="r num">${n}</td><td><div class="row" style="flex-wrap:nowrap"><div class="bar" style="flex:1"><i class="ok" style="width:${pct(n,sel.length)}%"></i></div><span class="num">${pct(n,sel.length)}%</span></div></td></tr>`).join('')}</tbody></table></div><p style="color:var(--muted);margin:8px 0 0;font-size:12px">Tingkat penyelesaian bulan ini: ${pct(sel.length,nb)}% (${sel.length} selesai dari ${nb} order, tidak termasuk yang batal).</p>`:'<p class="empty">Belum ada order selesai di bulan ini.</p>'}</div>
+ <div class="card"><h3>Order terakhir diselesaikan</h3>${last.length?`<div class="tw"><table><thead><tr><th>Tanggal</th><th>Pelanggan</th><th>Layanan</th></tr></thead><tbody>${last.map(o=>`<tr><td>${fd(o.tgl)}</td><td>${esc(o.nama)}</td><td>${esc(o.layanan||'-')}</td></tr>`).join('')}</tbody></table></div>`:'<p class="empty">Belum ada order yang selesai.</p>'}</div>`};
+CH.pcpM=el=>{if(el.value){U.pcpM=el.value;render()}};
 </script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}</script>
 </body>
