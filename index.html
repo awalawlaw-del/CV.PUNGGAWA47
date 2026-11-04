@@ -3152,36 +3152,52 @@ A.kjSrc=b=>{const f=b.dataset.f,cam=b.dataset.src==='cam';closeModal();
  i.click()};
 </script>
 <script>
-/* ---------- Dashboard pencapaian untuk akun teknisi ---------- */
-U.pcpM=U.pcpM||TODAY.slice(0,7);
+/* ---------- Dashboard pencapaian untuk akun teknisi (pola sama dengan dashboard Sales) ---------- */
+U.pcpD=U.pcpD||TODAY;
 Object.assign(ICON,{pcp:'<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM5 5H3v2a3 3 0 0 0 3 3M19 5h2v2a3 3 0 0 1-3 3"/>'});
 Object.assign(EMO,{pcp:'🏆'});
+Object.assign(KIC,{tsel:ICON.job||ICON.pcp,thari:ICON.pcp,thdr:ICON.abs||ICON.pcp,tpen:ICON.kin||ICON.pcp});
 {const _at=allowedTabs;allowedTabs=function(){const t=_at();if(SES&&SES.role==='teknisi'&&!t.some(x=>x[0]==='pcp')){const i=t.findIndex(x=>x[0]==='dash');t.splice(i<0?0:i+1,0,['pcp','Pencapaian'])}return t}}
-const pcpBars=g=>{const W=720,H=220,L=34,R=8,T=18,B=28,pw=W-L-R,ph=H-T-B,mx=Math.max(4,Math.ceil(Math.max(...g.map(x=>x.n))/4)*4),n=g.length,bw=pw/n,bar=Math.min(34,bw*.5);
- let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Grafik order selesai per bulan">`;
+const PIEC=['var(--brand)','var(--heat)','var(--good)','#7c3aed','#e0a02b','#0ea5e9'];
+const pcpPie=a=>{const t=sum(a,x=>x[1]),C=2*Math.PI*38;let off=0;
+ return `<svg viewBox="0 0 100 100" width="150" height="150" role="img" aria-label="Komposisi order per layanan"><circle cx="50" cy="50" r="38" fill="none" stroke="var(--line)" stroke-width="16"/>${a.map((x,i)=>{const l=C*x[1]/t,c=`<circle cx="50" cy="50" r="38" fill="none" stroke="${PIEC[i%PIEC.length]}" stroke-width="16" stroke-dasharray="${l.toFixed(2)} ${(C-l).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 50 50)"><title>${esc(x[0])}: ${x[1]} order</title></circle>`;off+=l;return c}).join('')}<text x="50" y="55" text-anchor="middle" style="font-size:18px;font-weight:700;fill:var(--ink)">${t}</text></svg>`};
+const pcpBars=(g,tl)=>{const W=720,H=230,L=34,R=8,T=18,B=28,pw=W-L-R,ph=H-T-B,mx=Math.max(4,Math.ceil(Math.max(...g.map(x=>x.n),tl||0)/4)*4),n=g.length,bw=pw/n,bar=Math.min(30,bw*.56),Y=v=>T+ph-ph*v/mx;
+ let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Grafik order selesai per hari">`;
  for(let i=0;i<=4;i++){const y=T+ph-ph*i/4;s+=`<line class="grid" x1="${L}" x2="${W-R}" y1="${y}" y2="${y}"/><text x="${L-6}" y="${y+4}" text-anchor="end">${Math.round(mx*i/4)}</text>`}
- g.forEach((x,i)=>{const cx=L+bw*i+bw/2,h=ph*x.n/mx;s+=`<rect x="${cx-bar/2}" y="${T+ph-h}" width="${bar}" height="${h}" rx="7" fill="var(--brand)"><title>${x.l}: ${x.n} order selesai</title></rect>${x.n?`<text x="${cx}" y="${T+ph-h-5}" text-anchor="middle">${x.n}</text>`:''}<text x="${cx}" y="${H-8}" text-anchor="middle">${x.l}</text>`});
+ g.forEach((x,i)=>{const cx=L+bw*i+bw/2,h=ph*x.n/mx;s+=`<rect x="${cx-bar/2}" y="${T+ph-h}" width="${bar}" height="${h}" rx="6" fill="var(--brand)"><title>${x.l}: ${x.n} order selesai</title></rect>${x.n?`<text x="${cx}" y="${T+ph-h-5}" text-anchor="middle">${x.n}</text>`:''}${(n-1-i)%2===0?`<text x="${cx}" y="${H-8}" text-anchor="middle">${x.l}</text>`:''}`});
+ if(tl)s+=`<line x1="${L}" x2="${W-R}" y1="${Y(tl)}" y2="${Y(tl)}" stroke="var(--heat)" stroke-width="2" stroke-dasharray="6 4"><title>Target harian ${tl} order</title></line>`;
  return s+'</svg>'};
 V.pcpT=()=>{const e=S.emps.find(x=>x.id===SES.empId);
  if(!e)return '<div class="card"><h3>Pencapaian</h3><p class="empty">Data karyawan tidak ditemukan. Hubungi admin.</p></div>';
- const mo=U.pcpM,mine=S.orders.filter(o=>o.teknisi===e.id),mon=mine.filter(o=>o.tgl.startsWith(mo)),sel=mon.filter(o=>o.status==='Selesai'),
-  tot=mine.filter(o=>o.status==='Selesai').length,akt=mine.filter(o=>!doneS(o)).length,nb=mon.filter(o=>o.status!=='Batal').length,tg=+e.target||0,pc=pct(sel.length,tg);
- const [y,m]=mo.split('-').map(Number),ds=[];for(let d=1;d<=new Date(y,m,0).getDate();d++){const t=mo+'-'+pad(d);if(pd(t).getDay()!==0&&t<=TODAY)ds.push(t)}
- const hd=ds.filter(t=>((S.att[t]||{})[e.id]||{}).s==='Hadir').length,
-  tr=ar(6,i=>{const k=addM(mo+'-01',i-5).slice(0,7);return{l:BLN[+k.slice(5)-1]+' '+k.slice(2,4),n:mine.filter(o=>o.status==='Selesai'&&o.tgl.startsWith(k)).length}}),
-  by={};sel.forEach(o=>{const k=o.layanan||'Lainnya';by[k]=(by[k]||0)+1});const lay=Object.entries(by).sort((a,b)=>b[1]-a[1]),
-  last=mine.filter(o=>o.status==='Selesai').sort((a,b)=>b.tgl.localeCompare(a.tgl)).slice(0,5);
- return `<div class="head"><div><h1>Pencapaian Saya</h1><p>${esc(e.nama)} · ${absBulanTxt(mo)}</p></div><input type="month" value="${mo}" data-inp="pcpM" style="width:auto" aria-label="Pilih bulan"></div>
- <div class="grid g4">
-  <div class="card kpi"><small>Order selesai bulan ini</small><span class="v">${sel.length}</span>${tg?`<div class="bar"><i class="${barCls(pc)}" style="width:${Math.min(100,pc)}%"></i></div><span class="s">${pc>=100?'🎉 Target tercapai! ':''}${sel.length} dari target ${tg} order (${pc}%)</span>`:'<span class="s">order selesai</span>'}</div>
-  <div class="card kpi"><small>Total order selesai</small><span class="v">${tot}</span><span class="s">sepanjang waktu</span></div>
-  <div class="card kpi"><small>Order aktif sekarang</small><span class="v">${akt}</span><span class="s">belum selesai</span></div>
-  <div class="card kpi"><small>Kehadiran bulan ini</small><span class="v">${pct(hd,ds.length)}%</span><span class="s">${hd} hadir dari ${ds.length} hari kerja</span></div>
- </div>
- <div class="card"><h3>Order selesai 6 bulan terakhir</h3>${pcpBars(tr)}</div>
- <div class="card"><h3>Rincian per layanan</h3>${lay.length?`<div class="tw"><table><thead><tr><th>Layanan</th><th class="r">Selesai</th><th style="min-width:140px">Porsi</th></tr></thead><tbody>${lay.map(([k,n])=>`<tr><td>${esc(k)}</td><td class="r num">${n}</td><td><div class="row" style="flex-wrap:nowrap"><div class="bar" style="flex:1"><i class="ok" style="width:${pct(n,sel.length)}%"></i></div><span class="num">${pct(n,sel.length)}%</span></div></td></tr>`).join('')}</tbody></table></div><p style="color:var(--muted);margin:8px 0 0;font-size:12px">Tingkat penyelesaian bulan ini: ${pct(sel.length,nb)}% (${sel.length} selesai dari ${nb} order, tidak termasuk yang batal).</p>`:'<p class="empty">Belum ada order selesai di bulan ini.</p>'}</div>
- <div class="card"><h3>Order terakhir diselesaikan</h3>${last.length?`<div class="tw"><table><thead><tr><th>Tanggal</th><th>Pelanggan</th><th>Layanan</th></tr></thead><tbody>${last.map(o=>`<tr><td>${fd(o.tgl)}</td><td>${esc(o.nama)}</td><td>${esc(o.layanan||'-')}</td></tr>`).join('')}</tbody></table></div>`:'<p class="empty">Belum ada order yang selesai.</p>'}</div>`};
-CH.pcpM=el=>{if(el.value){U.pcpM=el.value;render()}};
+ const d=U.pcpD||TODAY,mo=d.slice(0,7),bl=BLN[+d.slice(5,7)-1]+' '+d.slice(0,4),hari=d===TODAY?'hari ini':fd(d),
+  mine=S.orders.filter(o=>o.teknisi===e.id),mtd=mine.filter(o=>o.tgl.startsWith(mo)&&o.tgl<=d),sel=mtd.filter(o=>o.status==='Selesai'),nb=mtd.filter(o=>o.status!=='Batal'),
+  dayS=mine.filter(o=>o.tgl===d&&o.status==='Selesai'),akt=mine.filter(o=>!doneS(o)).length,bt=mtd.length-nb.length,
+  [y,m]=mo.split('-').map(Number),wk=t=>pd(t).getDay()!==0,all=[],ds=[];
+ for(let k=1;k<=new Date(y,m,0).getDate();k++){const t=mo+'-'+pad(k);if(wk(t)){all.push(t);if(t<=d)ds.push(t)}}
+ const tg=+e.target||0,tH=tg?Math.max(1,Math.ceil(tg/Math.max(1,all.length))):0,att=t=>(S.att[t]||{})[e.id]||{},hd=ds.filter(t=>att(t).s==='Hadir').length,
+  skor=Math.min(100,pct(sel.length,tg)),col=skor>=90?'var(--good)':skor>=60?'#e0a02b':'var(--bad)',
+  ord=l=>[...l].sort((a,b)=>b.tgl.localeCompare(a.tgl)),
+  cols=[['Tanggal',r=>fds(r.tgl)],['Pelanggan',r=>`<b>${esc(r.nama)}</b>`],['Layanan',r=>esc(r.layanan||'-')],['Status',r=>`<span class="pill p-${r.status==='Selesai'?'Selesai':r.status==='Batal'?'Batal':'Belum'}">${r.status}</span>`]];
+ KDY.tsel=['Order selesai · '+bl,'Target '+(tg||'-')+' order per bulan. Dihitung dari order berstatus Selesai yang ditugaskan ke kamu, sampai '+fd(d)+'.',ktbl(cols,ord(sel),'Belum ada order selesai di bulan ini.')];
+ KDY.thari=['Order selesai · '+fd(d),'Target harian '+(tH||'-')+' order (target bulanan dibagi jumlah hari kerja bulan ini).',ktbl(cols,dayS,'Belum ada order selesai di tanggal ini.')];
+ KDY.thdr=['Kehadiran · '+bl,hd+' hadir dari '+ds.length+' hari kerja (Senin sampai Sabtu) sampai '+fd(d)+'.',ktbl([['Tanggal',t=>fds(t)],['Status',t=>att(t).s?`<span class="pill p-${att(t).s==='Hadir'?'Selesai':'Belum'}">${att(t).s}</span>`:'<span class="pill p-Batal">Belum absen</span>'],['Masuk',t=>att(t).in||att(t).inP||'-'],['Pulang',t=>att(t).out||'-']],[...ds].reverse(),'Belum ada hari kerja.')];
+ KDY.tpen=['Order bulan ini · '+bl,'Tingkat penyelesaian: '+sel.length+' selesai dari '+nb.length+' order (yang dibatalkan tidak dihitung).',ktbl(cols,ord(nb),'Belum ada order di bulan ini.')];
+ const ring=`<svg viewBox="0 0 100 100" width="112" height="112" role="img" aria-label="Capaian target ${skor} persen"><circle cx="50" cy="50" r="42" fill="none" stroke="var(--line)" stroke-width="9"/><circle cx="50" cy="50" r="42" fill="none" stroke="${col}" stroke-width="9" stroke-linecap="round" stroke-dasharray="${(264*skor/100).toFixed(1)} 264" transform="rotate(-90 50 50)"/><text x="50" y="57" text-anchor="middle" style="font-size:22px;font-weight:700;fill:var(--ink)">${skor}%</text></svg>`,
+  days=ar(14,i=>addD(d,i-13)),tr=days.map(t=>({l:fds(t),n:mine.filter(o=>o.tgl===t&&o.status==='Selesai').length})),
+  by={};sel.forEach(o=>{const k=o.layanan||'Lainnya';by[k]=(by[k]||0)+1});const lay=Object.entries(by).sort((a,b)=>b[1]-a[1]),sisa=Math.max(0,tg-sel.length);
+ return `<div class="head"><div><h1>Pencapaian Teknisi</h1><p>${esc(e.nama)} · ${fd(d)}</p></div>
+ <div class="row"><button class="btn sm" data-act="pcpSet" data-v="t">Hari ini</button><button class="btn sm" data-act="pcpSet" data-v="y">Kemarin</button><input type="date" value="${d}" max="${TODAY}" data-chg="pcpD" style="width:auto" aria-label="Tanggal"></div></div>
+ <div class="card hero">${ring}<div><h3 style="margin:0 0 4px">Capaian target order ${bl}</h3><p>${tg?(sel.length>=tg?'🎉 Target bulan ini tercapai! ':'Tinggal '+sisa+' order lagi untuk mencapai target. ')+sel.length+' dari '+tg+' order selesai sampai '+fds(d)+'.':sel.length+' order selesai sampai '+fds(d)+'. Target order belum diatur oleh admin.'} Order aktif sekarang: ${akt}.</p></div></div>
+ <div class="kgrid">${kcard('tsel','Order selesai '+bl,sel.length,tg)}${kcard('thari','Selesai '+hari,dayS.length,tH)}${kcard('thdr','Kehadiran '+bl,hd,ds.length)}${kcard('tpen','Tingkat penyelesaian',sel.length,nb.length)}</div>
+ <div class="ind"><div class="row" style="justify-content:space-between"><h3>ORDER SELESAI 14 HARI TERAKHIR</h3>${lg([['Selesai','var(--brand)'],['Target harian','var(--heat)']])}</div>${pcpBars(tr,tH)}</div>
+ <div class="ind"><h3>ORDER PER LAYANAN · ${bl.toUpperCase()}</h3>${lay.length?`<div class="row" style="gap:22px;align-items:center;flex-wrap:wrap">${pcpPie(lay)}<div style="flex:1;min-width:200px">${lg(lay.map((x,i)=>[esc(x[0])+' · '+x[1]+' ('+pct(x[1],sel.length)+'%)',PIEC[i%PIEC.length]]))}</div></div>`:'<p class="empty">Belum ada order selesai di bulan ini.</p>'}</div>
+ <div class="card"><h3>Rekap ${bl} sampai ${fds(d)}</h3><div class="tw"><table style="min-width:0"><thead><tr><th>Indikator</th><th class="r">Total</th><th class="r">Rata-rata / hari kerja</th><th class="r">Target</th></tr></thead><tbody>
+ <tr><td>Order selesai</td><td class="r num">${sel.length}</td><td class="r num">${(sel.length/Math.max(1,ds.length)).toFixed(1).replace('.',',')}</td><td class="r num">${tg?tg+' / bulan':'-'}</td></tr>
+ <tr><td>Order dibatalkan</td><td class="r num">${bt}</td><td class="r num">-</td><td class="r num">-</td></tr>
+ <tr><td>Hari hadir</td><td class="r num">${hd}</td><td class="r num">-</td><td class="r num">${ds.length} hari kerja</td></tr></tbody></table></div>
+ <p style="color:var(--muted);margin:8px 0 0;font-size:12px">${ds.length} hari kerja (Senin sampai Sabtu) sampai tanggal ini. Order dihitung berdasarkan tanggal order, sama seperti halaman Kinerja.</p></div>`};
+A.pcpSet=b=>{U.pcpD=b.dataset.v==='y'?addD(TODAY,-1):TODAY;render()};
+CH.pcpD=el=>{U.pcpD=el.value||TODAY;render()};
 </script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}</script>
 </body>
