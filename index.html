@@ -689,6 +689,8 @@ function rescueCheck(){
   try{
     const r=JSON.parse(localStorage.getItem(RESCUE_KEY)||'null');
     if(!r||!r.data||r.client===SYNC.client||document.getElementById('rescuebox'))return;
+    /* jika semua isi cadangan sudah sama dengan data sekarang (sudah tersimpan), buang diam-diam */
+    try{if(SYNC.ready&&!SYNC.fail&&!SYNC.pend&&Object.keys(r.data).every(k=>jj(S[k])===jj(r.data[k]))){localStorage.removeItem(RESCUE_KEY);return}}catch(e){}
     const d=new Date(r.t),t=d.toLocaleString('id-ID');
     const o=document.createElement('div');o.id='rescuebox';
     o.style.cssText='position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px';
@@ -3281,7 +3283,7 @@ CH.pcpD=el=>{U.pcpD=el.value||TODAY;render()};
     if((SYNC.fail||SYNC.pend)&&!confirm('Ada data yang BELUM tersimpan ke database. Jika keluar sekarang data itu bisa hilang. Tetap keluar?'))return;
     return origLogout.apply(this,arguments)};
   const origRender=render;let checked=false;
-  render=function(){const r=origRender.apply(this,arguments);if(!checked&&SES){checked=true;setTimeout(rescueCheck,400)}return r};
+  render=function(){const r=origRender.apply(this,arguments);if(!checked&&SES){checked=true;setTimeout(rescueCheck,2500)}return r};
   window.addEventListener('beforeunload',e=>{if(SES&&(SYNC.fail||SYNC.pend||SYNC.busy)){e.preventDefault();e.returnValue='';return ''}});
   const st=document.createElement('style');st.textContent='body.syncwarn{padding-bottom:90px}body.syncwarn #toast{bottom:100px}';document.head.appendChild(st);
 })();
