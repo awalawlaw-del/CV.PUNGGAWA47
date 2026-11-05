@@ -593,45 +593,109 @@ const KAT_IN=['Jasa servis','Penjualan sparepart','Kontrak perawatan','Lainnya']
 const KAT_OUT=['Material & freon','Gaji karyawan','Bensin & transport','Sewa & listrik','Peralatan','Lainnya'];
 let S=null;
 /* ===== SINKRON KE SUPABASE (tabel app_state), tanpa localStorage ===== */
-const SYNC={ready:false,snap:{},timer:null,client:Math.random().toString(36).slice(2)+Date.now().toString(36),chan:null,busy:false,again:false};
+const SYNC={ready:false,snap:{},timer:null,client:Math.random().toString(36).slice(2)+Date.now().toString(36),chan:null,busy:false,again:false,fail:false,pend:false};
 function stateKeys(){return Object.keys(S||{}).filter(k=>k!=='tab')}
-function setBadge(kind,msg){
+const RESCUE_KEY='punggawa.rescue.v1';
+function isObj(x){return x&&typeof x==='object'&&!Array.isArray(x)}
+function jj(x){return JSON.stringify(x)}
+function itemKey(o){if(!isObj(o))return null;if(o.id!=null)return 'i:'+o.id;if(o.no!=null)return 'n:'+o.no;return null}
+function mergeArr(base,loc,srv){
+  base=Array.isArray(base)?base:[];
+  const useKey=[...loc,...srv].length>0&&[...loc,...srv].every(x=>itemKey(x)!=null);
+  if(!useKey){ /* tanpa id: gabungkan unik berdasarkan isi */
+    if(jj(loc)===jj(base))return srv; if(jj(srv)===jj(base)||jj(srv)===jj(loc))return loc;
+    const seen=new Set(),out=[];[...srv,...loc].forEach(x=>{const k=jj(x);if(!seen.has(k)){seen.add(k);out.push(x)}});return out}
+  const bm=new Map(),sm=new Map(),lm=new Map();
+  base.forEach(x=>{const k=itemKey(x);if(k)bm.set(k,x)});srv.forEach(x=>sm.set(itemKey(x),x));loc.forEach(x=>lm.set(itemKey(x),x));
+  const out=[],used=new Set();
+  loc.forEach(l=>{const k=itemKey(l);used.add(k);const b=bm.get(k),sv=sm.get(k);
+    if(b===undefined){out.push(sv===undefined?l:(jj(sv)===jj(l)?l:mergeVal(undefined,l,sv,1)));return}
+    if(sv===undefined){if(jj(l)!==jj(b))out.push(l);return} /* dihapus di server: simpan hanya jika lokal mengubahnya */
+    if(jj(l)===jj(b))out.push(sv);else if(jj(sv)===jj(b)||jj(sv)===jj(l))out.push(l);else out.push(mergeVal(b,l,sv,1))});
+  srv.forEach(sv=>{const k=itemKey(sv);if(used.has(k))return;const b=bm.get(k);
+    if(b===undefined||jj(b)!==jj(sv))out.push(sv)}); /* baru di server, atau dihapus lokal tapi diubah di server */
+  return out}
+function mergeVal(base,loc,srv,d){
+  if(jj(srv)===jj(loc))return loc;
+  if(base!==undefined&&jj(loc)===jj(base))return srv;
+  if(base!==undefined&&jj(srv)===jj(base))return loc;
+  if(Array.isArray(loc)&&Array.isArray(srv))return mergeArr(base,loc,srv);
+  if(isObj(loc)&&isObj(srv)&&d<3){
+    const b=isObj(base)?base:{},out={},keys=new Set([...Object.keys(srv),...Object.keys(loc)]);
+    keys.forEach(k=>{const inL=k in loc,inS=k in srv,inB=k in b;
+      if(inL&&inS)out[k]=mergeVal(inB?b[k]:undefined,loc[k],srv[k],d+1);
+      else if(inL){if(!inB||jj(loc[k])!==jj(b[k]))out[k]=loc[k]}
+      else if(inS){if(!inB||jj(srv[k])!==jj(b[k]))out[k]=srv[k]}});
+    return out}
+  return loc}
+function rescueSave(){try{localStorage.setItem(RESCUE_KEY,JSON.stringify({t:Date.now(),client:SYNC.client,user:(SES&&(SES.username||SES.name))||'',data:S}))}catch(e){}}
+function rescueClear(){try{const r=JSON.parse(localStorage.getItem(RESCUE_KEY)||'null');if(r&&r.client===SYNC.client)localStorage.removeItem(RESCUE_KEY)}catch(e){}}
+function setBadge(kind,msg,again){
   try{
     let el=document.getElementById('syncbadge');
-    if(!SES){if(el)el.remove();return}
-    if(kind==='ok'||kind==='busy'){if(el)el.remove();return}
-    if(!el){el=document.createElement('div');el.id='syncbadge';el.setAttribute('role','status');
-      el.style.cssText='position:fixed;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);z-index:99999;padding:8px 12px;border-radius:999px;font:600 12px/1.2 system-ui,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.25);cursor:pointer;max-width:80vw;color:#fff';
-      el.onclick=()=>{retrySync()};}
+    if(!SES){if(el)el.remove();document.body.classList.remove('syncwarn');return}
+    if(kind==='ok'||kind==='busy'){if(el)el.remove();document.body.classList.remove('syncwarn');return}
+    if(!el){el=document.createElement('div');el.id='syncbadge';el.setAttribute('role','alert');
+      el.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:99999;padding:12px 14px calc(env(safe-area-inset-bottom,0px) + 12px);font:600 13px/1.35 system-ui,sans-serif;box-shadow:0 -3px 14px rgba(0,0,0,.35);color:#fff;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between'}
     if(!document.body.contains(el))document.body.appendChild(el);
-    el.style.background=kind==='ok'?'#15803d':kind==='busy'?'#475569':kind==='warn'?'#b45309':'#b91c1c';
-    el.textContent=msg;el.title='Klik untuk simpan ulang / sambungkan ulang';
+    el.style.background=kind==='warn'?'#b45309':'#b91c1c';
+    const sb='style="background:#fff;color:#111;border:0;border-radius:8px;padding:7px 12px;font:700 12px system-ui;cursor:pointer"';
+    el.innerHTML='<span style="flex:1 1 220px">'+esc(msg)+'</span><span style="display:flex;gap:6px"><button type="button" data-act="syncRetry" '+sb+'>Coba simpan lagi</button><button type="button" data-act="syncDl" '+sb+'>Unduh cadangan</button></span>';
+    document.body.classList.add('syncwarn');
   }catch(e){}
 }
 async function retrySync(){
-  if(!SYNC.ready){setBadge('busy','Menyambungkan ulang...');await bootData();render();setBadge(SYNC.ready?'ok':'warn',SYNC.ready?'✓ Tersambung ke database':'⚠ Masih belum tersambung, cek internet / login ulang');return}
-  SYNC.snap={};await syncNow();
+  if(!SYNC.ready){setBadge('busy','Menyambungkan ulang...');await bootData();render();if(!SYNC.ready){SYNC.fail=true;setBadge('err','✕ Masih belum tersambung. Cek internet / login ulang. Data di layar BELUM tersimpan.')}else await syncNow();return}
+  await syncNow();
 }
 async function syncNow(){
   if(!S)return;
-  if(!SYNC.ready){setBadge('warn','⚠ Belum tersambung ke database (data BELUM tersimpan). Klik untuk coba lagi');return}
+  if(!SYNC.ready){SYNC.fail=true;rescueSave();setBadge('warn','⚠ Belum tersambung ke database — data BELUM tersimpan. Cadangan darurat disimpan di browser ini.');return}
   if(SYNC.busy){SYNC.again=true;return}
-  SYNC.busy=true;
+  SYNC.busy=true;SYNC.pend=false;
   setBadge('busy','Menyimpan ke database...');
+  let merged=false;
   try{
-    const rows=[];
-    stateKeys().forEach(k=>{const j=JSON.stringify(S[k]);if(SYNC.snap[k]!==j)rows.push({key:k,value:S[k],client:SYNC.client,_j:j})});
-    if(rows.length){
+    const dirty=stateKeys().filter(k=>SYNC.snap[k]!==jj(S[k]));
+    if(dirty.length){
+      rescueSave();
+      const {data:srvRows,error:e1}=await supabaseClient.from('app_state').select('key,value').in('key',dirty);
+      if(e1)throw e1;
+      const sm={};(srvRows||[]).forEach(r=>sm[r.key]=r.value);
+      dirty.forEach(k=>{
+        if(!(k in sm))return;
+        const sj=jj(sm[k]);if(sj===SYNC.snap[k]||sj===jj(S[k]))return;
+        let base;try{base=SYNC.snap[k]===undefined?(Array.isArray(sm[k])?[]:{}):JSON.parse(SYNC.snap[k])}catch(e){base=undefined}
+        S[k]=mergeVal(base,S[k],sm[k],0);merged=true});
+      const rows=dirty.map(k=>({key:k,value:S[k],client:SYNC.client,_j:jj(S[k])}));
       const {error}=await supabaseClient.from('app_state').upsert(rows.map(r=>({key:r.key,value:r.value,client:r.client})),{onConflict:'key'});
-      if(error){console.error('Gagal simpan ke Supabase:',error);setBadge('err','✕ Gagal simpan: '+error.message+' (klik untuk coba lagi)');toast('Gagal simpan ke database: '+error.message)}
-      else{rows.forEach(r=>{SYNC.snap[r.key]=r._j});const t=new Date();setBadge('ok','✓ Tersimpan di database '+String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0')+':'+String(t.getSeconds()).padStart(2,'0'))}
-    }else setBadge('ok','✓ Semua data sudah tersinkron');
-  }catch(e){console.error(e);setBadge('err','✕ Gagal simpan (jaringan?) — klik untuk coba lagi')}
+      if(error)throw error;
+      rows.forEach(r=>{SYNC.snap[r.key]=r._j});
+    }
+    SYNC.fail=false;
+    if(!SYNC.again&&stateKeys().every(k=>SYNC.snap[k]===jj(S[k])))rescueClear();
+    setBadge('ok');
+    if(merged){const m=$('#modal');if(!m||m.hidden){try{if(typeof mig==='function')mig();render();toast('Data digabung dengan perubahan perangkat lain')}catch(e){}}}
+  }catch(e){
+    console.error('Gagal simpan ke Supabase:',e);SYNC.fail=true;rescueSave();
+    setBadge('err','✕ GAGAL SIMPAN ke database: '+((e&&e.message)||'jaringan?')+'. Jangan tutup halaman! Cadangan darurat tersimpan di browser ini.');
+  }
   SYNC.busy=false;
   if(SYNC.again){SYNC.again=false;syncNow()}
 }
-function save(){setBadge(SYNC.ready?'busy':'warn',SYNC.ready?'Menyimpan ke database...':'⚠ Belum tersambung ke database (data BELUM tersimpan)');clearTimeout(SYNC.timer);SYNC.timer=setTimeout(syncNow,300)}
+function save(){SYNC.pend=true;try{rescueSave()}catch(e){}if(!SYNC.ready)setBadge('warn','⚠ Belum tersambung ke database — data BELUM tersimpan.');clearTimeout(SYNC.timer);SYNC.timer=setTimeout(syncNow,300)}
 window.addEventListener('pagehide',()=>{try{syncNow()}catch(e){}});
+function rescueCheck(){
+  try{
+    const r=JSON.parse(localStorage.getItem(RESCUE_KEY)||'null');
+    if(!r||!r.data||r.client===SYNC.client||document.getElementById('rescuebox'))return;
+    const d=new Date(r.t),t=d.toLocaleString('id-ID');
+    const o=document.createElement('div');o.id='rescuebox';
+    o.style.cssText='position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px';
+    o.innerHTML='<div style="background:#fff;color:#111;border-radius:14px;padding:20px;max-width:420px;font:14px/1.5 system-ui"><h3 style="margin:0 0 8px;font-size:17px">Ada cadangan darurat belum tersimpan</h3><p style="margin:0 0 14px">Pada '+esc(t)+' ada data yang gagal tersimpan ke database dan disimpan sementara di browser ini. Unduh dulu supaya aman.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" data-act="rescueDl" style="background:#b91c1c;color:#fff;border:0;border-radius:8px;padding:9px 14px;font-weight:700;cursor:pointer">Unduh cadangan</button><button type="button" data-act="rescueDrop" style="background:#e5e7eb;border:0;border-radius:8px;padding:9px 14px;font-weight:700;cursor:pointer">Buang</button><button type="button" data-act="rescueLater" style="background:#e5e7eb;border:0;border-radius:8px;padding:9px 14px;font-weight:700;cursor:pointer">Nanti</button></div></div>';
+    document.body.appendChild(o);
+  }catch(e){}
+}
 async function load(){
   try{
     const {data:{session}}=await supabaseClient.auth.getSession();
@@ -661,11 +725,16 @@ function startRealtime(){
   SYNC.chan=supabaseClient.channel('app_state_sync')
    .on('postgres_changes',{event:'*',schema:'public',table:'app_state'},pl=>{
      const r=pl.new;if(!r||!r.key||r.client===SYNC.client||!SES)return;
-     if(JSON.stringify(S[r.key])===JSON.stringify(r.value))return;
+     const rj=JSON.stringify(r.value);
+     if(JSON.stringify(S[r.key])===rj){SYNC.snap[r.key]=rj;return}
      const modalOpen=$('#modal')&&!$('#modal').hidden;
      try{
        const b=(typeof nUnread==='function')?nUnread().length:0;
-       S[r.key]=r.value;SYNC.snap[r.key]=JSON.stringify(r.value);
+       const dirty=JSON.stringify(S[r.key])!==SYNC.snap[r.key];
+       if(dirty){
+         let base;try{base=SYNC.snap[r.key]===undefined?undefined:JSON.parse(SYNC.snap[r.key])}catch(e){base=undefined}
+         S[r.key]=mergeVal(base,S[r.key],r.value,0);SYNC.snap[r.key]=rj;save();
+       }else{S[r.key]=r.value;SYNC.snap[r.key]=rj}
        if(typeof mig==='function')mig();
        if(modalOpen)return; /* jangan ganggu form yang sedang dibuka */
        const a=(typeof nUnread==='function')?nUnread().length:0;
@@ -3198,6 +3267,24 @@ V.pcpT=()=>{const e=S.emps.find(x=>x.id===SES.empId);
  <p style="color:var(--muted);margin:8px 0 0;font-size:12px">${ds.length} hari kerja (Senin sampai Sabtu) sampai tanggal ini. Order dihitung berdasarkan tanggal order, sama seperti halaman Kinerja.</p></div>`};
 A.pcpSet=b=>{U.pcpD=b.dataset.v==='y'?addD(TODAY,-1):TODAY;render()};
 CH.pcpD=el=>{U.pcpD=el.value||TODAY;render()};
+</script>
+<script>
+(function(){
+  const origLogout=A.logout;
+  A.syncRetry=()=>retrySync();
+  A.syncDl=()=>saveFile('cadangan-darurat-'+TODAY+'-'+new Date().toTimeString().slice(0,5).replace(':','')+'.json',JSON.stringify(S));
+  A.rescueDl=()=>{try{const r=JSON.parse(localStorage.getItem(RESCUE_KEY)||'null');if(r)saveFile('cadangan-darurat-lama-'+TODAY+'.json',JSON.stringify(r.data))}catch(e){}};
+  A.rescueDrop=()=>{if(confirm('Buang cadangan darurat ini? Tidak bisa dikembalikan.')){try{localStorage.removeItem(RESCUE_KEY)}catch(e){}const o=document.getElementById('rescuebox');if(o)o.remove()}};
+  A.rescueLater=()=>{const o=document.getElementById('rescuebox');if(o)o.remove()};
+  A.logout=async function(){
+    try{await syncNow()}catch(e){}
+    if((SYNC.fail||SYNC.pend)&&!confirm('Ada data yang BELUM tersimpan ke database. Jika keluar sekarang data itu bisa hilang. Tetap keluar?'))return;
+    return origLogout.apply(this,arguments)};
+  const origRender=render;let checked=false;
+  render=function(){const r=origRender.apply(this,arguments);if(!checked&&SES){checked=true;setTimeout(rescueCheck,400)}return r};
+  window.addEventListener('beforeunload',e=>{if(SES&&(SYNC.fail||SYNC.pend||SYNC.busy)){e.preventDefault();e.returnValue='';return ''}});
+  const st=document.createElement('style');st.textContent='body.syncwarn{padding-bottom:90px}body.syncwarn #toast{bottom:100px}';document.head.appendChild(st);
+})();
 </script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}</script>
 </body>
