@@ -3093,12 +3093,11 @@ function dkDirektur(){const G=S.bkAkses||[],now=Date.now(),P=G.filter(g=>g.st===
  ${Ac.length?`<h3 style="margin:16px 0 8px;font-size:16px">Akses yang sedang aktif</h3><div class="tw"><table><thead><tr><th>Admin</th><th>Berlaku sampai</th><th></th></tr></thead><tbody>${Ac.map(g=>`<tr><td><b>${esc(g.nama)}</b><br><small>${esc(ROLE_L[g.role]||g.role)}</small></td><td>${fdt(g.until)}</td><td class="r"><button class="btn sm del" data-act="dkCabut" data-id="${g.id}">Cabut akses</button></td></tr>`).join('')}</tbody></table></div>`:''}
  ${H.length?`<h3 style="margin:16px 0 8px;font-size:16px">Riwayat</h3><div class="tw"><table><thead><tr><th>Diajukan</th><th>Oleh</th><th>Status</th><th>Keterangan</th></tr></thead><tbody>${H.map(g=>`<tr><td>${fdt(g.ts)}</td><td>${esc(g.nama)}</td><td>${GPILL(g)}</td><td><small>${g.st==='Ditolak'?'Alasan: '+esc(g.alasanTolak||'-'):g.st==='Dicabut'?'Dicabut':'Berlaku sampai '+fdt(g.until)}</small></td></tr>`).join('')}</tbody></table></div>`:''}</div>`}
 function dkBankTiles(ok,B,totBank){
- const gJ=B.filter(b=>bankGrp(b)==='jasa'),gM=B.filter(b=>bankGrp(b)==='material'),gO=B.filter(b=>!bankGrp(b)),
-  sJ=sum(gJ,b=>saldoBank(b.id)),sM=sum(gM,b=>saldoBank(b.id)),sO=totBank-sJ-sM,lk=ok?'':' · terkunci',v=x=>ok?rp(x):'Rp ••••••',
+ const gJ=B.filter(b=>bankGrp(b)==='jasa'),gM=B.filter(b=>bankGrp(b)==='material'),
+  sJ=sum(gJ,b=>saldoBank(b.id)),sM=sum(gM,b=>saldoBank(b.id)),lk=ok?'':' · terkunci',v=x=>ok?rp(x):'Rp ••••••',
   nm=L=>L.length?L.map(b=>(b.nama||'Bank')+(b.rek?' '+String(b.rek).slice(-4):'')).join(', '):'Belum ada rekening';
  return dkTile('KAS BANK JASA',v(sJ),'var(--ink)',(ok?nm(gJ):gJ.length+' rekening')+lk)
-  +dkTile('KAS BANK MATERIAL DLL',v(sM),'var(--ink)',(ok?nm(gM):gM.length+' rekening')+lk)
-  +((gO.length||sO!==0)?dkTile('BANK LAINNYA',v(sO),'var(--muted)',(gO.length?gO.length+' rekening belum dikelompokkan':'Transaksi bank tanpa rekening')+lk):'')}
+  +dkTile('KAS BANK MATERIAL DLL',v(sM),'var(--ink)',(ok?nm(gM):gM.length+' rekening')+lk)}
 V.dkeu=()=>{const L=OKTX(),mo=TODAY.slice(0,7),fl=l=>({m:sum(l.filter(x=>x.jenis==='Pemasukan'),x=>x.jml),k:sum(l.filter(x=>x.jenis==='Pengeluaran'),x=>x.jml)}),c=fl(L.filter(t=>t.tgl.startsWith(mo))),laba=c.m-c.k,
   piu=S.inv.filter(i=>okInv(i)&&i.status==='Belum'),piuV=sum(piu,i=>invTot(i).tot),kas=saldoKas(),totBank=saldoOf(t=>t.akun==='Bank'),B=S.set.banks||[],ok=bkOk(),pend=S.tx.filter(t=>t.appr==='Menunggu').length;
  dkExp=isAp()?0:((bkGrant()||{}).until||0);
