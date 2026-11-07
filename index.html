@@ -2160,7 +2160,7 @@ CH.stFile=el=>{const f=el.files&&el.files[0];if(!f)return;
 A.stDel=()=>{delete S.set.stempel;save();render();toast('Kembali ke stempel otomatis')};
 
 /* ---------- 3. Absen di luar lokasi: wajib ACC Direktur ---------- */
-RJ.abs='Absen di luar lokasi';
+RJ.abs='Absensi';
 function absReq(id,kind,p){
  const e=S.emps.find(x=>x.id===id)||{nama:SES.nama},ket=e.nama+' · absen '+kind+' '+nowHM()+' · '+p.d+' m dari kantor';
  S.req.unshift({id:uid('r'),jenis:'abs',ref:id+'|'+TODAY+'|'+kind,ket,jml:0,alasan:'',oleh:SES.nama,role:SES.role,empId:id,tgl:TODAY,st:'Menunggu',loc:p,kind,jam:nowHM()});
@@ -2188,7 +2188,7 @@ A.clockOut=async b=>{const id=b.dataset.id,a=(S.att[TODAY]||{})[id];if(!a)return
  save();render();toast(ok?'Absen disetujui':'Absen ditolak')}}
 apLink=(_al=>function(r){if(r.jenis!=='abs')return _al(r);const p=r.loc||{};return esc(r.ket)+'<br><small><a href="https://www.google.com/maps?q='+p.lat+','+p.lng+'" target="_blank" rel="noopener">Lihat di peta</a> · batas '+S.set.lok.rad+' m, akurasi GPS ±'+(p.acc||'?')+' m</small>'})(apLink);
 {const _a=V.apr;V.apr=()=>{let h=_a();const k=h.indexOf('<h1>Persetujuan</h1>');
- h=h.replace(/(<b>Absen di luar lokasi<\/b>[\s\S]*?<td class="r num">)Rp 0(<\/td>)/g,'$1-$2');
+ h=h.replace(/(<b>Absensi<\/b>[\s\S]*?<td class="r num">)Rp 0(<\/td>)/g,'$1-$2');
  return h+(APV==='trx'?stempelCard()+kopCard()+ppnCard():'')}}
 
 /* ---------- 4. Link investor (laporan keuangan + dashboard) ---------- */
@@ -2902,8 +2902,19 @@ function aprAkun(){
  return `<div class="head"><div><h1>Persetujuan</h1><p>Akun baru menunggu persetujuan sebelum bisa login.</p></div></div>
  <div class="card"><h3>Akun menunggu (${P.length})</h3><div class="tw"><table><thead><tr><th>Nama</th><th>Nama pengguna</th><th>Peran</th><th></th></tr></thead><tbody>${P.length?P.map(u=>`<tr><td><b>${esc(u.nama)}</b></td><td class="num">${esc(u.username||'')}</td><td>${esc(rl(u.role))}</td><td class="r"><button class="btn sm pri" data-act="akOk" data-id="${u.id}">Setujui</button> <button class="btn sm del" data-act="akNo" data-id="${u.id}">Tolak</button></td></tr>`).join(''):`<tr><td colspan="4" class="empty">${AK.items.length?'Tidak ada akun yang menunggu.':'Memuat...'}</td></tr>`}</tbody></table></div></div>
  <div class="card"><h3>Riwayat keputusan akun</h3><div class="tw"><table><thead><tr><th>Tanggal</th><th>Nama</th><th>Nama pengguna</th><th>Peran</th><th>Keputusan</th><th>Oleh</th></tr></thead><tbody>${H.length?H.map(h=>`<tr><td>${fds(h.tgl)}<br><small>${esc(h.jam||'')}</small></td><td><b>${esc(h.nama)}</b></td><td class="num">${esc(h.username||'')}</td><td>${esc(rl(h.role))}</td><td><span class="pill p-${h.hasil==='Disetujui'?'Aman':'Batal'}">${h.hasil}</span></td><td>${esc(h.oleh||'')}</td></tr>`).join(''):'<tr><td colspan="6" class="empty">Belum ada riwayat.</td></tr>'}</tbody></table></div></div>`}
-async function akSet(b,st,msg){try{const {error}=await supabaseClient.from('profiles').update({status:st}).eq('id',b.dataset.id);
+/* PERBAIKAN: akun yang disetujui otomatis dibuatkan data karyawan (S.emps) dan profiles.emp_id terisi */
+function akMakeEmp(u,hp){
+ const ex=S.emps.find(e=>e.user&&e.user===u.username);if(ex)return {E:ex,isNew:false};
+ const r=u.role,E={id:uid('e'),nama:u.nama,jabatan:(typeof REG_JAB!=='undefined'&&REG_JAB[r])||'Teknisi',target:r==='teknisi'?20:0,user:u.username,hp:hp||''};
+ if(r==='teknisi')E.tingkat='T3';else if(r==='adminjual'||r==='adminops')E.role=r;
+ return {E,isNew:true}}
+const akNeedEmp=u=>u&&!u.emp_id&&u.role&&!['admin','direktur'].includes(u.role);
+async function akSet(b,st,msg){try{
+ const u0=AK.items.find(x=>x.id===b.dataset.id)||{};let E=null,isNew=false,upd={status:st};
+ if(st==='active'&&akNeedEmp(u0)){const m=akMakeEmp(u0,((typeof REGP!=='undefined'&&REGP.items.find(x=>x.id===u0.id))||{}).hp);E=m.E;isNew=m.isNew;upd.emp_id=E.id}
+ const {error}=await supabaseClient.from('profiles').update(upd).eq('id',b.dataset.id);
  if(error){toast('Gagal: '+error.message);return}
+ if(E&&isNew)S.emps.push(E);
  const u=AK.items.find(x=>x.id===b.dataset.id)||{};S.akRiwayat=S.akRiwayat||[];S.akRiwayat.unshift({id:uid('a'),tgl:TODAY,jam:nowHM(),nama:u.nama||'-',username:u.username||'',role:u.role||'',hasil:st==='active'?'Disetujui':'Ditolak',oleh:SES.nama});save();
  toast(msg);await akLoad(true);render()}catch(e){console.error(e);toast('Gagal (cek internet)')}}
 A.akOk=b=>akSet(b,'active','Akun disetujui, sudah bisa login');
@@ -2929,6 +2940,14 @@ A.akNo=b=>akSet(b,'inactive','Akun ditolak');
    pend=[...f.querySelectorAll('.card')].find(cd=>/^Menunggu persetujuan/i.test(h3(cd)));
   if(pend)pend.after(hc);else f.appendChild(hc);
   return bar+out(f)}}
+
+/* Sinkronkan akun lama yang sudah aktif tapi belum punya data karyawan */
+A.akSinkron=async()=>{const L=AK.items.filter(u=>u.status==='active'&&akNeedEmp(u));let n=0;
+ for(const u of L){const m=akMakeEmp(u,'');const {error}=await supabaseClient.from('profiles').update({emp_id:m.E.id}).eq('id',u.id);
+  if(error){toast('Gagal: '+error.message);break}if(m.isNew)S.emps.push(m.E);n++}
+ save();await akLoad(true);render();toast(n?n+' akun disambungkan ke data karyawan':'Semua akun sudah tersambung')};
+{const _pg=V.peg;V.peg=()=>{const h=_pg(),n=AK.items.filter(u=>u.status==='active'&&akNeedEmp(u)).length;
+ return h+(n?`<div class="card"><div class="note">Ada <b>${n}</b> akun aktif yang belum punya data karyawan (disetujui sebelum perbaikan).</div><button class="btn pri" data-act="akSinkron">Sinkronkan ${n} akun ke data karyawan</button></div>`:'')}}
 </script>
 <script>
 /* Tombol WA: langsung ke aplikasi WhatsApp di komputer (tanpa tab baru). Jika aplikasi tidak ada, jatuh ke wa.me */
@@ -3193,7 +3212,7 @@ function absDir(){const day=S.att[TODAY]||{},E=S.emps,o=S.set.lok||{},nW=S.req.f
  return `<div class="head"><div><h1>Absensi Karyawan</h1><p>${fd(TODAY)}, jam kerja ${S.set.jamMasuk} - ${S.set.jamKeluar||'18:00'}</p></div></div>
  <div class="grid g4"><div class="card kpi"><small>Hadir hari ini</small><span class="v">${E.filter(e=>day[e.id]&&day[e.id].s==='Hadir').length}/${E.length}</span><span class="s">karyawan sudah absen masuk</span></div>
  <div class="card kpi"><small>Terlambat hari ini</small><span class="v" style="color:var(--bad)">${E.filter(e=>day[e.id]&&day[e.id].s==='Hadir'&&isLate(day[e.id].in)).length}</span><span class="s">lewat ${S.set.jamMasuk}</span></div>
- <div class="card kpi"><small>Menunggu persetujuan</small><span class="v">${nW}</span><span class="s">absen di luar lokasi, ada di menu Persetujuan</span></div></div>
+ <div class="card kpi"><small>Menunggu persetujuan</small><span class="v">${nW}</span><span class="s">absen di luar lokasi dan koreksi, ada di menu Persetujuan</span></div></div>
  <div class="card"><h3>Absen saya hari ini</h3><div class="row" style="gap:20px;margin-bottom:12px">${absPill(day[DIR_ID],TODAY)}<span>Masuk <b class="num">${day[DIR_ID]&&day[DIR_ID].in||'-'}</b></span><span>Pulang <b class="num">${day[DIR_ID]&&day[DIR_ID].out||'-'}</b></span></div>
  <div class="row">${!day[DIR_ID]?'<button class="btn pri" data-act="dirIn">Absen masuk</button><select data-chg="absS" data-id="dir" style="width:auto"><option value="">Izin / sakit...</option><option>Izin</option><option>Sakit</option></select>':day[DIR_ID].s==='Hadir'&&!day[DIR_ID].out?'<button class="btn pri" data-act="dirOut">Absen pulang</button>':'<span style="color:var(--muted)">Absensi hari ini sudah tercatat.</span>'}</div>${day[DIR_ID]&&day[DIR_ID].loc?'<div style="margin-top:10px;font-size:12px">'+locBadge(day[DIR_ID].loc)+'</div>':''}</div>
  <div class="card"><h3>Absen karyawan hari ini</h3><div class="tw"><table><thead><tr><th>Karyawan</th><th>Status</th><th>Masuk</th><th>Pulang</th><th>Lokasi masuk</th></tr></thead><tbody>
@@ -3203,7 +3222,7 @@ function absDir(){const day=S.att[TODAY]||{},E=S.emps,o=S.set.lok||{},nW=S.req.f
 U.abssub=U.abssub||'abs';
 const absRekapHead=()=>`<div class="head"><div><h1>Rekap Absensi</h1><p>Rekap kehadiran seluruh karyawan per bulan, bisa diunduh ke Excel</p></div></div>`;
 {const _a=V.abs;V.abs=()=>{
- const bar=subBar('abssub',[['abs','Absensi'],['rekap','Rekap Absensi']]),rk=U.abssub==='rekap';
+ const bar=absBar(),rk=U.abssub==='rekap';
  if(isAp())return bar+(rk?absRekapHead()+absRekapCard('Rekap absensi bulanan'):absDir());
  let h=_a();
  if(isSA()){if(rk)return bar+absRekapHead()+absRekapCard('Rekap absensi bulanan');
@@ -3287,6 +3306,198 @@ CH.pcpD=el=>{U.pcpD=el.value||TODAY;render()};
   window.addEventListener('beforeunload',e=>{if(SES&&(SYNC.fail||SYNC.pend||SYNC.busy)){e.preventDefault();e.returnValue='';return ''}});
   const st=document.createElement('style');st.textContent='body.syncwarn{padding-bottom:90px}body.syncwarn #toast{bottom:100px}';document.head.appendChild(st);
 })();
+</script>
+<script>
+/* =====================================================================
+   ABSENSI TAMBAHAN
+   (1) Tab Lembur: absen lembur masuk dan pulang (tercatat di S.lbr)
+   (2) Tab Koreksi Absen: pengajuan koreksi jam, wajib ACC Direktur
+   (3) Tab Riwayat: cek absensi per tanggal untuk semua peran
+   ===================================================================== */
+const ABS_PERS=['teknisi','driver','helper','sales'];
+const LBR=()=>(S.lbr=S.lbr||{});
+const absMe=()=>{if(!SES)return null;if(isAp())return DIR_ID;if(isSA())return null;
+ const e=S.emps.find(x=>x.id===SES.empId);if(e)return e.id;
+ if(isAdm())return (S.emps.find(x=>x.role===SES.role)||S.emps.find(x=>x.jabatan==='Admin')||{}).id||null;
+ return SES.empId||null};
+const empOf=id=>id===DIR_ID?{id:DIR_ID,nama:'Direktur',jabatan:'Direktur'}:(S.emps.find(e=>e.id===id)||{id,nama:(SES&&SES.nama)||'-',jabatan:''});
+const empRole=e=>e.role||({Teknisi:'teknisi',Helper:'helper',Sales:'sales',Driver:'driver'})[e.jabatan]||(e.id===DIR_ID?'direktur':'');
+const lbrMs=(t,l)=>{if(!l||!l.in||!l.out)return 0;const a=new Date(t+'T'+l.in+':00'),b=new Date((l.outTgl||t)+'T'+l.out+':00'),d=b-a;return d>=0?d:0};
+const durTxt=ms=>{const m=Math.round(ms/6e4);return Math.floor(m/60)+' j '+pad(m%60)+' m'};
+function lbrOpen(id){const L=LBR();for(const t of [addD(TODAY,-1),TODAY]){const l=(L[t]||{})[id];if(l&&l.in&&!l.out)return{t,l}}return null}
+const lbrCur=id=>{const o=lbrOpen(id);if(o)return{t:o.t,l:o.l,open:true};const l=(LBR()[TODAY]||{})[id];return l?{t:TODAY,l,open:false}:null};
+const lbrPill=c=>c?(c.open?'<span class="pill p-Telat">Sedang lembur</span>':'<span class="pill p-Aman">Selesai</span>'):'<span class="pill p-Dicetak">Belum lembur</span>';
+const lbrList=()=>{const L=LBR(),d=Object.keys(L).some(t=>L[t]&&L[t][DIR_ID]);return d?[...S.emps,{id:DIR_ID,nama:'Direktur',jabatan:'Direktur'}]:S.emps};
+const koaAll=()=>S.req.filter(r=>r.jenis==='abs'&&r.kind==='koreksi');
+const koaPending=()=>{const me=absMe(),P=koaAll().filter(r=>r.st==='Menunggu');return isAp()||isSA()?P.length:P.filter(r=>r.empId===me||r.oleh===SES.nama).length};
+
+/* ---------- Sub-menu Absensi ---------- */
+function absSub(){let s=U.abssub||'abs';const ok=['abs','lbr','koa','his'].concat(ABS_ROLES.includes(SES.role)?['rekap']:[]);return ok.includes(s)?s:'abs'}
+function absBar(){U.abssub=absSub();const n=koaPending(),it=[['abs','Absensi'],['lbr','Lembur'],['koa','Koreksi Absen'+(n?' ('+n+')':'')],['his','Riwayat']];
+ if(ABS_ROLES.includes(SES.role))it.push(['rekap','Rekap Absensi']);return subBar('abssub',it)}
+
+/* ---------- 1. Absen lembur ---------- */
+function lbrModal(kind,id){
+ if(!isSA()&&id!==absMe()){toast('Absen lembur hanya untuk akun sendiri');return}
+ const e=empOf(id),op=lbrOpen(id),ex=(LBR()[TODAY]||{})[id];
+ if(kind==='masuk'){
+  if(op){toast('Lembur '+(op.t===TODAY?'hari ini':fd(op.t))+' belum diabsen pulang');return}
+  if(ex){toast('Lembur hari ini sudah tercatat');return}
+ }else if(!op){toast('Belum ada absen masuk lembur');return}
+ absStop();ABS.busy=false;ABS.p=null;ABS.kind=kind;ABS.id=id;
+ modal(`<h2 style="font-size:20px">Absen lembur ${kind}</h2>
+ <div class="info">Periksa tanggal, jam, dan lokasi di bawah. Lembur baru tercatat setelah Anda menekan tombol <b>Absen lembur ${kind}</b>.</div>
+ <div>${absRow('Nama','<b>'+esc(e.nama)+'</b>')}${kind==='pulang'?absRow('Lembur mulai','<b>'+fd(op.t)+', <span class="num">'+esc(op.l.in)+'</span></b>'):''}${absRow('Tanggal','<b id="abs_tgl">'+fd(TODAY)+'</b>')}${absRow('Jam','<b class="num" id="abs_jam" style="font-size:20px">--:--:--</b>')}${absRow('Lokasi','<div id="abs_loc"></div>')}</div>
+ ${kind==='masuk'?'<label class="f" style="margin-top:10px">Keterangan lembur (boleh dikosongkan)<input id="lbr_ket" maxlength="120" placeholder="Contoh: pasang AC di Ruko Pasar Baru"></label>':''}
+ <div class="note" id="abs_warn" hidden style="margin-top:10px">Anda berada di luar area kantor. Lembur tetap tercatat dan ditandai <b>di luar area</b> di laporan.</div>
+ <div class="row" style="justify-content:flex-end;margin-top:14px"><button type="button" class="btn" data-act="close">Batal</button><button type="button" class="btn pri" id="abs_go" data-act="lbrGo" disabled>Absen lembur ${kind}</button></div>`,
+ ()=>{absTick();ABS.tm=setInterval(absTick,1000);absLoadPos()});
+}
+function lbrDo(kind,id,p,ket){
+ const L=LBR();
+ if(kind==='masuk'){
+  if(lbrOpen(id)||(L[TODAY]||{})[id])return{st:'dup'};
+  (L[TODAY]=L[TODAY]||{})[id]={in:nowHM(),out:'',loc:p,ket:ket||'',oleh:SES.nama};save();render();return{st:'ok'}
+ }
+ const o=lbrOpen(id);if(!o)return{st:'none'};
+ o.l.out=nowHM();o.l.outTgl=TODAY;o.l.locOut=p;save();render();return{st:'ok',dur:durTxt(lbrMs(o.t,o.l))}
+}
+function lbrResult(r,kind,p){
+ absStop();
+ const M={ok:{ic:'✓',c:'#15803d',t:'Lembur '+kind+' berhasil',d:kind==='pulang'&&r.dur?'Total lembur '+r.dur+'.':'Absen lembur '+kind+' Anda sudah tercatat.'},
+  dup:{ic:'ℹ',c:'#475569',t:'Lembur sudah tercatat',d:'Lembur hari ini sudah ada, tidak dicatat dua kali.'},
+  none:{ic:'!',c:'#b91c1c',t:'Belum bisa absen lembur '+kind,d:'Absen masuk lembur belum tercatat.'}}[r.st]||{ic:'!',c:'#b91c1c',t:'Gagal',d:'Coba lagi.'};
+ const warn=r.st==='ok'&&p&&p.ok===false?'<div class="note" style="margin-top:10px">Lembur dicatat di luar area kantor ('+p.d+' m) dan ditandai di laporan.</div>':'';
+ modal(`<div style="text-align:center;padding:6px 0 2px"><div style="width:64px;height:64px;border-radius:50%;background:${M.c};color:#fff;font-size:32px;line-height:64px;margin:0 auto 12px">${M.ic}</div>
+ <h2 style="font-size:20px;margin:0 0 6px">${M.t}</h2><p style="margin:0 0 12px;color:var(--muted)">${M.d}</p></div>
+ <div>${absRow('Tanggal','<b>'+fd(TODAY)+'</b>')}${absRow('Jam','<b class="num">'+nowHM()+'</b>')}${p?absRow('Lokasi',absLocHTML(p)):''}</div>${warn}
+ <div class="row" style="justify-content:flex-end;margin-top:14px"><button type="button" class="btn pri" data-act="close">Selesai</button></div>`);
+}
+A.lbrIn=b=>lbrModal('masuk',b.dataset.id);
+A.lbrOut=b=>lbrModal('pulang',b.dataset.id);
+A.lbrGo=()=>{
+ if(ABS.busy||!ABS.p)return;ABS.busy=true;
+ const btn=$('#abs_go');if(btn){btn.disabled=true;btn.textContent='Menyimpan...'}
+ const kind=ABS.kind,p=ABS.p,k=$('#lbr_ket'),ket=k?k.value.trim():'';
+ let r;try{r=lbrDo(kind,ABS.id,p,ket)}catch(e){console.error(e);r={st:'err'}}
+ lbrResult(r,kind,p)};
+
+function lbrMine(me){
+ const c=lbrCur(me),l=c&&c.l;
+ return `<div class="card"><h3>Lembur saya</h3>
+ <div class="row" style="gap:20px;margin-bottom:12px">${lbrPill(c)}<span>Masuk <b class="num">${l&&l.in||'-'}</b></span><span>Pulang <b class="num">${l&&l.out||'-'}</b></span>${l&&l.out?`<span>Durasi <b class="num">${durTxt(lbrMs(c.t,l))}</b></span>`:''}</div>
+ ${c&&c.open&&c.t!==TODAY?`<div class="note" style="margin-bottom:10px">Lembur ${fd(c.t)} belum diabsen pulang.</div>`:''}
+ <div class="row">${!c?`<button class="btn pri" data-act="lbrIn" data-id="${me}">Lembur masuk</button>`:c.open?`<button class="btn pri" data-act="lbrOut" data-id="${me}">Lembur pulang</button>`:'<span style="color:var(--muted)">Lembur hari ini sudah tercatat.</span>'}</div>
+ ${l&&l.ket?`<p style="margin:10px 0 0;font-size:12px;color:var(--muted)">Keterangan: ${esc(l.ket)}</p>`:''}
+ ${l&&l.loc?`<div style="margin-top:10px;font-size:12px">Masuk: ${locBadge(l.loc)}${l.locOut?'<br><br>Pulang: '+locBadge(l.locOut):''}</div>`:''}</div>`}
+function lbrAllToday(canAct){
+ const rows=lbrList().map(e=>{const c=lbrCur(e.id),l=c&&c.l;
+  return `<tr><td><b>${esc(e.nama)}</b><br><small style="color:var(--muted)">${esc(e.jabatan||'')}</small></td><td>${lbrPill(c)}${c&&c.t!==TODAY?'<br><small>'+fds(c.t)+'</small>':''}</td><td class="num">${l&&l.in||'-'}</td><td class="num">${l&&l.out||'-'}</td><td class="num">${l&&l.out?durTxt(lbrMs(c.t,l)):'-'}</td><td>${l&&l.loc&&l.loc.ok===false?'<span class="pill p-Batal">Di luar area</span>':'-'}</td>${canAct?`<td class="r">${!c?`<button class="btn sm pri" data-act="lbrIn" data-id="${e.id}">Lembur masuk</button>`:c.open?`<button class="btn sm" data-act="lbrOut" data-id="${e.id}">Lembur pulang</button>`:''}</td>`:''}</tr>`}).join('');
+ return `<div class="card"><h3>Lembur karyawan hari ini</h3><div class="tw"><table><thead><tr><th>Karyawan</th><th>Status</th><th>Masuk</th><th>Pulang</th><th>Durasi</th><th>Lokasi</th>${canAct?'<th></th>':''}</tr></thead><tbody>${rows||`<tr><td colspan="${canAct?7:6}" class="empty">Belum ada karyawan.</td></tr>`}</tbody></table></div></div>`}
+function lbrRekap(mo){
+ const L=LBR(),R=lbrList().map(e=>{let n=0,ms=0;Object.keys(L).forEach(t=>{if(!t.startsWith(mo))return;const l=L[t][e.id];if(l&&l.in){n++;ms+=lbrMs(t,l)}});return{e,n,ms}}).sort((a,b)=>b.ms-a.ms);
+ return `<div class="card"><div class="row" style="justify-content:space-between"><h3>Rekap lembur ${absBulanTxt(mo)}</h3><input type="month" value="${mo}" data-inp="absM" style="width:auto" aria-label="Pilih bulan"></div>
+ <div class="tw"><table><thead><tr><th>Karyawan</th><th class="r">Jumlah lembur</th><th class="r">Total jam</th></tr></thead><tbody>${R.length?R.map(r=>`<tr><td>${esc(r.e.nama)}<br><small style="color:var(--muted)">${esc(r.e.jabatan||'')}</small></td><td class="r num">${r.n||'-'}</td><td class="r num">${r.n?durTxt(r.ms):'-'}</td></tr>`).join(''):'<tr><td colspan="3" class="empty">Belum ada karyawan.</td></tr>'}</tbody></table></div>
+ <p style="color:var(--muted);margin:8px 0 0;font-size:12px">Lembur yang belum diabsen pulang belum dihitung jamnya.</p></div>`}
+function lbrRiwayat(me,mo){
+ const L=LBR(),rows=Object.keys(L).filter(t=>t.startsWith(mo)&&L[t][me]).sort().reverse().map(t=>({t,l:L[t][me]})),P=paginate('lbr',rows,mo),tot=rows.reduce((s,r)=>s+lbrMs(r.t,r.l),0);
+ return `<div class="card"><div class="row" style="justify-content:space-between"><h3>Riwayat lembur saya</h3><input type="month" value="${mo}" data-inp="absM" style="width:auto" aria-label="Pilih bulan"></div>
+ <div class="row" style="margin-bottom:12px"><span class="pill p-Aman">Lembur ${rows.length} kali</span><span class="pill p-Dicetak">Total ${durTxt(tot)}</span></div>
+ <div class="tw"><table><thead><tr><th>Tanggal</th><th>Masuk</th><th>Pulang</th><th>Durasi</th><th>Lokasi</th><th>Keterangan</th></tr></thead><tbody>${rows.length?P.items.map(r=>`<tr><td>${fd(r.t)}</td><td class="num">${esc(r.l.in)}</td><td class="num">${r.l.out?esc(r.l.out)+(r.l.outTgl&&r.l.outTgl!==r.t?' <small>('+fds(r.l.outTgl)+')</small>':''):'-'}</td><td class="num">${r.l.out?durTxt(lbrMs(r.t,r.l)):'-'}</td><td>${r.l.loc&&r.l.loc.ok===false?'<span class="pill p-Batal">Di luar area</span>':'-'}</td><td>${esc(r.l.ket||'-')}</td></tr>`).join(''):'<tr><td colspan="6" class="empty">Belum ada lembur di bulan ini.</td></tr>'}</tbody></table></div>${P.html}</div>`}
+function absLembur(){
+ const me=absMe(),mo=U.absM,wide=isAp()||isSA()||isAdm();
+ let h=`<div class="head"><div><h1>Absen Lembur</h1><p>Catat jam mulai dan selesai lembur di luar jam kerja ${S.set.jamMasuk} - ${S.set.jamKeluar||'18:00'}</p></div></div>`;
+ if(me)h+=lbrMine(me);
+ h+=wide?lbrAllToday(isSA())+lbrRekap(mo):lbrRiwayat(me,mo);
+ return h}
+
+/* ---------- 2. Koreksi absen (pengajuan, ACC Direktur) ---------- */
+const koaChg=r=>{const b=r.sebelum||{},bs=b.s==='Menunggu'?'Menunggu ACC':b.s;
+ return{b:bs?bs+(b.in?', masuk '+b.in:'')+(b.out?', pulang '+b.out:''):'Belum ada absen',a:(r.jamIn?'masuk '+r.jamIn:'')+(r.jamIn&&r.jamOut?', ':'')+(r.jamOut?'pulang '+r.jamOut:'')}};
+const koaDetail=r=>{const c=koaChg(r);return `<b>${esc(r.ket)}</b><br><small>Sebelumnya: ${esc(c.b)}<br>Diajukan menjadi: ${esc(c.a)}<br>Alasan: ${esc(r.alasanKoreksi||'-')}</small>`};
+const koaSt=r=>`<span class="pill p-${r.st==='Disetujui'?'Aman':r.st==='Ditolak'?'Batal':'Menunggu'}">${esc(r.st)}</span>${r.oleh2?'<br><small>'+esc(r.oleh2)+'</small>':''}${r.alasanTolak?'<br><small>Alasan tolak: '+esc(r.alasanTolak)+'</small>':''}`;
+function koaApply(r){
+ const eid=r.ref.split('|')[0],tgl=r.tglAbs,day=(S.att[tgl]=S.att[tgl]||{}),a=Object.assign({in:'',out:''},day[eid]||{});
+ a.s='Hadir';
+ if(r.jamIn){a.in=r.jamIn;delete a.inP}
+ if(r.jamOut){a.out=r.jamOut;delete a.outP}
+ a.kor={by:r.oleh2||SES.nama,tgl:TODAY,req:r.id};
+ day[eid]=a}
+A.koaNew=(b,e,pre)=>{
+ const me=absMe();if(!me&&!isSA()){toast('Akun ini belum terhubung ke data karyawan');return}
+ const f=[];
+ if(isSA())f.push({k:'emp',l:'Karyawan',t:'select',o:S.emps.map(x=>[x.id,x.nama+' · '+x.jabatan]),wide:1});
+ f.push({k:'tgl',l:'Tanggal absen yang dikoreksi',t:'date',req:1,def:addD(TODAY,-1),wide:1},
+  {k:'masuk',l:'Jam masuk yang benar',t:'time'},{k:'pulang',l:'Jam pulang yang benar',t:'time'},
+  {k:'alasan',l:'Alasan (wajib), misalnya lupa absen karena langsung ke lokasi pelanggan',t:'textarea',wide:1});
+ form('Ajukan koreksi absen',f,pre||null,v=>{
+  const eid=isSA()?v.emp:me,jin=(v.masuk||'').trim(),jout=(v.pulang||'').trim(),al=(v.alasan||'').trim(),tgl=v.tgl,
+   bad=m=>{toast(m);setTimeout(()=>A.koaNew(null,null,v),50)};
+  if(!eid)return bad('Pilih karyawan dulu');
+  if(!tgl)return bad('Tanggal wajib diisi');
+  if(tgl>TODAY)return bad('Tanggal tidak boleh setelah hari ini');
+  if(pd(tgl).getDay()===0)return bad('Hari Minggu bukan hari kerja. Kerja di hari Minggu dicatat lewat absen Lembur.');
+  if(!jin&&!jout)return bad('Isi jam masuk dan/atau jam pulang yang benar');
+  const cur=(S.att[tgl]||{})[eid]||null;
+  if(cur&&(cur.s==='Menunggu'||cur.outP))return bad('Absen tanggal itu masih menunggu persetujuan Direktur (di luar lokasi). Tunggu keputusannya dulu.');
+  const fin=jin||(cur&&cur.in)||'',fout=jout||(cur&&cur.out)||'';
+  if(fin&&fout&&fout<=fin)return bad('Jam pulang harus setelah jam masuk');
+  if(cur&&cur.s==='Hadir'&&(!jin||jin===cur.in)&&(!jout||jout===cur.out))return bad('Jam yang diajukan sama dengan yang sudah tercatat');
+  if(!al)return bad('Alasan wajib diisi');
+  const ref=eid+'|'+tgl+'|koreksi';
+  if(S.req.some(r=>r.jenis==='abs'&&r.kind==='koreksi'&&r.st==='Menunggu'&&r.ref===ref))return bad('Sudah ada pengajuan koreksi untuk tanggal itu yang menunggu persetujuan');
+  const em=empOf(eid),ket='Koreksi absen · '+em.nama+' · '+fd(tgl);
+  const rq={id:uid('r'),jenis:'abs',kind:'koreksi',ref,ket,jml:0,alasan:'',alasanKoreksi:al,oleh:SES.nama,role:SES.role,empId:eid,tgl:TODAY,tglAbs:tgl,jamIn:jin,jamOut:jout,
+   sebelum:{s:cur?cur.s:'',in:cur?(cur.in||cur.inP||''):'',out:cur?(cur.out||''):''},st:'Menunggu'};
+  if(isAp()&&eid===DIR_ID){
+   rq.st='Disetujui';rq.oleh2='Direktur (koreksi sendiri)';koaApply(rq);S.req.unshift(rq);logAksi('Koreksi absen Direktur',ket,al);
+   save();render();toast('Koreksi absen tersimpan');return}
+  S.req.unshift(rq);
+  const c=koaChg(rq);
+  notify(['direktur'],'Koreksi absen menunggu persetujuan',ket+' · '+c.a+' · alasan: '+al,{tipe:'wait',tab:'apr',sub:'abs'});
+  const rl=[SES.role,empRole(em)].filter((x,i,a)=>x&&a.indexOf(x)===i&&x!=='direktur');
+  if(rl.length)notify(rl,'Koreksi absen diajukan',ket+' · menunggu persetujuan Direktur',{emp:eid,tipe:'wait',tab:'abs'});
+  save();render();toast('Pengajuan koreksi terkirim, menunggu persetujuan Direktur')
+ },'<div class="info">Koreksi berlaku setelah disetujui Direktur. Isi jam yang benar saja; jam yang dikosongkan tidak diubah.</div>')};
+{const _d=decide;decide=function(id,ok,al){
+ const r=S.req.find(x=>x.id===id);if(!r||r.jenis!=='abs'||r.kind!=='koreksi')return _d(id,ok,al);
+ if(!isAp()){toast('Hanya Direktur yang dapat menyetujui');return}if(r.st!=='Menunggu')return;
+ if(ok)koaApply(Object.assign({},r,{oleh2:SES.nama}));
+ else{r.alasanTolak=al;logAksi('Tolak Koreksi Absen',r.ket,al)}
+ r.st=ok?'Disetujui':'Ditolak';r.oleh2=SES.nama;
+ const rl=[r.role,empRole(empOf(r.empId))].filter((x,i,a)=>x&&a.indexOf(x)===i&&x!=='direktur');
+ if(rl.length)notify(rl,'Koreksi absen '+(ok?'disetujui':'ditolak'),r.ket+' · oleh '+SES.nama+(ok?'':' · Alasan: '+al),{emp:r.empId,tipe:ok?'ok':'no',tab:'abs'});
+ save();render();toast(ok?'Koreksi absen disetujui dan diterapkan':'Koreksi absen ditolak')}}
+apLink=(_al=>function(r){return r.jenis==='abs'&&r.kind==='koreksi'?koaDetail(r):_al(r)})(apLink);
+function absKoreksi(){
+ const me=absMe(),wide=isAp()||isSA(),rows=wide?koaAll():koaAll().filter(r=>r.empId===me||r.oleh===SES.nama),P=paginate('koa',rows,rows.length+'|'+(wide?1:0));
+ return `<div class="head"><div><h1>Koreksi Absen</h1><p>Lupa absen? Ajukan koreksi jam masuk atau pulang, berlaku setelah disetujui Direktur</p></div>${me||isSA()?'<button class="btn pri" data-act="koaNew">+ Ajukan koreksi</button>':''}</div>
+ <div class="card"><h3>${wide?'Pengajuan koreksi absen':'Pengajuan koreksi saya'} (${rows.length})</h3>${isAp()?'<p style="margin:0 0 10px;color:var(--muted);font-size:12px">Anda bisa menyetujui atau menolak di sini, atau lewat menu Persetujuan, Absensi. Koreksi absen Anda sendiri langsung disetujui.</p>':''}
+ <div class="tw"><table><thead><tr><th>Diajukan</th>${wide?'<th>Karyawan</th>':''}<th>Tanggal absen</th><th>Perubahan</th><th>Alasan</th><th>Keputusan</th></tr></thead><tbody>${rows.length?P.items.map(r=>{const c=koaChg(r);return `<tr><td>${fds(r.tgl)}<br><small>${esc(r.oleh)}</small></td>${wide?`<td>${esc(empOf(r.empId).nama)}</td>`:''}<td>${fd(r.tglAbs)}</td><td><small>Sebelumnya: ${esc(c.b)}</small><br>Menjadi: <b>${esc(c.a)}</b></td><td>${esc(r.alasanKoreksi||'-')}</td><td>${r.st==='Menunggu'&&isAp()?`<button class="btn sm pri" data-act="apOk" data-id="${r.id}">Setujui</button> <button class="btn sm del" data-act="apNo" data-id="${r.id}">Tolak</button>`:koaSt(r)}</td></tr>`}).join(''):`<tr><td colspan="${wide?6:5}" class="empty">Belum ada pengajuan koreksi absen.</td></tr>`}</tbody></table></div>${P.html}</div>`}
+
+/* ---------- 3. Riwayat absen per tanggal ---------- */
+const hisLbl=(a,t)=>!a&&pd(t).getDay()===0?'Libur':absLbl(a,t);
+const hisCls=l=>l==='Belum absen'||l==='Menunggu ACC'?'Belum':l==='Hadir, telat'?'Telat':l==='Libur'?'Dicetak':l;
+CH.hisT=el=>{if(!el.value)return;if(el.value>TODAY){toast('Tanggal tidak boleh setelah hari ini');return}U.hisT=el.value;render()};
+A.hisGo=b=>{const n=+b.dataset.n;let t=n===0?TODAY:addD(U.hisT||TODAY,n);if(t>TODAY)t=TODAY;U.hisT=t;render()};
+function absRiwayat(){
+ const t=(U.hisT&&U.hisT<=TODAY)?U.hisT:TODAY;U.hisT=t;
+ const wide=isAp()||isSA()||isAdm(),me=absMe(),
+  list=wide?absList().filter(e=>e.id!==DIR_ID||t>=dirStart()):(me?[empOf(me)]:[]),
+  rows=list.map(e=>{const a=(S.att[t]||{})[e.id],l=(LBR()[t]||{})[e.id],lab=hisLbl(a,t),kp=S.req.some(r=>r.jenis==='abs'&&r.kind==='koreksi'&&r.st==='Menunggu'&&r.ref===e.id+'|'+t+'|koreksi');return{e,a,l,lab,kp}}),
+  c=x=>rows.filter(r=>r.lab===x).length,nl=rows.filter(r=>r.l&&r.l.in).length;
+ return `<div class="head"><div><h1>Riwayat Absen</h1><p>${HARI_F[pd(t).getDay()]}, ${fd(t)}${t===TODAY?' (hari ini)':''}</p></div></div>
+ <div class="card"><div class="row" style="justify-content:space-between"><h3>Pilih tanggal</h3>
+ <div class="row"><button class="btn sm" data-act="hisGo" data-n="-1" aria-label="Hari sebelumnya">◀</button><input id="hist" type="date" value="${t}" max="${TODAY}" data-chg="hisT" style="width:auto" aria-label="Pilih tanggal"><button class="btn sm" data-act="hisGo" data-n="1" aria-label="Hari berikutnya"${t>=TODAY?' disabled':''}>▶</button>${t!==TODAY?'<button class="btn sm" data-act="hisGo" data-n="0">Hari ini</button>':''}</div></div>
+ ${wide?`<div class="row" style="margin:12px 0"><span class="pill p-Hadir">Hadir ${c('Hadir')+c('Hadir, telat')}</span><span class="pill p-Telat">Telat ${c('Hadir, telat')}</span><span class="pill p-Izin">Izin ${c('Izin')}</span><span class="pill p-Sakit">Sakit ${c('Sakit')}</span><span class="pill p-Alpa">Alpa ${c('Alpa')}</span><span class="pill p-Dicetak">Lembur ${nl}</span></div>`:''}
+ <div class="tw" style="margin-top:12px"><table><thead><tr><th>Karyawan</th><th>Status</th><th>Masuk</th><th>Pulang</th><th>Lokasi</th><th>Lembur</th><th>Catatan</th></tr></thead><tbody>${rows.length?rows.map(r=>{const a=r.a,l=r.l;
+  return `<tr><td><b>${esc(r.e.nama)}</b><br><small style="color:var(--muted)">${esc(r.e.jabatan||'')}</small></td><td><span class="pill p-${hisCls(r.lab)}">${r.lab}</span></td><td class="num">${a&&(a.in||a.inP)||'-'}</td><td class="num">${a&&(a.out||(a.outP?a.outP.t+' (menunggu)':''))||'-'}</td><td>${a&&a.loc?'Masuk: '+locBadge(a.loc)+(a.locOut?'<br><br>Pulang: '+locBadge(a.locOut):''):'-'}</td><td>${l&&l.in?`<span class="num">${esc(l.in)} - ${l.out?esc(l.out):'...'}</span>${l.out?'<br><small>'+durTxt(lbrMs(t,l))+'</small>':'<br><small>belum pulang</small>'}${l.ket?'<br><small>'+esc(l.ket)+'</small>':''}${l.loc&&l.loc.ok===false?'<br><span class="pill p-Batal">Di luar area</span>':''}`:'-'}</td><td>${a&&a.kor?'<span class="pill p-Dicetak">Dikoreksi</span><br><small>ACC '+esc(a.kor.by||'')+'</small>':''}${r.kp?'<span class="pill p-Menunggu">Koreksi menunggu ACC</span>':''}${!(a&&a.kor)&&!r.kp?'-':''}</td></tr>`}).join(''):'<tr><td colspan="7" class="empty">Belum ada data karyawan.</td></tr>'}</tbody></table></div>
+ <p style="color:var(--muted);margin:8px 0 0;font-size:12px">Hari Minggu ditandai libur. Lupa absen di tanggal ini? Ajukan lewat tab Koreksi Absen.</p></div>`}
+
+/* ---------- Pasang ke menu Absensi ---------- */
+{const _v=V.abs;V.abs=()=>{const s=absSub();return s==='lbr'?absBar()+absLembur():s==='koa'?absBar()+absKoreksi():s==='his'?absBar()+absRiwayat():_v()}}
+{const _t=V.absT;V.absT=()=>{if(!ABS_PERS.includes(SES.role))return _t();const s=absSub();return absBar()+(s==='lbr'?absLembur():s==='koa'?absKoreksi():s==='his'?absRiwayat():_t())}}
+{const _c=A.clearDemo;A.clearDemo=()=>{S.lbr={};_c()}}
 </script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}</script>
 </body>
