@@ -2969,7 +2969,7 @@ V.peg=()=>{
  return `<div class="head"><div><h1>Daftar Pegawai</h1><p>Hapus pegawai yang sudah tidak bekerja agar tidak muncul lagi di absensi, pembagian job, dan kinerja.</p></div><button class="btn pri" data-act="newEmp">+ Karyawan</button></div>
  <div class="card"><h3>Pegawai (${E.length})</h3><div class="tw"><table><thead><tr><th>Nama</th><th>Jabatan</th><th>Akun login</th><th class="r">Job aktif</th><th></th></tr></thead><tbody>${E.length?P.items.map(e=>{const ak=AK.items.find(u=>u.emp_id===e.id),n=S.orders.filter(o=>o.teknisi===e.id&&ACT_ST.includes(o.status)).length;
   return `<tr><td><b>${esc(e.nama)}</b></td><td>${esc(e.jabatan)}${e.tingkat?' · '+esc(e.tingkat):''}</td><td>${ak?'<span class="num">'+esc(ak.username||'')+'</span>':'<small style="color:var(--muted)">belum ada akun</small>'}</td><td class="r num">${n}</td><td class="r"><button class="btn sm" data-act="pegEd" data-id="${e.id}">Edit</button> <button class="btn sm del" data-act="pegDel" data-id="${e.id}">Hapus</button></td></tr>`}).join(''):'<tr><td colspan="5" class="empty">Belum ada pegawai.</td></tr>'}</tbody></table></div>${P.html}
- <p style="color:var(--muted);margin:10px 0 0;font-size:12px">Riwayat order, absensi, dan kinerja lama tetap tersimpan. Akun login pegawai dihapus terpisah lewat menu Kelola Akun.</p></div>`};
+ <p style="color:var(--muted);margin:10px 0 0;font-size:12px">Riwayat order, absensi, dan kinerja lama tetap tersimpan. Akun login pegawai otomatis dinonaktifkan saat dihapus; hapus permanen lewat menu Kelola Akun.</p></div>`};
 A.pegEd=(b,ev,pre)=>{if(!(isAp()||isSA()))return;const e=S.emps.find(x=>x.id===(pre?pre._id:b.dataset.id));if(!e)return;
  const J=['Teknisi','Helper','Sales','Driver','Admin'];if(!J.includes(e.jabatan))J.push(e.jabatan);
  form('Ubah pegawai',[{k:'nama',l:'Nama',req:1,wide:1},{k:'jabatan',l:'Jabatan',t:'select',o:J},{k:'tingkat',l:'Tingkat teknisi (wajib jika jabatan Teknisi)',t:'select',o:[['','Pilih tingkat...'],...Object.entries(TK)]},{k:'target',l:'Target order per bulan',t:'number',min:0}],pre||e,v=>{
@@ -3496,9 +3496,9 @@ function absRiwayat(){
    PERBAIKAN SINKRON AKUN / PEGAWAI / ABSEN (dipasang paling akhir) - versi sync-v3
    ===================================================================== */
 const _nrm=x=>String(x||'').trim().toLowerCase().replace(/\s+/g,' ');
-const akMissEmp=u=>u&&u.status==='active'&&u.emp_id&&u.role&&!['admin','direktur'].includes(u.role)&&!S.emps.some(e=>e.id===u.emp_id);
+const akMissEmp=u=>u&&u.status==='active'&&u.emp_id&&u.role&&!['admin','direktur'].includes(u.role)&&!S.emps.some(e=>e.id===u.emp_id)&&!(S.empsOld||[]).some(e=>e.id===u.emp_id);
 const akTodo=()=>AK.items.filter(u=>(u.status==='active'&&akNeedEmp(u))||akMissEmp(u));
-function attOrphans(){const ids=new Set(S.emps.map(e=>e.id)),out=[];
+function attOrphans(){const ids=new Set([...S.emps,...(S.empsOld||[])].map(e=>e.id)),out=[];
  Object.keys(S.att||{}).forEach(t=>Object.keys(S.att[t]||{}).forEach(k=>{if(k!==DIR_ID&&!ids.has(k))out.push({t,k})}));return out}
 A.akSinkron=async()=>{const L=akTodo();let n=0;
  for(const u of L){
@@ -3517,13 +3517,28 @@ A.attFix=async()=>{const O=attOrphans(),keys=[...new Set(O.map(o=>o.k))];let mov
   else{const m=akMakeEmp(pr,'');m.E.id=k;S.emps.push(m.E);made++}}
  save();await akLoad(true);render();
  toast('Selesai: '+moved+' absen dipindah, '+made+' pegawai dibuat'+(skip?', '+skip+' tidak bisa dicocokkan':'')+'. Karyawan terkait perlu keluar lalu masuk lagi.',6000)};
+/* Hapus pegawai = akun login pegawai itu ikut dinonaktifkan (tidak bisa masuk lagi). Hapus permanen tetap lewat Kelola Akun. */
+{const _ph=pegHapus;pegHapus=function(e,al){_ph(e,al);
+ const u=AK.items.find(x=>(x.emp_id&&x.emp_id===e.id)||(e.user&&x.username===e.user));
+ if(!u||['admin','direktur'].includes(u.role)||u.status==='inactive')return;
+ supabaseClient.from('profiles').update({status:'inactive'}).eq('id',u.id).then(({error})=>{
+  if(error){toast('Pegawai dihapus, tapi akun login gagal dinonaktifkan: '+error.message,6000);return}
+  toast('Pegawai '+e.nama+' dihapus dan akun login '+(u.username||'')+' dinonaktifkan',4500);akLoad(true)})}}
+const orphRows=()=>{const E=S.emps.slice().sort((a,b)=>String(a.nama).localeCompare(String(b.nama)));
+ return attOrphans().sort((a,b)=>b.t.localeCompare(a.t)).map(o=>{const a=S.att[o.t][o.k]||{};
+  const opt=E.filter(e=>!S.att[o.t][e.id]).map(e=>`<option value="${esc(e.id)}">${esc(e.nama)} (${esc(e.jabatan||'')})</option>`).join('');
+  return `<tr data-t="${esc(o.t)}" data-k="${esc(o.k)}"><td>${fds(o.t)}</td><td class="num">${esc(o.k)}</td><td class="num">${esc(a.in||a.inP||'-')} / ${esc(a.out||'-')}</td><td><select><option value="">Pilih pegawai...</option>${opt}</select></td><td class="r"><button class="btn sm pri" data-act="orMove">Pindahkan</button> <button class="btn sm del" data-act="orDel">Hapus</button></td></tr>`}).join('')};
+A.orMove=b=>{const tr=b.closest('tr'),t=tr.dataset.t,k=tr.dataset.k,to=tr.querySelector('select').value;
+ if(!to){toast('Pilih pegawainya dulu');return}const d=S.att[t];if(!d||!d[k]||d[to])return;d[to]=d[k];delete d[k];save();render();toast('Absen dipindahkan')};
+A.orDel=b=>{const tr=b.closest('tr'),t=tr.dataset.t,k=tr.dataset.k;if(!confirm('Hapus catatan absen ini? Tindakan ini tidak bisa dibatalkan.'))return;
+ if(S.att[t]){delete S.att[t][k];save();render();toast('Catatan absen dihapus')}};
 {const _pg=V.peg;V.peg=()=>{const h=_pg();if(!(isAp()||isSA()))return h;
  const A0=AK.items,ak=A0.filter(u=>u.status==='active').length,wt=A0.filter(u=>u.status==='pending').length,td=akTodo().length,o=attOrphans(),no=new Set(o.map(x=>x.k)).size;
  return h+`<div class="card"><h3>Cek sinkron akun dan pegawai <small style="color:var(--muted);font-weight:400">(sync-v3)</small></h3>
   <p style="margin:0 0 10px;font-size:13px">${A0.length?`Akun terdaftar <b>${A0.length}</b> (aktif ${ak}, menunggu ${wt}, nonaktif ${A0.length-ak-wt}) · Data pegawai <b>${S.emps.length}</b> · Akun aktif belum tersambung <b>${td}</b>`:'Memuat daftar akun...'}</p>
   ${wt?`<div class="note">Ada <b>${wt}</b> akun masih menunggu persetujuan. Setujui dulu di menu Persetujuan, tab Akun.</div>`:''}
   ${td?`<button class="btn pri" data-act="akSinkron">Sinkronkan ${td} akun ke data karyawan</button>`:''}
-  ${no?`<div class="note" style="margin-top:10px">Ada absen dari <b>${no}</b> ID yang tidak cocok dengan daftar pegawai, jadi terbaca "belum absen".</div><button class="btn pri" data-act="attFix">Perbaiki absen yang tidak cocok</button>`:''}
+  ${no?`<div class="note" style="margin-top:10px">Ada absen dari <b>${no}</b> ID yang tidak cocok dengan daftar pegawai, jadi terbaca "belum absen". Pilih pegawai yang benar di tabel ini, lalu tekan Pindahkan.</div><div class="tw"><table style="min-width:0"><thead><tr><th>Tanggal</th><th>ID absen</th><th>Masuk / Pulang</th><th>Milik pegawai</th><th></th></tr></thead><tbody>${orphRows()}</tbody></table></div>${[...new Set(o.map(x=>x.k))].some(k=>A0.some(u=>u.emp_id===k))?'<button class="btn pri" data-act="attFix" style="margin-top:10px">Cocokkan otomatis yang bisa dikenali</button>':''}`:''}
   ${(A0.length&&!td&&!no&&!wt)?'<div class="info">Semua akun aktif sudah tersambung ke data pegawai.</div>':''}</div>`}}
 setInterval(async()=>{try{
  if(!SES||!SYNC.ready||SYNC.busy||SYNC.pend||document.hidden)return;
