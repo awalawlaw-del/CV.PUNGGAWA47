@@ -3163,15 +3163,16 @@ const absList=()=>{const has=Object.keys(S.att||{}).some(t=>S.att[t]&&S.att[t][D
 const BLN_F=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'],HARI_F=['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
 const absBulanTxt=mo=>{const [y,m]=mo.split('-').map(Number);return BLN_F[m-1]+' '+y};
 function absRekapData(mo){
- const [y,m]=mo.split('-').map(Number),days=new Date(y,m,0).getDate(),ds=[];
- for(let d=1;d<=days;d++){const t=mo+'-'+pad(d);if(isHK(t)&&t<=TODAY)ds.push(t)}
+ const [y,m]=mo.split('-').map(Number),days=new Date(y,m,0).getDate(),ds=[],full=[];
+ for(let d=1;d<=days;d++){const t=mo+'-'+pad(d);if(isHK(t)){full.push(t);if(t<=TODAY)ds.push(t)}}
  const rows=absList().map(e=>{let h=0,tl=0,iz=0,sk=0,al=0,mn=0;
   const dd=e.id===DIR_ID?ds.filter(t=>t>=dirStart()):ds;
   dd.forEach(t=>{const a=(S.att[t]||{})[e.id];
    if(!a){if(t<TODAY)al++;return}
    if(a.s==='Hadir'){h++;if(isLate(a))tl++}else if(a.s==='Izin')iz++;else if(a.s==='Sakit')sk++;else if(a.s==='Menunggu')mn++;else al++});
-  return{e,h,tl,iz,sk,al,mn,hk:dd.length,pct:dd.length?Math.round(h/dd.length*100):0}});
- return{ds,rows}}
+  const hk=(e.id===DIR_ID?full.filter(t=>t>=dirStart()):full).length;
+  return{e,h,tl,iz,sk,al,mn,hk,pct:dd.length?Math.round(h/dd.length*100):0}});
+ return{ds,full,rows}}
 const absLbl=(a,t)=>!a?(t<TODAY?'Alpa':'Belum absen'):a.s==='Hadir'?(isLate(a)?'Hadir, telat':'Hadir'):a.s==='Menunggu'?'Menunggu ACC':a.s;
 const absLocTxt=p=>p?(p.lat+', '+p.lng+(p.ok===false?' (di luar area '+p.d+' m)':p.ok?' (dalam area)':'')):'';
 
@@ -3206,7 +3207,7 @@ function xlsxBuild(sheets){
  const all=[...parts,...cd,new Uint8Array(e.buffer)],out=new Uint8Array(all.reduce((a,b)=>a+b.length,0));let p=0;all.forEach(b=>{out.set(b,p);p+=b.length});return out}
 
 function absXlsSheets(mo){
- const {ds,rows}=absRekapData(mo),bl=absBulanTxt(mo),info='Hari kerja '+ds.length+' (libur 4 hari per bulan) · jam masuk '+S.set.jamMasuk+' · diunduh '+fd(TODAY),hd=a=>a.map(x=>[x,1]);
+ const {ds,full,rows}=absRekapData(mo),bl=absBulanTxt(mo),info='Hari kerja bulan ini '+full.length+' (libur 4 hari per bulan) · jam masuk '+S.set.jamMasuk+' · diunduh '+fd(TODAY),hd=a=>a.map(x=>[x,1]);
  const rekap={name:'Rekap Bulanan',widths:[5,28,16,11,9,9,9,9,9,13,14],freeze:5,rows:[
   [['REKAP ABSENSI KARYAWAN',3]],[['Periode: '+bl+(S.set.nama?' · '+S.set.nama:'')]],[[info]],[],
   hd(['No','Nama','Jabatan','Hari kerja','Hadir','Telat','Izin','Sakit','Alpa','Menunggu ACC','Kehadiran (%)']),
@@ -3224,7 +3225,7 @@ function absRekapCard(judul){const {ds,rows}=absRekapData(U.absM),mn=rows.some(r
  return `<div class="card"><div class="row" style="justify-content:space-between"><h3>${judul||'Rekap absensi bulanan'}</h3>${absMonthBtn()}</div>
  <div class="tw"><table><thead><tr><th>Karyawan</th><th class="r">Hari kerja</th><th class="r">Hadir</th><th class="r">Telat</th><th class="r">Izin</th><th class="r">Sakit</th><th class="r">Alpa</th>${mn?'<th class="r">Menunggu ACC</th>':''}<th style="min-width:130px">Kehadiran</th></tr></thead><tbody>
  ${rows.length?rows.map(r=>`<tr><td>${esc(r.e.nama)}<br><small style="color:var(--muted)">${esc(r.e.jabatan||'')}</small></td><td class="r num">${r.hk}</td><td class="r num">${r.h}</td><td class="r num">${r.tl}</td><td class="r num">${r.iz}</td><td class="r num">${r.sk}</td><td class="r num">${r.al}</td>${mn?`<td class="r num">${r.mn}</td>`:''}<td><div class="row" style="flex-wrap:nowrap"><div class="bar" style="flex:1"><i class="${r.pct>=90?'ok':r.pct>=75?'mid':'low'}" style="width:${r.pct}%"></i></div><span class="num">${r.pct}%</span></div></td></tr>`).join(''):'<tr><td colspan="9" class="empty">Belum ada karyawan.</td></tr>'}</tbody></table></div>
- <p style="color:var(--muted);margin:8px 0 0;font-size:12px">Hari kerja = jumlah hari di bulan itu dikurangi 4 hari libur (Minggu pertama sampai keempat; Minggu ke-5 dihitung hari kerja). Hari yang belum diisi dianggap alpa. File Excel berisi dua lembar: Rekap Bulanan dan Detail Harian (jam masuk, pulang, dan lokasi).</p></div>`}
+ <p style="color:var(--muted);margin:8px 0 0;font-size:12px">Hari kerja = jumlah hari di bulan itu dikurangi 4 hari libur (Minggu pertama sampai keempat; Minggu ke-5 dihitung hari kerja). Kolom Hari kerja = total hari kerja satu bulan penuh. Persentase kehadiran dihitung dari hari kerja yang sudah berjalan sampai hari ini. Hari yang belum diisi dianggap alpa. File Excel berisi dua lembar: Rekap Bulanan dan Detail Harian (jam masuk, pulang, dan lokasi).</p></div>`}
 
 A.dirIn=async()=>{if(!isAp())return;const p=await pos();if(!p)return;(S.att[TODAY]=S.att[TODAY]||{})[DIR_ID]={s:'Hadir',in:nowHM(),out:'',loc:p};save();render();toast('Absen masuk '+nowHM())};
 A.dirOut=async()=>{if(!isAp())return;const a=(S.att[TODAY]||{})[DIR_ID];if(!a)return;const p=await pos();if(!p)return;a.out=nowHM();a.locOut=p;save();render();toast('Absen pulang '+nowHM())};
