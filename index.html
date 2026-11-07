@@ -593,6 +593,9 @@ const KAT_IN=['Jasa servis','Penjualan sparepart','Kontrak perawatan','Lainnya']
 const KAT_OUT=['Material & freon','Gaji karyawan','Bensin & transport','Sewa & listrik','Peralatan','Lainnya'];
 let S=null;
 /* ===== SINKRON KE SUPABASE (tabel app_state), tanpa localStorage ===== */
+/* Hari kerja: tiap bulan libur 4 hari (Minggu ke-1 sampai ke-4, tanggal 1-28). Minggu ke-5 (tanggal 29-31) dihitung hari kerja.
+   Jadi: 31 hari = 27 hari kerja, 30 = 26, 29 = 25, 28 = 24. */
+function isHK(t){return pd(t).getDay()!==0||+String(t).slice(8,10)>=29}
 const SYNC={ready:false,snap:{},timer:null,client:Math.random().toString(36).slice(2)+Date.now().toString(36),chan:null,busy:false,again:false,fail:false,pend:false};
 function stateKeys(){return Object.keys(S||{}).filter(k=>k!=='tab')}
 const RESCUE_KEY='punggawa.rescue.v1';
@@ -1236,7 +1239,7 @@ CH.tq=el=>{U.tq=el.value;render()};
 A.tNext=b=>{const o=S.orders.find(x=>x.id===b.dataset.id&&x.teknisi===SES.empId);if(!o||!NEXT[o.status])return;const ol=o.status;o.status=NEXT[o.status][0];statusNotif(o,ol);save();render();toast(o.id+' jadi '+o.status)};
 V.absT=()=>{
   const id=SES.empId,a=(S.att[TODAY]||{})[id],mo=U.absM,[y,m]=mo.split('-').map(Number),days=new Date(y,m,0).getDate();
-  const ds=[];for(let d=1;d<=days;d++){const t=mo+'-'+pad(d);if(pd(t).getDay()!==0&&t<=TODAY)ds.push(t)}
+  const ds=[];for(let d=1;d<=days;d++){const t=mo+'-'+pad(d);if(isHK(t)&&t<=TODAY)ds.push(t)}
   const lbl=(x,t)=>!x?(t<TODAY?'Alpa':'Belum absen'):x.s==='Hadir'&&isLate(x.in)?'Hadir, telat':x.s;
   const cls=l=>l==='Belum absen'?'Belum':l==='Hadir, telat'?'Telat':l;
   const hist=ds.slice().reverse().map(t=>{const x=(S.att[t]||{})[id];return{t,x,l:lbl(x,t)}});
@@ -1260,7 +1263,7 @@ V.abs=()=>{
   const day=S.att[TODAY]||{},E=S.emps;
   const hadir=E.filter(e=>day[e.id]&&day[e.id].s==='Hadir').length;
   const [y,m]=U.absM.split('-').map(Number),days=new Date(y,m,0).getDate();
-  const ds=[];for(let d=1;d<=days;d++){const t=U.absM+'-'+pad(d);if(pd(t).getDay()!==0&&t<=TODAY)ds.push(t)}
+  const ds=[];for(let d=1;d<=days;d++){const t=U.absM+'-'+pad(d);if(isHK(t)&&t<=TODAY)ds.push(t)}
   const rec=E.map(e=>{let h=0,tl=0,iz=0,sk=0,al=0;ds.forEach(t=>{const a=(S.att[t]||{})[e.id];if(!a){if(t<TODAY)al++;return}
     if(a.s==='Hadir'){h++;if(isLate(a.in))tl++}else if(a.s==='Izin')iz++;else if(a.s==='Sakit')sk++;else al++});
     return{e,h,tl,iz,sk,al,pct:ds.length?Math.round(h/ds.length*100):0}});
@@ -1274,7 +1277,7 @@ V.abs=()=>{
   <div class="card"><div class="row" style="justify-content:space-between"><h3>Rekap bulanan</h3><input id="absm" type="month" value="${U.absM}" data-inp="absM" style="width:auto"></div>
   <div class="tw"><table><thead><tr><th>Karyawan</th><th class="r">Hari kerja</th><th class="r">Hadir</th><th class="r">Telat</th><th class="r">Izin</th><th class="r">Sakit</th><th class="r">Alpa</th><th style="min-width:130px">Kehadiran</th></tr></thead><tbody>
   ${rec.map(r=>`<tr><td>${esc(r.e.nama)}</td><td class="r num">${ds.length}</td><td class="r num">${r.h}</td><td class="r num">${r.tl}</td><td class="r num">${r.iz}</td><td class="r num">${r.sk}</td><td class="r num">${r.al}</td><td><div class="row" style="flex-wrap:nowrap"><div class="bar" style="flex:1"><i class="${r.pct>=90?'ok':r.pct>=75?'mid':'low'}" style="width:${r.pct}%"></i></div><span class="num">${r.pct}%</span></div></td></tr>`).join('')}</tbody></table></div>
-  <p style="color:var(--muted);margin:8px 0 0;font-size:12px">Hari kerja dihitung Senin sampai Sabtu. Hari yang belum diisi dianggap alpa.</p></div>`;
+  <p style="color:var(--muted);margin:8px 0 0;font-size:12px">Hari kerja = jumlah hari di bulan itu dikurangi 4 hari libur (Minggu pertama sampai keempat; Minggu ke-5 dihitung hari kerja). Hari yang belum diisi dianggap alpa.</p></div>`;
 };
 CH.absM=el=>{if(el.value){U.absM=el.value;render()}};
 A.clockIn=b=>{(S.att[TODAY]=S.att[TODAY]||{})[b.dataset.id]={s:'Hadir',in:nowHM(),out:''};save();render();toast('Absen masuk '+nowHM())};
@@ -1289,7 +1292,7 @@ const pct=(a,b)=>b?Math.round(a/b*100):0;
 const barCls=p=>p>=90?'ok':p>=60?'mid':'low';
 V.kin=()=>{
   const mo=U.kinM,[y,m]=mo.split('-').map(Number),days=new Date(y,m,0).getDate();
-  const ds=[];for(let d=1;d<=days;d++){const t=mo+'-'+pad(d);if(pd(t).getDay()!==0&&t<=TODAY)ds.push(t)}
+  const ds=[];for(let d=1;d<=days;d++){const t=mo+'-'+pad(d);if(isHK(t)&&t<=TODAY)ds.push(t)}
   const O=S.orders.filter(o=>o.tgl.startsWith(mo)&&o.status==='Selesai'),T=OKTX().filter(t=>t.tgl.startsWith(mo));
   const rev=sum(T.filter(t=>t.jenis==='Pemasukan'),t=>t.jml),exp=sum(T.filter(t=>t.jenis==='Pengeluaran'),t=>t.jml);
   const all=S.orders.filter(o=>o.tgl.startsWith(mo)&&o.status!=='Batal');
@@ -1883,7 +1886,7 @@ function kinSales(){
  <div class="kgrid">${kcard('prospek','Prospek baru',n.prospek,tg.prospek)}${kcard('kunj','Kunjungan / meeting',n.kunj,tg.kunj)}${kcard('pnw','Penawaran dikirim',n.pnw,tg.pnw)}${kcard('fu','Follow up konsumen',n.fu,tg.fu)}${kcard('jual','Penjualan '+bl,n.jual,tg.jual,1)}</div>
  <div class="ind"><div class="row" style="justify-content:space-between"><h3>TREN 14 HARI TERAKHIR</h3>${lg([['Prospek','#7c3aed'],['Kunjungan','var(--brand)'],['Penawaran','var(--heat)'],['Follow up','var(--good)']])}</div>${chart}</div>
  ${cmp}
- <div class="card"><h3>Rekap ${bl} sampai ${fds(d)}</h3><div class="tw"><table style="min-width:0"><thead><tr><th>Aktivitas</th><th class="r">Total bulan ini</th><th class="r">Rata-rata / hari kerja</th><th class="r">Target / hari</th></tr></thead><tbody>${R4.map(r=>`<tr><td>${r[1]}</td><td class="r num">${rc.tot[r[0]]}</td><td class="r num">${(rc.tot[r[0]]/Math.max(1,rc.wd)).toFixed(1).replace('.',',')}</td><td class="r num">${tg[r[0]]}</td></tr>`).join('')}</tbody></table></div><p style="color:var(--muted);margin:8px 0 0;font-size:12px">${rc.wd} hari kerja (Senin sampai Sabtu) sampai tanggal ini.</p></div>`}
+ <div class="card"><h3>Rekap ${bl} sampai ${fds(d)}</h3><div class="tw"><table style="min-width:0"><thead><tr><th>Aktivitas</th><th class="r">Total bulan ini</th><th class="r">Rata-rata / hari kerja</th><th class="r">Target / hari</th></tr></thead><tbody>${R4.map(r=>`<tr><td>${r[1]}</td><td class="r num">${rc.tot[r[0]]}</td><td class="r num">${(rc.tot[r[0]]/Math.max(1,rc.wd)).toFixed(1).replace('.',',')}</td><td class="r num">${tg[r[0]]}</td></tr>`).join('')}</tbody></table></div><p style="color:var(--muted);margin:8px 0 0;font-size:12px">${rc.wd} hari kerja (libur 4 hari per bulan) sampai tanggal ini.</p></div>`}
 const _kin3=V.kin;
 V.kin=()=>{if(SES.role==='sales')return kinSales();if(!(isAp()||isSA()))return _kin3();const t=U.kinT||'T';
  return `<div class="tabs"><button class="chip" aria-pressed="${t==='T'}" data-act="kinT" data-v="T">Teknisi</button><button class="chip" aria-pressed="${t==='S'}" data-act="kinT" data-v="S">Sales</button></div>`+(t==='S'?kinSales():_kin3())};
@@ -3042,12 +3045,14 @@ function bankCard(){if(!SES||!S.set)return '';const B=S.set.banks||[],mg=canBank
  <tr><td colspan="2"><b>${bkOk()?'Total kas &amp; bank':'Total (bank disembunyikan)'}</b></td><td class="r num"><b>${bkOk()?rp(tot):rp(kas)}</b></td><td></td></tr>
  </tbody></table></div></div>`}
 {const _kb=V.keu;V.keu=()=>_kb()+bankCard()}
-const bankFields=b=>[{k:'nama',l:'Nama bank (mis. BCA, BRI, Mandiri)',req:1,def:b?b.nama:''},{k:'rek',l:'Nomor rekening',def:b?b.rek:''},{k:'an',l:'Atas nama',wide:1,def:b?b.an:CV_NAMA()}];
+const bankFields=b=>[{k:'nama',l:'Nama bank (mis. BCA, BRI, Mandiri)',req:1,def:b?b.nama:''},{k:'rek',l:'Nomor rekening',def:b?b.rek:''},{k:'an',l:'Atas nama',wide:1,def:b?b.an:CV_NAMA()},{k:'grup',l:'Kelompok kas di Dashboard Keuangan',t:'select',wide:1,o:[['','Otomatis (a.n. Wahyu = Jasa, a.n. CV Punggawa = Material)'],['jasa','Kas Bank JASA'],['material','Kas Bank MATERIAL dll']],def:b?(b.grup||''):''}];
+/* Kelompok rekening: manual (b.grup) atau otomatis dari atas nama */
+const bankGrp=b=>(b&&b.grup)||(/wahyu/i.test((b&&b.an)||'')?'jasa':/punggawa/i.test((b&&b.an)||'')?'material':'');
 const CV_NAMA=()=>(S.set&&S.set.nama)||'';
 A.bankNew=()=>{if(!canBank()){toast('Tidak punya akses');return}
- form('Tambah rekening bank',bankFields(null),null,v=>{if(!v.nama.trim()){toast('Nama bank wajib diisi');return}S.set.banks=S.set.banks||[];S.set.banks.push({id:uid('b'),nama:v.nama.trim(),rek:v.rek.trim(),an:v.an.trim()});save();render();toast('Rekening ditambahkan')})};
+ form('Tambah rekening bank',bankFields(null),null,v=>{if(!v.nama.trim()){toast('Nama bank wajib diisi');return}S.set.banks=S.set.banks||[];S.set.banks.push({id:uid('b'),nama:v.nama.trim(),rek:v.rek.trim(),an:v.an.trim(),grup:v.grup||''});save();render();toast('Rekening ditambahkan')})};
 A.bankEd=b=>{if(!canBank())return;const x=(S.set.banks||[]).find(y=>y.id===b.dataset.id);if(!x)return;
- form('Ubah rekening bank',bankFields(x),x,v=>{if(!v.nama.trim()){toast('Nama bank wajib diisi');return}x.nama=v.nama.trim();x.rek=v.rek.trim();x.an=v.an.trim();save();render();toast('Rekening diperbarui')})};
+ form('Ubah rekening bank',bankFields(x),x,v=>{if(!v.nama.trim()){toast('Nama bank wajib diisi');return}x.nama=v.nama.trim();x.rek=v.rek.trim();x.an=v.an.trim();x.grup=v.grup||'';save();render();toast('Rekening diperbarui')})};
 A.bankDel=b=>{if(!canBank())return;const x=(S.set.banks||[]).find(y=>y.id===b.dataset.id);if(!x)return;
  if(S.tx.some(t=>t.bankId===x.id)){toast('Rekening ini sudah dipakai di transaksi, tidak bisa dihapus. Ubah namanya saja bila perlu.');return}
  askReason('Hapus rekening '+x.nama,'Rekening dihapus dari daftar pilihan. Harus disertai alasan.',al=>{S.set.banks=S.set.banks.filter(y=>y.id!==x.id);logAksi('Hapus rekening bank',x.nama+' '+(x.rek||''),al);save();render();toast('Rekening dihapus')})};
@@ -3087,6 +3092,13 @@ function dkDirektur(){const G=S.bkAkses||[],now=Date.now(),P=G.filter(g=>g.st===
  return `<div class="card"><h3>Permohonan akses saldo bank (${P.length} menunggu)</h3><div class="tw"><table><thead><tr><th>Diajukan</th><th>Oleh</th><th>Keperluan</th><th></th></tr></thead><tbody>${P.length?P.map(g=>`<tr><td>${fdt(g.ts)}</td><td><b>${esc(g.nama)}</b><br><small>${esc(ROLE_L[g.role]||g.role)}</small></td><td>${esc(g.alasan||'-')}</td><td class="r"><button class="btn sm pri" data-act="dkOk" data-id="${g.id}">Setujui</button> <button class="btn sm del" data-act="dkNo" data-id="${g.id}">Tolak</button></td></tr>`).join(''):'<tr><td colspan="4" class="empty">Tidak ada permohonan.</td></tr>'}</tbody></table></div>
  ${Ac.length?`<h3 style="margin:16px 0 8px;font-size:16px">Akses yang sedang aktif</h3><div class="tw"><table><thead><tr><th>Admin</th><th>Berlaku sampai</th><th></th></tr></thead><tbody>${Ac.map(g=>`<tr><td><b>${esc(g.nama)}</b><br><small>${esc(ROLE_L[g.role]||g.role)}</small></td><td>${fdt(g.until)}</td><td class="r"><button class="btn sm del" data-act="dkCabut" data-id="${g.id}">Cabut akses</button></td></tr>`).join('')}</tbody></table></div>`:''}
  ${H.length?`<h3 style="margin:16px 0 8px;font-size:16px">Riwayat</h3><div class="tw"><table><thead><tr><th>Diajukan</th><th>Oleh</th><th>Status</th><th>Keterangan</th></tr></thead><tbody>${H.map(g=>`<tr><td>${fdt(g.ts)}</td><td>${esc(g.nama)}</td><td>${GPILL(g)}</td><td><small>${g.st==='Ditolak'?'Alasan: '+esc(g.alasanTolak||'-'):g.st==='Dicabut'?'Dicabut':'Berlaku sampai '+fdt(g.until)}</small></td></tr>`).join('')}</tbody></table></div>`:''}</div>`}
+function dkBankTiles(ok,B,totBank){
+ const gJ=B.filter(b=>bankGrp(b)==='jasa'),gM=B.filter(b=>bankGrp(b)==='material'),gO=B.filter(b=>!bankGrp(b)),
+  sJ=sum(gJ,b=>saldoBank(b.id)),sM=sum(gM,b=>saldoBank(b.id)),sO=totBank-sJ-sM,lk=ok?'':' · terkunci',v=x=>ok?rp(x):'Rp ••••••',
+  nm=L=>L.length?L.map(b=>(b.nama||'Bank')+(b.rek?' '+String(b.rek).slice(-4):'')).join(', '):'Belum ada rekening';
+ return dkTile('KAS BANK JASA',v(sJ),'var(--ink)',(ok?nm(gJ):gJ.length+' rekening')+lk)
+  +dkTile('KAS BANK MATERIAL DLL',v(sM),'var(--ink)',(ok?nm(gM):gM.length+' rekening')+lk)
+  +((gO.length||sO!==0)?dkTile('BANK LAINNYA',v(sO),'var(--muted)',(gO.length?gO.length+' rekening belum dikelompokkan':'Transaksi bank tanpa rekening')+lk):'')}
 V.dkeu=()=>{const L=OKTX(),mo=TODAY.slice(0,7),fl=l=>({m:sum(l.filter(x=>x.jenis==='Pemasukan'),x=>x.jml),k:sum(l.filter(x=>x.jenis==='Pengeluaran'),x=>x.jml)}),c=fl(L.filter(t=>t.tgl.startsWith(mo))),laba=c.m-c.k,
   piu=S.inv.filter(i=>okInv(i)&&i.status==='Belum'),piuV=sum(piu,i=>invTot(i).tot),kas=saldoKas(),totBank=saldoOf(t=>t.akun==='Bank'),B=S.set.banks||[],ok=bkOk(),pend=S.tx.filter(t=>t.appr==='Menunggu').length;
  dkExp=isAp()?0:((bkGrant()||{}).until||0);
@@ -3094,7 +3106,7 @@ V.dkeu=()=>{const L=OKTX(),mo=TODAY.slice(0,7),fl=l=>({m:sum(l.filter(x=>x.jenis
  const tren=ms.map(p=>{const x=fl(L.filter(t=>t.tgl.startsWith(p)));return `<tr><td>${BLN[+p.slice(5)-1]} ${p.slice(0,4)}</td><td class="r num">${rp(x.m)}</td><td class="r num">${rp(x.k)}</td><td class="r num" style="color:${x.m-x.k>=0?'var(--good)':'var(--bad)'}"><b>${rp(x.m-x.k)}</b></td></tr>`}).join('');
  return `<div class="head"><div><h1>Dashboard Keuangan</h1><p>Posisi kas kecil, bank, piutang, dan arus uang. Per ${fd(TODAY)}.</p></div></div>
  ${pend?`<div class="info">${pend} transaksi masih menunggu persetujuan Direktur dan belum dihitung di saldo.</div>`:''}
- <div class="ind"><div class="tiles">${dkTile('SALDO KAS KECIL',rp(kas),'var(--ink)','Uang tunai operasional')}${dkTile('SALDO SEMUA BANK',ok?rp(totBank):'Rp ••••••','var(--ink)',B.length+' rekening'+(ok?'':' · terkunci'))}${dkTile('TOTAL KAS &amp; BANK',ok?rp(kas+totBank):'Rp ••••••','var(--brand)',ok?'Posisi kas keseluruhan':'Butuh izin Direktur')}${dkTile('PIUTANG INVOICE',rp(piuV),'var(--warn)',piu.length+' invoice belum lunas')}${dkTile('PEMASUKAN BULAN INI',rp(c.m),'var(--good)','')}${dkTile('PENGELUARAN BULAN INI',rp(c.k),'var(--heat)','')}${dkTile('LABA BULAN INI',rp(laba),laba>=0?'var(--good)':'var(--bad)','Pemasukan dikurangi pengeluaran')}</div></div>
+ <div class="ind"><div class="tiles">${dkTile('SALDO KAS KECIL',rp(kas),'var(--ink)','Uang tunai operasional')}${dkBankTiles(ok,B,totBank)}${dkTile('TOTAL KAS &amp; BANK',ok?rp(kas+totBank):'Rp ••••••','var(--brand)',ok?'Posisi kas keseluruhan':'Butuh izin Direktur')}${dkTile('PIUTANG INVOICE',rp(piuV),'var(--warn)',piu.length+' invoice belum lunas')}${dkTile('PEMASUKAN BULAN INI',rp(c.m),'var(--good)','')}${dkTile('PENGELUARAN BULAN INI',rp(c.k),'var(--heat)','')}${dkTile('LABA BULAN INI',rp(laba),laba>=0?'var(--good)':'var(--bad)','Pemasukan dikurangi pengeluaran')}</div></div>
  ${isAp()?dkDirektur():''}
  <div class="card"><h3>Kas Kecil: mutasi</h3>${dkChips('dkP',[['7','7 hari'],['30','30 hari'],['bln','Bulan ini'],['all','Semua']],U.dkP||'30')}${dkTbl(dkMut(t=>t.akun!=='Bank',dkFrom()),false)}</div>
  ${ok?dkBankSection():dkLocked()}
@@ -3136,7 +3148,7 @@ const BLN_F=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus',
 const absBulanTxt=mo=>{const [y,m]=mo.split('-').map(Number);return BLN_F[m-1]+' '+y};
 function absRekapData(mo){
  const [y,m]=mo.split('-').map(Number),days=new Date(y,m,0).getDate(),ds=[];
- for(let d=1;d<=days;d++){const t=mo+'-'+pad(d);if(pd(t).getDay()!==0&&t<=TODAY)ds.push(t)}
+ for(let d=1;d<=days;d++){const t=mo+'-'+pad(d);if(isHK(t)&&t<=TODAY)ds.push(t)}
  const rows=absList().map(e=>{let h=0,tl=0,iz=0,sk=0,al=0,mn=0;
   const dd=e.id===DIR_ID?ds.filter(t=>t>=dirStart()):ds;
   dd.forEach(t=>{const a=(S.att[t]||{})[e.id];
@@ -3178,7 +3190,7 @@ function xlsxBuild(sheets){
  const all=[...parts,...cd,new Uint8Array(e.buffer)],out=new Uint8Array(all.reduce((a,b)=>a+b.length,0));let p=0;all.forEach(b=>{out.set(b,p);p+=b.length});return out}
 
 function absXlsSheets(mo){
- const {ds,rows}=absRekapData(mo),bl=absBulanTxt(mo),info='Hari kerja '+ds.length+' (Senin sampai Sabtu) · jam masuk '+S.set.jamMasuk+' · diunduh '+fd(TODAY),hd=a=>a.map(x=>[x,1]);
+ const {ds,rows}=absRekapData(mo),bl=absBulanTxt(mo),info='Hari kerja '+ds.length+' (libur 4 hari per bulan) · jam masuk '+S.set.jamMasuk+' · diunduh '+fd(TODAY),hd=a=>a.map(x=>[x,1]);
  const rekap={name:'Rekap Bulanan',widths:[5,28,16,11,9,9,9,9,9,13,14],freeze:5,rows:[
   [['REKAP ABSENSI KARYAWAN',3]],[['Periode: '+bl+(S.set.nama?' · '+S.set.nama:'')]],[[info]],[],
   hd(['No','Nama','Jabatan','Hari kerja','Hadir','Telat','Izin','Sakit','Alpa','Menunggu ACC','Kehadiran (%)']),
@@ -3196,7 +3208,7 @@ function absRekapCard(judul){const {ds,rows}=absRekapData(U.absM),mn=rows.some(r
  return `<div class="card"><div class="row" style="justify-content:space-between"><h3>${judul||'Rekap absensi bulanan'}</h3>${absMonthBtn()}</div>
  <div class="tw"><table><thead><tr><th>Karyawan</th><th class="r">Hari kerja</th><th class="r">Hadir</th><th class="r">Telat</th><th class="r">Izin</th><th class="r">Sakit</th><th class="r">Alpa</th>${mn?'<th class="r">Menunggu ACC</th>':''}<th style="min-width:130px">Kehadiran</th></tr></thead><tbody>
  ${rows.length?rows.map(r=>`<tr><td>${esc(r.e.nama)}<br><small style="color:var(--muted)">${esc(r.e.jabatan||'')}</small></td><td class="r num">${r.hk}</td><td class="r num">${r.h}</td><td class="r num">${r.tl}</td><td class="r num">${r.iz}</td><td class="r num">${r.sk}</td><td class="r num">${r.al}</td>${mn?`<td class="r num">${r.mn}</td>`:''}<td><div class="row" style="flex-wrap:nowrap"><div class="bar" style="flex:1"><i class="${r.pct>=90?'ok':r.pct>=75?'mid':'low'}" style="width:${r.pct}%"></i></div><span class="num">${r.pct}%</span></div></td></tr>`).join(''):'<tr><td colspan="9" class="empty">Belum ada karyawan.</td></tr>'}</tbody></table></div>
- <p style="color:var(--muted);margin:8px 0 0;font-size:12px">Hari kerja dihitung Senin sampai Sabtu. Hari yang belum diisi dianggap alpa. File Excel berisi dua lembar: Rekap Bulanan dan Detail Harian (jam masuk, pulang, dan lokasi).</p></div>`}
+ <p style="color:var(--muted);margin:8px 0 0;font-size:12px">Hari kerja = jumlah hari di bulan itu dikurangi 4 hari libur (Minggu pertama sampai keempat; Minggu ke-5 dihitung hari kerja). Hari yang belum diisi dianggap alpa. File Excel berisi dua lembar: Rekap Bulanan dan Detail Harian (jam masuk, pulang, dan lokasi).</p></div>`}
 
 A.dirIn=async()=>{if(!isAp())return;const p=await pos();if(!p)return;(S.att[TODAY]=S.att[TODAY]||{})[DIR_ID]={s:'Hadir',in:nowHM(),out:'',loc:p};save();render();toast('Absen masuk '+nowHM())};
 A.dirOut=async()=>{if(!isAp())return;const a=(S.att[TODAY]||{})[DIR_ID];if(!a)return;const p=await pos();if(!p)return;a.out=nowHM();a.locOut=p;save();render();toast('Absen pulang '+nowHM())};
@@ -3254,7 +3266,7 @@ V.pcpT=()=>{const e=S.emps.find(x=>x.id===SES.empId);
  const d=U.pcpD||TODAY,mo=d.slice(0,7),bl=BLN[+d.slice(5,7)-1]+' '+d.slice(0,4),hari=d===TODAY?'hari ini':fd(d),
   mine=S.orders.filter(o=>o.teknisi===e.id),mtd=mine.filter(o=>o.tgl.startsWith(mo)&&o.tgl<=d),sel=mtd.filter(o=>o.status==='Selesai'),nb=mtd.filter(o=>o.status!=='Batal'),
   dayS=mine.filter(o=>o.tgl===d&&o.status==='Selesai'),akt=mine.filter(o=>!doneS(o)).length,bt=mtd.length-nb.length,
-  [y,m]=mo.split('-').map(Number),wk=t=>pd(t).getDay()!==0,all=[],ds=[];
+  [y,m]=mo.split('-').map(Number),wk=t=>isHK(t),all=[],ds=[];
  for(let k=1;k<=new Date(y,m,0).getDate();k++){const t=mo+'-'+pad(k);if(wk(t)){all.push(t);if(t<=d)ds.push(t)}}
  const tg=+e.target||0,tH=tg?Math.max(1,Math.ceil(tg/Math.max(1,all.length))):0,att=t=>(S.att[t]||{})[e.id]||{},hd=ds.filter(t=>att(t).s==='Hadir').length,
   skor=Math.min(100,pct(sel.length,tg)),col=skor>=90?'var(--good)':skor>=60?'#e0a02b':'var(--bad)',
@@ -3262,7 +3274,7 @@ V.pcpT=()=>{const e=S.emps.find(x=>x.id===SES.empId);
   cols=[['Tanggal',r=>fds(r.tgl)],['Pelanggan',r=>`<b>${esc(r.nama)}</b>`],['Layanan',r=>esc(r.layanan||'-')],['Status',r=>`<span class="pill p-${r.status==='Selesai'?'Selesai':r.status==='Batal'?'Batal':'Belum'}">${r.status}</span>`]];
  KDY.tsel=['Order selesai · '+bl,'Target '+(tg||'-')+' order per bulan. Dihitung dari order berstatus Selesai yang ditugaskan ke kamu, sampai '+fd(d)+'.',ktbl(cols,ord(sel),'Belum ada order selesai di bulan ini.')];
  KDY.thari=['Order selesai · '+fd(d),'Target harian '+(tH||'-')+' order (target bulanan dibagi jumlah hari kerja bulan ini).',ktbl(cols,dayS,'Belum ada order selesai di tanggal ini.')];
- KDY.thdr=['Kehadiran · '+bl,hd+' hadir dari '+ds.length+' hari kerja (Senin sampai Sabtu) sampai '+fd(d)+'.',ktbl([['Tanggal',t=>fds(t)],['Status',t=>att(t).s?`<span class="pill p-${att(t).s==='Hadir'?'Selesai':'Belum'}">${att(t).s}</span>`:'<span class="pill p-Batal">Belum absen</span>'],['Masuk',t=>att(t).in||att(t).inP||'-'],['Pulang',t=>att(t).out||'-']],[...ds].reverse(),'Belum ada hari kerja.')];
+ KDY.thdr=['Kehadiran · '+bl,hd+' hadir dari '+ds.length+' hari kerja (libur 4 hari per bulan) sampai '+fd(d)+'.',ktbl([['Tanggal',t=>fds(t)],['Status',t=>att(t).s?`<span class="pill p-${att(t).s==='Hadir'?'Selesai':'Belum'}">${att(t).s}</span>`:'<span class="pill p-Batal">Belum absen</span>'],['Masuk',t=>att(t).in||att(t).inP||'-'],['Pulang',t=>att(t).out||'-']],[...ds].reverse(),'Belum ada hari kerja.')];
  KDY.tpen=['Order bulan ini · '+bl,'Tingkat penyelesaian: '+sel.length+' selesai dari '+nb.length+' order (yang dibatalkan tidak dihitung).',ktbl(cols,ord(nb),'Belum ada order di bulan ini.')];
  const ring=`<svg viewBox="0 0 100 100" width="112" height="112" role="img" aria-label="Capaian target ${skor} persen"><circle cx="50" cy="50" r="42" fill="none" stroke="var(--line)" stroke-width="9"/><circle cx="50" cy="50" r="42" fill="none" stroke="${col}" stroke-width="9" stroke-linecap="round" stroke-dasharray="${(264*skor/100).toFixed(1)} 264" transform="rotate(-90 50 50)"/><text x="50" y="57" text-anchor="middle" style="font-size:22px;font-weight:700;fill:var(--ink)">${skor}%</text></svg>`,
   days=ar(14,i=>addD(d,i-13)),tr=days.map(t=>({l:fds(t),n:mine.filter(o=>o.tgl===t&&o.status==='Selesai').length})),
@@ -3277,7 +3289,7 @@ V.pcpT=()=>{const e=S.emps.find(x=>x.id===SES.empId);
  <tr><td>Order selesai</td><td class="r num">${sel.length}</td><td class="r num">${(sel.length/Math.max(1,ds.length)).toFixed(1).replace('.',',')}</td><td class="r num">${tg?tg+' / bulan':'-'}</td></tr>
  <tr><td>Order dibatalkan</td><td class="r num">${bt}</td><td class="r num">-</td><td class="r num">-</td></tr>
  <tr><td>Hari hadir</td><td class="r num">${hd}</td><td class="r num">-</td><td class="r num">${ds.length} hari kerja</td></tr></tbody></table></div>
- <p style="color:var(--muted);margin:8px 0 0;font-size:12px">${ds.length} hari kerja (Senin sampai Sabtu) sampai tanggal ini. Order dihitung berdasarkan tanggal order, sama seperti halaman Kinerja.</p></div>`};
+ <p style="color:var(--muted);margin:8px 0 0;font-size:12px">${ds.length} hari kerja (libur 4 hari per bulan) sampai tanggal ini. Order dihitung berdasarkan tanggal order, sama seperti halaman Kinerja.</p></div>`};
 A.pcpSet=b=>{U.pcpD=b.dataset.v==='y'?addD(TODAY,-1):TODAY;render()};
 CH.pcpD=el=>{U.pcpD=el.value||TODAY;render()};
 </script>
@@ -3428,7 +3440,7 @@ A.koaNew=(b,e,pre)=>{
   if(!eid)return bad('Pilih karyawan dulu');
   if(!tgl)return bad('Tanggal wajib diisi');
   if(tgl>TODAY)return bad('Tanggal tidak boleh setelah hari ini');
-  if(pd(tgl).getDay()===0)return bad('Hari Minggu bukan hari kerja. Kerja di hari Minggu dicatat lewat absen Lembur.');
+  if(!isHK(tgl))return bad('Hari Minggu (libur) bukan hari kerja. Kerja di hari Minggu dicatat lewat absen Lembur.');
   if(!jin&&!jout)return bad('Isi jam masuk dan/atau jam pulang yang benar');
   const cur=(S.att[tgl]||{})[eid]||null;
   if(cur&&(cur.s==='Menunggu'||cur.outP))return bad('Absen tanggal itu masih menunggu persetujuan Direktur (di luar lokasi). Tunggu keputusannya dulu.');
@@ -3468,7 +3480,7 @@ function absKoreksi(){
  <div class="tw"><table><thead><tr><th>Diajukan</th>${wide?'<th>Karyawan</th>':''}<th>Tanggal absen</th><th>Perubahan</th><th>Alasan</th><th>Keputusan</th></tr></thead><tbody>${rows.length?P.items.map(r=>{const c=koaChg(r);return `<tr><td>${fds(r.tgl)}<br><small>${esc(r.oleh)}</small></td>${wide?`<td>${esc(empOf(r.empId).nama)}</td>`:''}<td>${fd(r.tglAbs)}</td><td><small>Sebelumnya: ${esc(c.b)}</small><br>Menjadi: <b>${esc(c.a)}</b></td><td>${esc(r.alasanKoreksi||'-')}</td><td>${r.st==='Menunggu'&&isAp()?`<button class="btn sm pri" data-act="apOk" data-id="${r.id}">Setujui</button> <button class="btn sm del" data-act="apNo" data-id="${r.id}">Tolak</button>`:koaSt(r)}</td></tr>`}).join(''):`<tr><td colspan="${wide?6:5}" class="empty">Belum ada pengajuan koreksi absen.</td></tr>`}</tbody></table></div>${P.html}</div>`}
 
 /* ---------- 3. Riwayat absen per tanggal ---------- */
-const hisLbl=(a,t)=>!a&&pd(t).getDay()===0?'Libur':absLbl(a,t);
+const hisLbl=(a,t)=>!a&&!isHK(t)?'Libur':absLbl(a,t);
 const hisCls=l=>l==='Belum absen'||l==='Menunggu ACC'?'Belum':l==='Hadir, telat'?'Telat':l==='Libur'?'Dicetak':l;
 CH.hisT=el=>{if(!el.value)return;if(el.value>TODAY){toast('Tanggal tidak boleh setelah hari ini');return}U.hisT=el.value;render()};
 A.hisGo=b=>{const n=+b.dataset.n;let t=n===0?TODAY:addD(U.hisT||TODAY,n);if(t>TODAY)t=TODAY;U.hisT=t;render()};
