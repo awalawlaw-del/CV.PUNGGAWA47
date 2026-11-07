@@ -3170,7 +3170,7 @@ function absRekapData(mo){
   dd.forEach(t=>{const a=(S.att[t]||{})[e.id];
    if(!a){if(t<TODAY)al++;return}
    if(a.s==='Hadir'){h++;if(isLate(a))tl++}else if(a.s==='Izin')iz++;else if(a.s==='Sakit')sk++;else if(a.s==='Menunggu')mn++;else al++});
-  const hk=(e.id===DIR_ID?full.filter(t=>t>=dirStart()):full).length;
+  const hk=full.length;
   return{e,h,tl,iz,sk,al,mn,hk,pct:dd.length?Math.round(h/dd.length*100):0}});
  return{ds,full,rows}}
 const absLbl=(a,t)=>!a?(t<TODAY?'Alpa':'Belum absen'):a.s==='Hadir'?(isLate(a)?'Hadir, telat':'Hadir'):a.s==='Menunggu'?'Menunggu ACC':a.s;
