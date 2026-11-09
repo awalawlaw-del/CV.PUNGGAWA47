@@ -2688,6 +2688,15 @@ A.absGo=()=>{
  .tw table.rk td:last-child .row{flex:1;min-width:0}
  .tw table.rk td[colspan]{grid-column:1/-1}
 }
+/* ===== Tabel bentuk kartu di HP (semua tabel .tw): isi tidak boleh melebarkan kartu keluar layar ===== */
+@media (max-width:640px){
+ .tw table{width:100%;max-width:100%;table-layout:fixed}
+ .tw tr{min-width:0;max-width:100%;box-sizing:border-box}
+ .tw td{min-width:0;flex-wrap:wrap;overflow-wrap:anywhere}
+ .tw td select,.tw td input{min-width:0;max-width:100%}
+ .tw td select{text-overflow:ellipsis}
+ .tw td:first-child select{flex:1 1 100%;width:100%!important;max-width:100%;margin-top:4px}
+}
 </style>
 <script>
 /* =====================================================================
@@ -3634,7 +3643,7 @@ setInterval(async()=>{try{
 </script>
 <script>
 /* Pemberitahuan "aplikasi diperbarui": tampil SEKALI per pengguna per perangkat. Ganti NOTE_VER untuk menampilkan lagi. */
-{const NOTE_VER='v3';
+{const NOTE_VER='v4';
  A.reloadNow=async()=>{try{await syncNow()}catch(e){}
   try{if('serviceWorker' in navigator){const r=await navigator.serviceWorker.getRegistrations();await Promise.all(r.map(x=>x.unregister()))}}catch(e){}
   try{if(window.caches){const k=await caches.keys();await Promise.all(k.map(x=>caches.delete(x)))}}catch(e){}
@@ -3646,7 +3655,7 @@ setInterval(async()=>{try{
   let done=false;try{done=!!localStorage.getItem(key)}catch(e){}
   clearInterval(tm);if(done)return;
   try{localStorage.setItem(key,'1')}catch(e){}
-  modal(`<h2 style="font-size:20px">Aplikasi baru saja diperbarui</h2><div class="info">Pembaruan ini memperbaiki <b>absensi yang kadang tidak tercatat</b> (absen kini diblokir dengan pesan jelas jika akun belum tersambung ke data karyawan, dan tanggal absen otomatis mengikuti hari ini), serta <b>tampilan Rekap Absensi di HP</b>.<br><br>Mohon <b>muat ulang halaman</b> sekarang agar pembaruan terpasang. Jika absen Anda pernah tidak muncul, <b>keluar lalu masuk lagi</b> setelah memuat ulang.</div><div class="row" style="justify-content:flex-end"><button class="btn" data-act="close">Nanti</button><button class="btn pri" data-act="reloadNow">Muat ulang sekarang</button></div>`)
+  modal(`<h2 style="font-size:20px">Aplikasi baru saja diperbarui</h2><div class="info">Pembaruan ini memperbaiki <b>absensi yang kadang tidak tercatat</b> (absen kini diblokir dengan pesan jelas jika akun belum tersambung ke data karyawan, dan tanggal absen otomatis mengikuti hari ini), serta <b>tampilan Absensi dan Rekap Absensi di HP</b> yang sebelumnya terpotong.<br><br>Mohon <b>muat ulang halaman</b> sekarang agar pembaruan terpasang. Jika absen Anda pernah tidak muncul, <b>keluar lalu masuk lagi</b> setelah memuat ulang.</div><div class="row" style="justify-content:flex-end"><button class="btn" data-act="close">Nanti</button><button class="btn pri" data-act="reloadNow">Muat ulang sekarang</button></div>`)
  }catch(e){console.error(e)}},1500)}
 </script>
 <script>
