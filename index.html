@@ -2570,7 +2570,19 @@ async function absLoadPos(){
   const g=$('#abs_go');if(g)g.disabled=false;
   const w=$('#abs_warn');if(w)w.hidden=p.ok!==false;
 }
+/* ===== Pengaman absen (perbaikan 9 Nov 2026) =====
+   - ID karyawan kosong / tidak ada di daftar pegawai: absen DIBLOKIR (dulu tersimpan di kunci "null" dan bertabrakan antar karyawan)
+   - Halaman terbuka lewat tengah malam: absen DIBLOKIR lalu halaman dimuat ulang (dulu tercatat di tanggal kemarin) */
+function absIdOk(id){return !!id&&id!=='null'&&id!=='undefined'&&(id===DIR_ID||S.emps.some(e=>e.id===id))}
+function absReloadDay(){toast('Tanggal sudah berganti. Halaman dimuat ulang...',3000);setTimeout(async()=>{try{await syncNow()}catch(e){}location.reload()},1200)}
+function absPre(id){
+  if(iso(new Date())!==TODAY){absStop();absReloadDay();return true}
+  if(!absIdOk(id)){absStop();
+    modal(`<h2 style="font-size:20px">Akun belum tersambung</h2><div class="note">Akun Anda belum tersambung ke data karyawan, jadi absen belum bisa disimpan. Hubungi admin untuk menyambungkannya, lalu <b>keluar dan masuk lagi</b>.</div><div class="row" style="justify-content:flex-end;margin-top:14px"><button type="button" class="btn pri" data-act="close">Mengerti</button></div>`);
+    return true}
+  return false}
 function absModal(kind,id){
+  if(absPre(id))return;
   const K=kind==='pulang'?absKey(id):TODAY,day=S.att[K]||{},a=day[id],e=S.emps.find(x=>x.id===id)||{nama:SES.nama};
   if(kind==='masuk'&&a){toast('Absen masuk hari ini sudah tercatat'+(a.s==='Menunggu'?' (menunggu persetujuan Direktur)':''));return}
   if(kind==='pulang'){
@@ -2617,6 +2629,7 @@ A.clockOut=b=>absModal('pulang',b.dataset.id);
 A.absRetry=()=>{absLoadPos()};
 A.absGo=()=>{
   if(ABS.busy||!ABS.p)return;
+  if(absPre(ABS.id))return;
   ABS.busy=true;
   const btn=$('#abs_go');if(btn){btn.disabled=true;btn.textContent='Menyimpan...'}
   const kind=ABS.kind,p=ABS.p;
@@ -2647,6 +2660,33 @@ A.absGo=()=>{
  .sheet .row{flex-wrap:wrap}
  .sheet .row .btn{flex:1 1 auto}
  .kpi .v{font-size:18px}
+}
+</style>
+<style id="rekap-mobile">
+/* ===== Rekap Absensi: muat di layar HP (tampilan saja, tanpa mengubah data/logika) ===== */
+.rk-head{flex-wrap:wrap;gap:8px}
+@media (max-width:860px){
+ .tw table.rk{min-width:0;width:100%}
+ .tw table.rk th,.tw table.rk td{padding:9px 6px;font-size:12.5px}
+ .tw table.rk th[style]{min-width:0!important}
+ .tw table.rk .bar{min-width:44px}
+ .tw table.rk td:first-child,.tw table.rk th:first-child{padding-left:12px}
+}
+@media (max-width:640px){
+ .rk-head{flex-direction:column;align-items:stretch}
+ .card>.rk-head:last-of-type{margin-bottom:12px}
+ .card>.row.rk-head+.tw{margin-top:12px}
+ .rk-head input[type=month]{width:100%!important}
+ .rk-head .btn{width:100%}
+ .tw table.rk tr{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:8px;row-gap:2px;padding:10px 12px}
+ .tw table.rk td{display:block;text-align:center;padding:5px 0;min-width:0}
+ .tw table.rk td::before{display:block;margin-bottom:2px;font-size:11px;text-align:center}
+ .tw table.rk td:first-child{grid-column:1/-1;text-align:left;padding-bottom:6px;border-bottom:1px solid var(--line);margin-bottom:4px}
+ .tw table.rk td:first-child::before{content:none}
+ .tw table.rk td:last-child{grid-column:1/-1;display:flex;align-items:center;gap:10px;text-align:left}
+ .tw table.rk td:last-child::before{margin:0}
+ .tw table.rk td:last-child .row{flex:1;min-width:0}
+ .tw table.rk td[colspan]{grid-column:1/-1}
 }
 </style>
 <script>
@@ -3220,10 +3260,10 @@ A.absXls=()=>{if(!SES||!ABS_ROLES.includes(SES.role)){toast('Tidak punya akses')
  try{saveFile('Rekap-Absensi-'+U.absM+'.xlsx',xlsxBuild(absXlsSheets(U.absM)))}catch(e){toast('Gagal membuat file Excel')}};
 
 const absPill=(a,t)=>{const l=absLbl(a,t);return `<span class="pill p-${l==='Belum absen'||l==='Menunggu ACC'?'Belum':l==='Hadir, telat'?'Telat':l}">${l}</span>`};
-const absMonthBtn=()=>`<div class="row"><input type="month" value="${U.absM}" data-inp="absM" style="width:auto" aria-label="Pilih bulan"><button class="btn pri" data-act="absXls">Unduh Excel</button></div>`;
+const absMonthBtn=()=>`<div class="row rk-head"><input type="month" value="${U.absM}" data-inp="absM" style="width:auto" aria-label="Pilih bulan"><button class="btn pri" data-act="absXls">Unduh Excel</button></div>`;
 function absRekapCard(judul){const {ds,rows}=absRekapData(U.absM),mn=rows.some(r=>r.mn);
- return `<div class="card"><div class="row" style="justify-content:space-between"><h3>${judul||'Rekap absensi bulanan'}</h3>${absMonthBtn()}</div>
- <div class="tw"><table><thead><tr><th>Karyawan</th><th class="r">Hari kerja</th><th class="r">Hadir</th><th class="r">Telat</th><th class="r">Izin</th><th class="r">Sakit</th><th class="r">Alpa</th>${mn?'<th class="r">Menunggu ACC</th>':''}<th style="min-width:130px">Kehadiran</th></tr></thead><tbody>
+ return `<div class="card"><div class="row rk-head" style="justify-content:space-between"><h3>${judul||'Rekap absensi bulanan'}</h3>${absMonthBtn()}</div>
+ <div class="tw"><table class="rk"><thead><tr><th>Karyawan</th><th class="r">Hari kerja</th><th class="r">Hadir</th><th class="r">Telat</th><th class="r">Izin</th><th class="r">Sakit</th><th class="r">Alpa</th>${mn?'<th class="r">Menunggu ACC</th>':''}<th style="min-width:130px">Kehadiran</th></tr></thead><tbody>
  ${rows.length?rows.map(r=>`<tr><td>${esc(r.e.nama)}<br><small style="color:var(--muted)">${esc(r.e.jabatan||'')}</small></td><td class="r num">${r.hk}</td><td class="r num">${r.h}</td><td class="r num">${r.tl}</td><td class="r num">${r.iz}</td><td class="r num">${r.sk}</td><td class="r num">${r.al}</td>${mn?`<td class="r num">${r.mn}</td>`:''}<td><div class="row" style="flex-wrap:nowrap"><div class="bar" style="flex:1"><i class="${r.pct>=90?'ok':r.pct>=75?'mid':'low'}" style="width:${r.pct}%"></i></div><span class="num">${r.pct}%</span></div></td></tr>`).join(''):'<tr><td colspan="9" class="empty">Belum ada karyawan.</td></tr>'}</tbody></table></div>
  <p style="color:var(--muted);margin:8px 0 0;font-size:12px">Hari kerja = jumlah hari di bulan itu dikurangi 4 hari libur (Minggu pertama sampai keempat; Minggu ke-5 dihitung hari kerja). Kolom Hari kerja = total hari kerja satu bulan penuh. Persentase kehadiran dihitung dari hari kerja yang sudah berjalan sampai hari ini. Hari yang belum diisi dianggap alpa. File Excel berisi dua lembar: Rekap Bulanan dan Detail Harian (jam masuk, pulang, dan lokasi).</p></div>`}
 
@@ -3359,6 +3399,7 @@ function absBar(){U.abssub=absSub();const n=koaPending(),it=[['abs','Absensi'],[
 
 /* ---------- 1. Absen lembur ---------- */
 function lbrModal(kind,id){
+ if(absPre(id))return;
  if(!isSA()&&id!==absMe()){toast('Absen lembur hanya untuk akun sendiri');return}
  const e=empOf(id),op=lbrOpen(id),ex=(LBR()[TODAY]||{})[id];
  if(kind==='masuk'){
@@ -3397,7 +3438,7 @@ function lbrResult(r,kind,p){
 A.lbrIn=b=>lbrModal('masuk',b.dataset.id);
 A.lbrOut=b=>lbrModal('pulang',b.dataset.id);
 A.lbrGo=()=>{
- if(ABS.busy||!ABS.p)return;ABS.busy=true;
+ if(ABS.busy||!ABS.p)return;if(absPre(ABS.id))return;ABS.busy=true;
  const btn=$('#abs_go');if(btn){btn.disabled=true;btn.textContent='Menyimpan...'}
  const kind=ABS.kind,p=ABS.p,k=$('#lbr_ket'),ket=k?k.value.trim():'';
  let r;try{r=lbrDo(kind,ABS.id,p,ket)}catch(e){console.error(e);r={st:'err'}}
@@ -3593,7 +3634,7 @@ setInterval(async()=>{try{
 </script>
 <script>
 /* Pemberitahuan "aplikasi diperbarui": tampil SEKALI per pengguna per perangkat. Ganti NOTE_VER untuk menampilkan lagi. */
-{const NOTE_VER='v2';
+{const NOTE_VER='v3';
  A.reloadNow=async()=>{try{await syncNow()}catch(e){}
   try{if('serviceWorker' in navigator){const r=await navigator.serviceWorker.getRegistrations();await Promise.all(r.map(x=>x.unregister()))}}catch(e){}
   try{if(window.caches){const k=await caches.keys();await Promise.all(k.map(x=>caches.delete(x)))}}catch(e){}
@@ -3605,8 +3646,20 @@ setInterval(async()=>{try{
   let done=false;try{done=!!localStorage.getItem(key)}catch(e){}
   clearInterval(tm);if(done)return;
   try{localStorage.setItem(key,'1')}catch(e){}
-  modal(`<h2 style="font-size:20px">Aplikasi baru saja diperbarui</h2><div class="info">Pembaruan ini mencakup: absensi <b>Shift 1 dan Shift 2</b> (shift terbaca otomatis dari jam absen masuk), perbaikan data karyawan dan akun, hari kerja per bulan, serta tampilan Kas Bank Jasa dan Kas Bank Material.<br><br>Mohon <b>muat ulang halaman</b> agar tampilan Anda ikut terbarui. Setelah itu <b>keluar lalu masuk lagi</b> supaya data akun Anda tersambung dengan benar.</div><div class="row" style="justify-content:flex-end"><button class="btn" data-act="close">Nanti</button><button class="btn pri" data-act="reloadNow">Muat ulang sekarang</button></div>`)
+  modal(`<h2 style="font-size:20px">Aplikasi baru saja diperbarui</h2><div class="info">Pembaruan ini memperbaiki <b>absensi yang kadang tidak tercatat</b> (absen kini diblokir dengan pesan jelas jika akun belum tersambung ke data karyawan, dan tanggal absen otomatis mengikuti hari ini), serta <b>tampilan Rekap Absensi di HP</b>.<br><br>Mohon <b>muat ulang halaman</b> sekarang agar pembaruan terpasang. Jika absen Anda pernah tidak muncul, <b>keluar lalu masuk lagi</b> setelah memuat ulang.</div><div class="row" style="justify-content:flex-end"><button class="btn" data-act="close">Nanti</button><button class="btn pri" data-act="reloadNow">Muat ulang sekarang</button></div>`)
  }catch(e){console.error(e)}},1500)}
+</script>
+<script>
+/* Tanggal berganti saat halaman masih terbuka: simpan dulu lalu muat ulang, supaya absen tidak tercatat di tanggal kemarin.
+   Ditunda bila ada form terbuka / sedang mengetik / gagal simpan. */
+(function(){let run=false;
+ async function chk(){if(run||!SES||!S||iso(new Date())===TODAY)return;
+  const m=$('#modal'),ae=document.activeElement;
+  if((m&&!m.hidden)||(ae&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)))return;
+  if(typeof SYNC!=='undefined'&&(SYNC.fail||SYNC.busy))return;
+  run=true;try{await syncNow()}catch(e){}
+  location.reload()}
+ setInterval(chk,30000);window.addEventListener('focus',chk);document.addEventListener('visibilitychange',()=>{if(!document.hidden)chk()})})();
 </script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}</script>
 </body>
